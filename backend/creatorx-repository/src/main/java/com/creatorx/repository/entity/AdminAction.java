@@ -11,6 +11,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.Map;
 
 @Entity
