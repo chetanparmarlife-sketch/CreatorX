@@ -3,10 +3,23 @@
  * 
  * Handles authentication operations: login, register, logout, and token management.
  * Uses Supabase for authentication (matching React Native app architecture).
+ * 
+ * DEMO MODE: When backend is not available, allows demo login for UI preview.
  */
 
 import { apiClient } from './client'
-import { AuthResponse, LoginRequest, RegisterRequest, User } from '@/lib/types'
+import { AuthResponse, LoginRequest, RegisterRequest, UserRole } from '@/lib/types'
+
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || true
+
+const DEMO_USER: AuthResponse = {
+  userId: 'demo-user-1',
+  email: 'demo@creatorx.com',
+  role: UserRole.BRAND,
+  accessToken: 'demo-access-token-12345',
+  refreshToken: 'demo-refresh-token-12345',
+  message: 'Demo login successful',
+}
 
 /**
  * Login with email and password
@@ -14,6 +27,14 @@ import { AuthResponse, LoginRequest, RegisterRequest, User } from '@/lib/types'
  */
 export async function login(email: string, password: string): Promise<AuthResponse> {
   try {
+    // DEMO MODE: Allow login without backend for UI preview
+    if (DEMO_MODE) {
+      console.log('🎭 Demo Mode: Logging in with demo account')
+      const demoResponse = { ...DEMO_USER, email }
+      apiClient.setTokens(demoResponse.accessToken!, demoResponse.refreshToken!)
+      return demoResponse
+    }
+
     // For web, we'll use Supabase client-side
     // In a real implementation, you'd use @supabase/supabase-js
     // For now, we'll call the backend directly
@@ -149,6 +170,14 @@ export async function register(
  * Get current authenticated user
  */
 export async function getCurrentUser(): Promise<AuthResponse> {
+  // DEMO MODE: Return demo user if token matches
+  if (DEMO_MODE) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('creatorx_access_token') : null
+    if (token === 'demo-access-token-12345') {
+      return DEMO_USER
+    }
+  }
+
   const response = await apiClient.get<AuthResponse>('/auth/me')
   return response
 }
