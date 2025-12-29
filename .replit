@@ -1,14 +1,9 @@
-# Replit Configuration
-# NOTE: This file is for Replit cloud environment only
-# For local development, use setup-local.sh/setup-local.bat and npm run dev:local
-# See LOCAL_DEVELOPMENT.md for local setup instructions
-
-modules = ["nodejs-20", "web", "postgresql-16"]
+modules = ["nodejs-20", "java-graalvm22.3", "bash"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -18,66 +13,6 @@ run = ["npm", "run", "start"]
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3002
-
-[[ports]]
-localPort = 32855
-externalPort = 5000
-
-[[ports]]
-localPort = 32859
-externalPort = 3000
-
-[[ports]]
-localPort = 33337
-externalPort = 3003
-
-[[ports]]
-localPort = 34149
-externalPort = 6000
-
-[[ports]]
-localPort = 35537
-externalPort = 8008
-
-[[ports]]
-localPort = 36003
-externalPort = 3001
-
-[[ports]]
-localPort = 37775
-externalPort = 4200
-
-[[ports]]
-localPort = 40499
-externalPort = 8099
-
-[[ports]]
-localPort = 41365
-externalPort = 8080
-
-[[ports]]
-localPort = 42407
-externalPort = 8081
-
-[[ports]]
-localPort = 43025
-externalPort = 6800
-
-[[ports]]
-localPort = 44127
-externalPort = 5173
-
-[[ports]]
-localPort = 44949
-externalPort = 8000
-
-[[ports]]
-localPort = 46051
-externalPort = 9000
 
 [env]
 PORT = "5000"
@@ -100,8 +35,12 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "yes | npm run dev"
 waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 integrations = ["javascript_database:1.0.0"]
+expertMode = true
