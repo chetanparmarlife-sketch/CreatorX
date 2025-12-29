@@ -1,0 +1,43 @@
+# Build stage
+FROM gradle:8.5-jdk17 AS build
+
+WORKDIR /app
+
+# Copy Gradle files
+COPY build.gradle settings.gradle gradle.properties ./
+COPY gradle ./gradle
+
+# Copy all module source files
+COPY creatorx-api ./creatorx-api
+COPY creatorx-service ./creatorx-service
+COPY creatorx-repository ./creatorx-repository
+COPY creatorx-common ./creatorx-common
+
+# Build the application
+RUN gradle clean build -x test --no-daemon
+
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+# Copy the built JAR from build stage
+COPY --from=build /app/creatorx-api/build/libs/*.jar app.jar
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
+
+
+
+

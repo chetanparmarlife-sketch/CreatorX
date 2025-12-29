@@ -1,0 +1,848 @@
+openapi: 3.0.3
+info:
+  title: CreatorX Campaign API
+  description: |
+    Campaign management endpoints for creators.
+    All endpoints require JWT authentication.
+  version: 1.0.0
+  contact:
+    name: CreatorX API Support
+    email: support@creatorx.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api-staging.creatorx.com/api/v1
+    description: Staging server
+  - url: https://api.creatorx.com/api/v1
+    description: Production server
+
+tags:
+  - name: Campaigns
+    description: Campaign discovery and management endpoints
+
+paths:
+  /campaigns:
+    get:
+      tags:
+        - Campaigns
+      summary: List campaigns with filters
+      description: |
+        Get paginated list of campaigns with optional filters.
+        Only returns campaigns with status ACTIVE by default.
+      operationId: listCampaigns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+          example: "Fashion"
+        - name: platform
+          in: query
+          description: Filter by platform
+          required: false
+          schema:
+            $ref: '#/components/schemas/Platform'
+          example: INSTAGRAM
+        - name: budget_min
+          in: query
+          description: Minimum budget filter
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: 0
+          example: 10000
+        - name: budget_max
+          in: query
+          description: Maximum budget filter
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: 0
+          example: 100000
+        - name: status
+          in: query
+          description: Filter by campaign status
+          required: false
+          schema:
+            $ref: '#/components/schemas/CampaignStatus'
+          example: ACTIVE
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: List of campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCampaignResponse'
+              example:
+                items:
+                  - id: "550e8400-e29b-41d4-a716-446655440000"
+                    title: "Summer Fashion Collection 2024"
+                    description: "Promote our new summer fashion line"
+                    budget: 50000.00
+                    platforms:
+                      - INSTAGRAM
+                      - YOUTUBE
+                    category: "Fashion"
+                    brand:
+                      id: "660e8400-e29b-41d4-a716-446655440001"
+                      name: "StyleCo Fashion"
+                      logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                    status: ACTIVE
+                    deadline: "2024-12-31"
+                    imageUrl: "https://cdn.creatorx.com/campaigns/summer-2024.jpg"
+                    tags:
+                      - "fashion"
+                      - "summer"
+                      - "trending"
+                    requirements:
+                      - "Minimum 10K followers"
+                      - "High engagement rate"
+                    applicantsCount: 15
+                    isPaid: true
+                    createdAt: "2024-12-01T08:00:00Z"
+                page: 0
+                size: 20
+                total: 150
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request - invalid filter parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/{id}:
+    get:
+      tags:
+        - Campaigns
+      summary: Get campaign details
+      description: Get detailed information about a specific campaign
+      operationId: getCampaign
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Campaign ID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Campaign details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                title: "Summer Fashion Collection 2024"
+                description: "Promote our new summer fashion line with high-quality content"
+                brief: "We're looking for creators to showcase our summer collection. Content should be vibrant and align with summer vibes."
+                budget: 50000.00
+                platforms:
+                  - INSTAGRAM
+                  - YOUTUBE
+                category: "Fashion"
+                brand:
+                  id: "660e8400-e29b-41d4-a716-446655440001"
+                  name: "StyleCo Fashion"
+                  logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                status: ACTIVE
+                deadline: "2024-12-31"
+                imageUrl: "https://cdn.creatorx.com/campaigns/summer-2024.jpg"
+                tags:
+                  - "fashion"
+                  - "summer"
+                  - "trending"
+                requirements:
+                  - "Minimum 10K followers"
+                  - "High engagement rate"
+                  - "Must post within 7 days of delivery"
+                contentTypes:
+                  - "REEL"
+                  - "POST"
+                ageGroup: "18-35"
+                followersRange: "10K-100K"
+                gender: "All"
+                mandatoryDeliverables:
+                  - id: "770e8400-e29b-41d4-a716-446655440002"
+                    type: "REEL"
+                    description: "1 Instagram Reel showcasing the collection"
+                    quantity: 1
+                applicantsCount: 15
+                isPaid: true
+                createdAt: "2024-12-01T08:00:00Z"
+                updatedAt: "2024-12-05T10:30:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 404
+                error: "Resource Not Found"
+                message: "Campaign not found with identifier: 550e8400-e29b-41d4-a716-446655440000"
+                path: "/api/v1/campaigns/550e8400-e29b-41d4-a716-446655440000"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/saved:
+    get:
+      tags:
+        - Campaigns
+      summary: Get saved campaigns
+      description: Get list of campaigns saved by the authenticated creator
+      operationId: getSavedCampaigns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Saved campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCampaignResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/{id}/save:
+    post:
+      tags:
+        - Campaigns
+      summary: Save a campaign
+      description: Save a campaign to the creator's saved list
+      operationId: saveCampaign
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Campaign ID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Campaign saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Campaign saved successfully"
+                  saved:
+                    type: boolean
+                    example: true
+              example:
+                message: "Campaign saved successfully"
+                saved: true
+        '201':
+          description: Campaign saved successfully (created)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Campaign saved successfully"
+                  saved:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - campaign already saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 409
+                error: "Conflict"
+                message: "Campaign already saved"
+                path: "/api/v1/campaigns/550e8400-e29b-41d4-a716-446655440000/save"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Campaigns
+      summary: Unsave a campaign
+      description: Remove a campaign from the creator's saved list
+      operationId: unsaveCampaign
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Campaign ID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Campaign unsaved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Campaign unsaved successfully"
+                  saved:
+                    type: boolean
+                    example: false
+              example:
+                message: "Campaign unsaved successfully"
+                saved: false
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found or not saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/active:
+    get:
+      tags:
+        - Campaigns
+      summary: Get active campaigns
+      description: Get list of campaigns where the creator has been selected and is actively working
+      operationId: getActiveCampaigns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Active campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActiveCampaignResponse'
+              example:
+                items:
+                  - id: "880e8400-e29b-41d4-a716-446655440003"
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                      description: "Promote our new summer fashion line"
+                      budget: 50000.00
+                      platforms:
+                        - INSTAGRAM
+                      category: "Fashion"
+                      brand:
+                        id: "660e8400-e29b-41d4-a716-446655440001"
+                        name: "StyleCo Fashion"
+                        logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                      status: ACTIVE
+                      deadline: "2024-12-31"
+                    paymentStatus: PENDING
+                    paymentAmount: 50000.00
+                    deadline: "2024-12-31"
+                    completedAt: null
+                    createdAt: "2024-12-05T10:00:00Z"
+                page: 0
+                size: 20
+                total: 5
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login endpoint
+
+  schemas:
+    Campaign:
+      type: object
+      required:
+        - id
+        - title
+        - budget
+        - platforms
+        - category
+        - brand
+        - status
+        - deadline
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Campaign unique identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          description: Campaign title
+          example: "Summer Fashion Collection 2024"
+        description:
+          type: string
+          nullable: true
+          description: Campaign description
+          example: "Promote our new summer fashion line with high-quality content"
+        brief:
+          type: string
+          nullable: true
+          description: Detailed campaign brief
+          example: "We're looking for creators to showcase our summer collection. Content should be vibrant and align with summer vibes."
+        budget:
+          type: number
+          format: double
+          description: Campaign budget in INR
+          example: 50000.00
+        platforms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Platform'
+          description: List of platforms for this campaign
+          example:
+            - INSTAGRAM
+            - YOUTUBE
+        category:
+          type: string
+          description: Campaign category
+          example: "Fashion"
+        brand:
+          $ref: '#/components/schemas/BrandInfo'
+        status:
+          $ref: '#/components/schemas/CampaignStatus'
+        deadline:
+          type: string
+          format: date
+          description: Campaign deadline
+          example: "2024-12-31"
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Campaign image URL
+          example: "https://cdn.creatorx.com/campaigns/summer-2024.jpg"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Campaign tags
+          example:
+            - "fashion"
+            - "summer"
+            - "trending"
+        requirements:
+          type: array
+          items:
+            type: string
+          description: Campaign requirements
+          example:
+            - "Minimum 10K followers"
+            - "High engagement rate"
+            - "Must post within 7 days of delivery"
+        contentTypes:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Required content types
+          example:
+            - "REEL"
+            - "POST"
+        ageGroup:
+          type: string
+          nullable: true
+          description: Target age group
+          example: "18-35"
+        followersRange:
+          type: string
+          nullable: true
+          description: Target follower range
+          example: "10K-100K"
+        gender:
+          type: string
+          nullable: true
+          description: Target gender
+          example: "All"
+        mandatoryDeliverables:
+          type: array
+          items:
+            $ref: '#/components/schemas/CampaignDeliverable'
+          description: List of mandatory deliverables
+        applicantsCount:
+          type: integer
+          description: Number of applicants
+          example: 15
+        isPaid:
+          type: boolean
+          description: Whether this is a paid campaign
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Campaign creation timestamp
+          example: "2024-12-01T08:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Campaign last update timestamp
+          example: "2024-12-05T10:30:00Z"
+
+    CampaignDeliverable:
+      type: object
+      required:
+        - id
+        - type
+        - quantity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Deliverable unique identifier
+          example: "770e8400-e29b-41d4-a716-446655440002"
+        type:
+          type: string
+          description: Deliverable type
+          example: "REEL"
+        description:
+          type: string
+          nullable: true
+          description: Deliverable description
+          example: "1 Instagram Reel showcasing the collection"
+        quantity:
+          type: integer
+          description: Required quantity
+          example: 1
+
+    BrandInfo:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Brand user ID
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          description: Brand name
+          example: "StyleCo Fashion"
+        logo:
+          type: string
+          format: uri
+          nullable: true
+          description: Brand logo URL
+          example: "https://cdn.creatorx.com/brands/styleco-logo.png"
+
+    PaginatedCampaignResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Campaign'
+          description: List of campaigns
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of campaigns
+          example: 150
+
+    ActiveCampaign:
+      type: object
+      required:
+        - id
+        - campaign
+        - paymentStatus
+        - paymentAmount
+        - deadline
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Active campaign unique identifier
+          example: "880e8400-e29b-41d4-a716-446655440003"
+        campaign:
+          $ref: '#/components/schemas/Campaign'
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        paymentAmount:
+          type: number
+          format: double
+          description: Payment amount in INR
+          example: 50000.00
+        deadline:
+          type: string
+          format: date
+          description: Campaign deadline
+          example: "2024-12-31"
+        completedAt:
+          type: string
+          format: date
+          nullable: true
+          description: Campaign completion date
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+          description: Active campaign creation timestamp
+          example: "2024-12-05T10:00:00Z"
+
+    PaginatedActiveCampaignResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActiveCampaign'
+          description: List of active campaigns
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of active campaigns
+          example: 5
+
+    CampaignStatus:
+      type: string
+      enum:
+        - DRAFT
+        - ACTIVE
+        - PAUSED
+        - COMPLETED
+        - CANCELLED
+      description: Campaign status
+      example: ACTIVE
+
+    Platform:
+      type: string
+      enum:
+        - INSTAGRAM
+        - YOUTUBE
+        - TWITTER
+        - FACEBOOK
+        - LINKEDIN
+        - TIKTOK
+      description: Social media platform
+      example: INSTAGRAM
+
+    PaymentStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - PAID
+        - FAILED
+        - REFUNDED
+      description: Payment status
+      example: PENDING
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-12-07T10:30:00Z"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        error:
+          type: string
+          description: Error type
+          example: "Validation Failed"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid input parameters"
+        path:
+          type: string
+          description: Request path
+          example: "/api/v1/campaigns"
+        details:
+          type: object
+          nullable: true
+          description: Additional error details
+          additionalProperties:
+            type: string
+
+
+

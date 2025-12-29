@@ -1,0 +1,61 @@
+# Multi-stage build for production
+# Stage 1: Build
+FROM gradle:8.5-jdk17 AS build
+
+WORKDIR /app
+
+# Copy Gradle configuration files
+COPY build.gradle settings.gradle gradle.properties ./
+COPY gradle ./gradle
+
+# Copy source code
+COPY creatorx-api ./creatorx-api
+COPY creatorx-service ./creatorx-service
+COPY creatorx-repository ./creatorx-repository
+COPY creatorx-common ./creatorx-common
+
+# Build arguments
+ARG BUILD_VERSION=unknown
+ENV BUILD_VERSION=${BUILD_VERSION}
+
+# Build the application (skip tests - already run in CI)
+RUN gradle clean build -x test --no-daemon \
+    && mkdir -p /app/extracted \
+    && java -Djarmode=layertools -jar creatorx-api/build/libs/*.jar extract --destination /app/extracted
+
+# Stage 2: Runtime
+FROM eclipse-temurin:17-jre-alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S spring && adduser -S spring -G spring
+
+# Copy extracted layers from build stage
+COPY --from=build /app/extracted/dependencies/ ./
+COPY --from=build /app/extracted/spring-boot-loader/ ./
+COPY --from=build /app/extracted/snapshot-dependencies/ ./
+COPY --from=build /app/extracted/application/ ./
+
+# Set ownership
+RUN chown -R spring:spring /app
+
+# Switch to non-root user
+USER spring:spring
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# JVM options for production
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+# Run the application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
+

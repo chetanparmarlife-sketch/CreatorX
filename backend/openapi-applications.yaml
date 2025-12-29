@@ -1,0 +1,1094 @@
+openapi: 3.0.3
+info:
+  title: CreatorX Application and Deliverable API
+  description: |
+    Application and deliverable management endpoints for creators.
+    All endpoints require JWT authentication.
+  version: 1.0.0
+  contact:
+    name: CreatorX API Support
+    email: support@creatorx.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api-staging.creatorx.com/api/v1
+    description: Staging server
+  - url: https://api.creatorx.com/api/v1
+    description: Production server
+
+tags:
+  - name: Applications
+    description: Campaign application management endpoints
+  - name: Deliverables
+    description: Deliverable submission and management endpoints
+
+paths:
+  /applications:
+    post:
+      tags:
+        - Applications
+      summary: Submit application to campaign
+      description: |
+        Submit an application to a campaign.
+        Creator can only apply once per campaign.
+      operationId: submitApplication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationRequest'
+            example:
+              campaignId: "550e8400-e29b-41d4-a716-446655440000"
+              pitch: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+              expectedTimeline: "7-10 days"
+              extraDetails: "I can also create behind-the-scenes content and stories."
+      responses:
+        '201':
+          description: Application submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+              example:
+                id: "990e8400-e29b-41d4-a716-446655440004"
+                campaignId: "550e8400-e29b-41d4-a716-446655440000"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                  brand:
+                    id: "660e8400-e29b-41d4-a716-446655440001"
+                    name: "StyleCo Fashion"
+                creatorId: "110e8400-e29b-41d4-a716-446655440005"
+                status: APPLIED
+                pitch: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+                expectedTimeline: "7-10 days"
+                extraDetails: "I can also create behind-the-scenes content and stories."
+                brandFeedback: null
+                submittedAt: "2024-12-07T10:30:00Z"
+                reviewedAt: null
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-07T10:30:00Z"
+        '400':
+          description: Bad request - validation error or already applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "You have already applied to this campaign"
+                path: "/api/v1/applications"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Applications
+      summary: Get creator's applications
+      description: Get paginated list of applications submitted by the authenticated creator
+      operationId: getApplications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by application status
+          required: false
+          schema:
+            $ref: '#/components/schemas/ApplicationStatus'
+          example: APPLIED
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Applications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedApplicationResponse'
+              example:
+                items:
+                  - id: "990e8400-e29b-41d4-a716-446655440004"
+                    campaignId: "550e8400-e29b-41d4-a716-446655440000"
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                      brand:
+                        id: "660e8400-e29b-41d4-a716-446655440001"
+                        name: "StyleCo Fashion"
+                    creatorId: "110e8400-e29b-41d4-a716-446655440005"
+                    status: APPLIED
+                    pitch: "I have 50K followers on Instagram with high engagement."
+                    expectedTimeline: "7-10 days"
+                    submittedAt: "2024-12-07T10:30:00Z"
+                page: 0
+                size: 20
+                total: 15
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /applications/{id}:
+    get:
+      tags:
+        - Applications
+      summary: Get application details
+      description: Get detailed information about a specific application
+      operationId: getApplication
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Application ID
+          schema:
+            type: string
+            format: uuid
+          example: "990e8400-e29b-41d4-a716-446655440004"
+      responses:
+        '200':
+          description: Application details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+              example:
+                id: "990e8400-e29b-41d4-a716-446655440004"
+                campaignId: "550e8400-e29b-41d4-a716-446655440000"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                  description: "Promote our new summer fashion line"
+                  budget: 50000.00
+                  brand:
+                    id: "660e8400-e29b-41d4-a716-446655440001"
+                    name: "StyleCo Fashion"
+                    logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                creatorId: "110e8400-e29b-41d4-a716-446655440005"
+                status: SHORTLISTED
+                pitch: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+                expectedTimeline: "7-10 days"
+                extraDetails: "I can also create behind-the-scenes content and stories."
+                brandFeedback: "Great portfolio! We'd like to see more details about your engagement rate."
+                submittedAt: "2024-12-07T10:30:00Z"
+                reviewedAt: "2024-12-08T14:20:00Z"
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-08T14:20:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - application belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Applications
+      summary: Withdraw application
+      description: |
+        Withdraw an application from a campaign.
+        Only applications with status APPLIED or SHORTLISTED can be withdrawn.
+      operationId: withdrawApplication
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Application ID
+          schema:
+            type: string
+            format: uuid
+          example: "990e8400-e29b-41d4-a716-446655440004"
+      responses:
+        '200':
+          description: Application withdrawn successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Application withdrawn successfully"
+                  status:
+                    $ref: '#/components/schemas/ApplicationStatus'
+                    example: WITHDRAWN
+              example:
+                message: "Application withdrawn successfully"
+                status: WITHDRAWN
+        '400':
+          description: Bad request - cannot withdraw application in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Bad Request"
+                message: "Cannot withdraw application with status SELECTED or REJECTED"
+                path: "/api/v1/applications/990e8400-e29b-41d4-a716-446655440004"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - application belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables:
+    get:
+      tags:
+        - Deliverables
+      summary: Get creator's deliverables
+      description: Get paginated list of deliverables across all active campaigns
+      operationId: getDeliverables
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by deliverable status
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeliverableStatus'
+          example: PENDING
+        - name: campaignId
+          in: query
+          description: Filter by campaign ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Deliverables retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDeliverableResponse'
+              example:
+                items:
+                  - id: "aa0e8400-e29b-41d4-a716-446655440006"
+                    activeCampaignId: "880e8400-e29b-41d4-a716-446655440003"
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                    title: "Instagram Reel - Summer Collection"
+                    description: "Create a vibrant Instagram Reel showcasing the summer collection"
+                    status: PENDING
+                    type: CONTENT_DRAFT
+                    dueDate: "2024-12-20"
+                    submittedFileUrl: null
+                    submittedFileName: null
+                    submittedFileType: null
+                    submittedAt: null
+                    feedback: null
+                    postUrl: null
+                    createdAt: "2024-12-07T10:30:00Z"
+                page: 0
+                size: 20
+                total: 8
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables/{id}/submit:
+    post:
+      tags:
+        - Deliverables
+      summary: Submit deliverable
+      description: |
+        Submit a deliverable by uploading a file.
+        File is uploaded to Supabase Storage and URL is stored.
+      operationId: submitDeliverable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deliverable ID
+          schema:
+            type: string
+            format: uuid
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Deliverable file (image, video, etc.)
+                description:
+                  type: string
+                  nullable: true
+                  description: Optional description or notes
+                  example: "First draft of the reel"
+            encoding:
+              file:
+                contentType: image/*, video/*, application/pdf
+      responses:
+        '200':
+          description: Deliverable submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deliverable'
+              example:
+                id: "aa0e8400-e29b-41d4-a716-446655440006"
+                activeCampaignId: "880e8400-e29b-41d4-a716-446655440003"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                title: "Instagram Reel - Summer Collection"
+                description: "Create a vibrant Instagram Reel showcasing the summer collection"
+                status: SUBMITTED
+                type: CONTENT_DRAFT
+                dueDate: "2024-12-20"
+                submittedFileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+                submittedFileName: "reel.mp4"
+                submittedFileType: "video/mp4"
+                submittedAt: "2024-12-10T15:30:00Z"
+                feedback: null
+                postUrl: null
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-10T15:30:00Z"
+        '400':
+          description: Bad request - validation error or invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "File is required and must be a valid image or video"
+                path: "/api/v1/deliverables/aa0e8400-e29b-41d4-a716-446655440006/submit"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - deliverable belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Deliverable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables/{id}:
+    put:
+      tags:
+        - Deliverables
+      summary: Resubmit deliverable after revision
+      description: |
+        Resubmit a deliverable after brand requested revisions.
+        Only deliverables with status REVISION_REQUESTED can be resubmitted.
+      operationId: resubmitDeliverable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deliverable ID
+          schema:
+            type: string
+            format: uuid
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Updated deliverable file
+                description:
+                  type: string
+                  nullable: true
+                  description: Optional description or notes
+                  example: "Updated version based on feedback"
+            encoding:
+              file:
+                contentType: image/*, video/*, application/pdf
+      responses:
+        '200':
+          description: Deliverable resubmitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deliverable'
+              example:
+                id: "aa0e8400-e29b-41d4-a716-446655440006"
+                activeCampaignId: "880e8400-e29b-41d4-a716-446655440003"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                title: "Instagram Reel - Summer Collection"
+                description: "Create a vibrant Instagram Reel showcasing the summer collection"
+                status: SUBMITTED
+                type: CONTENT_DRAFT
+                dueDate: "2024-12-20"
+                submittedFileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel-v2.mp4"
+                submittedFileName: "reel-v2.mp4"
+                submittedFileType: "video/mp4"
+                submittedAt: "2024-12-12T16:45:00Z"
+                feedback: "Please make the colors more vibrant and add product close-ups"
+                postUrl: null
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-12T16:45:00Z"
+        '400':
+          description: Bad request - validation error or cannot resubmit in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Bad Request"
+                message: "Can only resubmit deliverables with status REVISION_REQUESTED"
+                path: "/api/v1/deliverables/aa0e8400-e29b-41d4-a716-446655440006"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - deliverable belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Deliverable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables/{id}/history:
+    get:
+      tags:
+        - Deliverables
+      summary: Get deliverable submission history
+      description: Get history of all submissions and revisions for a deliverable
+      operationId: getDeliverableHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deliverable ID
+          schema:
+            type: string
+            format: uuid
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+      responses:
+        '200':
+          description: Deliverable history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deliverableId:
+                    type: string
+                    format: uuid
+                    example: "aa0e8400-e29b-41d4-a716-446655440006"
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliverableHistoryEntry'
+              example:
+                deliverableId: "aa0e8400-e29b-41d4-a716-446655440006"
+                history:
+                  - submissionId: "bb0e8400-e29b-41d4-a716-446655440007"
+                    status: SUBMITTED
+                    fileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+                    fileName: "reel.mp4"
+                    submittedAt: "2024-12-10T15:30:00Z"
+                    feedback: null
+                    reviewedAt: null
+                  - submissionId: "cc0e8400-e29b-41d4-a716-446655440008"
+                    status: REVISION_REQUESTED
+                    fileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+                    fileName: "reel.mp4"
+                    submittedAt: "2024-12-10T15:30:00Z"
+                    feedback: "Please make the colors more vibrant and add product close-ups"
+                    reviewedAt: "2024-12-11T10:00:00Z"
+                  - submissionId: "dd0e8400-e29b-41d4-a716-446655440009"
+                    status: SUBMITTED
+                    fileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel-v2.mp4"
+                    fileName: "reel-v2.mp4"
+                    submittedAt: "2024-12-12T16:45:00Z"
+                    feedback: null
+                    reviewedAt: null
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - deliverable belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Deliverable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login endpoint
+
+  schemas:
+    ApplicationRequest:
+      type: object
+      required:
+        - campaignId
+        - pitch
+        - expectedTimeline
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+          description: Campaign ID to apply to
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        pitch:
+          type: string
+          minLength: 50
+          maxLength: 2000
+          description: Application pitch (50-2000 characters)
+          example: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+        expectedTimeline:
+          type: string
+          description: Expected timeline for completion
+          example: "7-10 days"
+        extraDetails:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Additional details or notes
+          example: "I can also create behind-the-scenes content and stories."
+
+    Application:
+      type: object
+      required:
+        - id
+        - campaignId
+        - creatorId
+        - status
+        - pitch
+        - expectedTimeline
+        - submittedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Application unique identifier
+          example: "990e8400-e29b-41d4-a716-446655440004"
+        campaignId:
+          type: string
+          format: uuid
+          description: Campaign ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        campaign:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+            description:
+              type: string
+              nullable: true
+            budget:
+              type: number
+              format: double
+            brand:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                logo:
+                  type: string
+                  format: uri
+                  nullable: true
+          description: Campaign details (included in detail view)
+        creatorId:
+          type: string
+          format: uuid
+          description: Creator user ID
+          example: "110e8400-e29b-41d4-a716-446655440005"
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        pitch:
+          type: string
+          description: Application pitch
+          example: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+        expectedTimeline:
+          type: string
+          description: Expected timeline for completion
+          example: "7-10 days"
+        extraDetails:
+          type: string
+          nullable: true
+          description: Additional details
+          example: "I can also create behind-the-scenes content and stories."
+        brandFeedback:
+          type: string
+          nullable: true
+          description: Feedback from brand
+          example: "Great portfolio! We'd like to see more details about your engagement rate."
+        submittedAt:
+          type: string
+          format: date-time
+          description: Application submission timestamp
+          example: "2024-12-07T10:30:00Z"
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Application review timestamp
+          example: "2024-12-08T14:20:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Application creation timestamp
+          example: "2024-12-07T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Application last update timestamp
+          example: "2024-12-08T14:20:00Z"
+
+    PaginatedApplicationResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Application'
+          description: List of applications
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of applications
+          example: 15
+
+    Deliverable:
+      type: object
+      required:
+        - id
+        - activeCampaignId
+        - title
+        - status
+        - type
+        - dueDate
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Deliverable unique identifier
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+        activeCampaignId:
+          type: string
+          format: uuid
+          description: Active campaign ID
+          example: "880e8400-e29b-41d4-a716-446655440003"
+        campaign:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+          description: Campaign details (included in detail view)
+        title:
+          type: string
+          description: Deliverable title
+          example: "Instagram Reel - Summer Collection"
+        description:
+          type: string
+          nullable: true
+          description: Deliverable description
+          example: "Create a vibrant Instagram Reel showcasing the summer collection"
+        status:
+          $ref: '#/components/schemas/DeliverableStatus'
+        type:
+          $ref: '#/components/schemas/DeliverableType'
+        dueDate:
+          type: string
+          format: date
+          description: Deliverable due date
+          example: "2024-12-20"
+        submittedFileUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL of submitted file in Supabase Storage
+          example: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+        submittedFileName:
+          type: string
+          nullable: true
+          description: Original file name
+          example: "reel.mp4"
+        submittedFileType:
+          type: string
+          nullable: true
+          description: File MIME type
+          example: "video/mp4"
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Submission timestamp
+          example: "2024-12-10T15:30:00Z"
+        feedback:
+          type: string
+          nullable: true
+          description: Feedback from brand
+          example: "Please make the colors more vibrant and add product close-ups"
+        postUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL where content was posted (for verification)
+          example: "https://www.instagram.com/p/ABC123"
+        createdAt:
+          type: string
+          format: date-time
+          description: Deliverable creation timestamp
+          example: "2024-12-07T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Deliverable last update timestamp
+          example: "2024-12-10T15:30:00Z"
+
+    PaginatedDeliverableResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Deliverable'
+          description: List of deliverables
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of deliverables
+          example: 8
+
+    DeliverableHistoryEntry:
+      type: object
+      required:
+        - submissionId
+        - status
+        - submittedAt
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+          description: Submission unique identifier
+          example: "bb0e8400-e29b-41d4-a716-446655440007"
+        status:
+          $ref: '#/components/schemas/DeliverableStatus'
+        fileUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL of submitted file
+          example: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+        fileName:
+          type: string
+          nullable: true
+          description: Original file name
+          example: "reel.mp4"
+        submittedAt:
+          type: string
+          format: date-time
+          description: Submission timestamp
+          example: "2024-12-10T15:30:00Z"
+        feedback:
+          type: string
+          nullable: true
+          description: Feedback from brand
+          example: "Please make the colors more vibrant and add product close-ups"
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Review timestamp
+          example: "2024-12-11T10:00:00Z"
+
+    ApplicationStatus:
+      type: string
+      enum:
+        - APPLIED
+        - SHORTLISTED
+        - SELECTED
+        - REJECTED
+        - WITHDRAWN
+      description: Application status
+      example: APPLIED
+
+    DeliverableStatus:
+      type: string
+      enum:
+        - PENDING
+        - APPROVED
+        - REVISION_REQUESTED
+        - REJECTED
+        - SUBMITTED
+      description: Deliverable status
+      example: PENDING
+
+    DeliverableType:
+      type: string
+      enum:
+        - CONTENT_DRAFT
+        - THUMBNAIL
+        - CAPTION
+        - RAW_FILE
+        - POST_PROOF
+      description: Deliverable type
+      example: CONTENT_DRAFT
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-12-07T10:30:00Z"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        error:
+          type: string
+          description: Error type
+          example: "Validation Failed"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid input parameters"
+        path:
+          type: string
+          description: Request path
+          example: "/api/v1/applications"
+        details:
+          type: object
+          nullable: true
+          description: Additional error details
+          additionalProperties:
+            type: string
+
+
+

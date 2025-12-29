@@ -1,0 +1,97 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: creatorx_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Grant execute permission for gradlew
+        run: chmod +x backend/gradlew
+        working-directory: backend
+      
+      - name: Run tests
+        working-directory: backend
+        run: ./gradlew test --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/creatorx_test
+          TEST_DATABASE_USERNAME: test
+          TEST_DATABASE_PASSWORD: test
+      
+      - name: Generate JaCoCo report
+        working-directory: backend
+        run: ./gradlew jacocoRootReport --no-daemon
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+      
+      - name: Check coverage threshold
+        working-directory: backend
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: |
+            backend/**/build/test-results/**/*.xml
+            backend/**/build/reports/jacoco/**/*
+      
+      - name: Publish test report
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: 'backend/**/build/test-results/**/*.xml'
+          check_name: 'Backend Unit Tests'
+

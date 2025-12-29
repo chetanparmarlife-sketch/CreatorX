@@ -1,0 +1,5079 @@
+openapi: 3.0.3
+info:
+  title: CreatorX API
+  version: 1.0.0
+  description: |
+    Complete API specification for CreatorX Phase 1 - A three-sided marketplace 
+    connecting creators, brands, and admins for influencer campaign management.
+    
+    ## Authentication
+    All protected endpoints require JWT Bearer token in Authorization header:
+    `Authorization: Bearer <access_token>`
+    
+    ## Pagination
+    List endpoints support pagination with query parameters:
+    - page: Page number (default: 1)
+    - size: Items per page (default: 20, max: 100)
+    
+    ## Error Handling
+    All errors follow standard format with code, message, and optional details.
+  contact:
+    name: CreatorX API Support
+    email: api@creatorx.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api-dev.creatorx.com
+    description: Development environment
+  - url: https://api-staging.creatorx.com
+    description: Staging environment
+  - url: https://api.creatorx.com
+    description: Production environment
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Campaigns
+    description: Campaign discovery and management
+  - name: Applications
+    description: Campaign application workflows
+  - name: Deliverables
+    description: Deliverable submission and review
+  - name: Wallet
+    description: Wallet and transaction management
+  - name: KYC
+    description: Know Your Customer verification
+  - name: Messaging
+    description: Real-time messaging between users
+  - name: Notifications
+    description: Push and in-app notifications
+  - name: Profile
+    description: User profile management
+  - name: Referrals
+    description: Referral program and tracking
+
+paths:
+  /applications:
+    post:
+      tags:
+        - Applications
+      summary: Submit application to campaign
+      description: |
+        Submit an application to a campaign.
+        Creator can only apply once per campaign.
+      operationId: submitApplication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationRequest'
+            example:
+              campaignId: "550e8400-e29b-41d4-a716-446655440000"
+              pitch: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+              expectedTimeline: "7-10 days"
+              extraDetails: "I can also create behind-the-scenes content and stories."
+      responses:
+        '201':
+          description: Application submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+              example:
+                id: "990e8400-e29b-41d4-a716-446655440004"
+                campaignId: "550e8400-e29b-41d4-a716-446655440000"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                  brand:
+                    id: "660e8400-e29b-41d4-a716-446655440001"
+                    name: "StyleCo Fashion"
+                creatorId: "110e8400-e29b-41d4-a716-446655440005"
+                status: APPLIED
+                pitch: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+                expectedTimeline: "7-10 days"
+                extraDetails: "I can also create behind-the-scenes content and stories."
+                brandFeedback: null
+                submittedAt: "2024-12-07T10:30:00Z"
+                reviewedAt: null
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-07T10:30:00Z"
+        '400':
+          description: Bad request - validation error or already applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "You have already applied to this campaign"
+                path: "/api/v1/applications"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Applications
+      summary: Get creator's applications
+      description: Get paginated list of applications submitted by the authenticated creator
+      operationId: getApplications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by application status
+          required: false
+          schema:
+            $ref: '#/components/schemas/ApplicationStatus'
+          example: APPLIED
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Applications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedApplicationResponse'
+              example:
+                items:
+                  - id: "990e8400-e29b-41d4-a716-446655440004"
+                    campaignId: "550e8400-e29b-41d4-a716-446655440000"
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                      brand:
+                        id: "660e8400-e29b-41d4-a716-446655440001"
+                        name: "StyleCo Fashion"
+                    creatorId: "110e8400-e29b-41d4-a716-446655440005"
+                    status: APPLIED
+                    pitch: "I have 50K followers on Instagram with high engagement."
+                    expectedTimeline: "7-10 days"
+                    submittedAt: "2024-12-07T10:30:00Z"
+                page: 0
+                size: 20
+                total: 15
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /applications/{id}:
+    get:
+      tags:
+        - Applications
+      summary: Get application details
+      description: Get detailed information about a specific application
+      operationId: getApplication
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Application ID
+          schema:
+            type: string
+            format: uuid
+          example: "990e8400-e29b-41d4-a716-446655440004"
+      responses:
+        '200':
+          description: Application details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+              example:
+                id: "990e8400-e29b-41d4-a716-446655440004"
+                campaignId: "550e8400-e29b-41d4-a716-446655440000"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                  description: "Promote our new summer fashion line"
+                  budget: 50000.00
+                  brand:
+                    id: "660e8400-e29b-41d4-a716-446655440001"
+                    name: "StyleCo Fashion"
+                    logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                creatorId: "110e8400-e29b-41d4-a716-446655440005"
+                status: SHORTLISTED
+                pitch: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+                expectedTimeline: "7-10 days"
+                extraDetails: "I can also create behind-the-scenes content and stories."
+                brandFeedback: "Great portfolio! We'd like to see more details about your engagement rate."
+                submittedAt: "2024-12-07T10:30:00Z"
+                reviewedAt: "2024-12-08T14:20:00Z"
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-08T14:20:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - application belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Applications
+      summary: Withdraw application
+      description: |
+        Withdraw an application from a campaign.
+        Only applications with status APPLIED or SHORTLISTED can be withdrawn.
+      operationId: withdrawApplication
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Application ID
+          schema:
+            type: string
+            format: uuid
+          example: "990e8400-e29b-41d4-a716-446655440004"
+      responses:
+        '200':
+          description: Application withdrawn successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Application withdrawn successfully"
+                  status:
+                    $ref: '#/components/schemas/ApplicationStatus'
+                    example: WITHDRAWN
+              example:
+                message: "Application withdrawn successfully"
+                status: WITHDRAWN
+        '400':
+          description: Bad request - cannot withdraw application in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Bad Request"
+                message: "Cannot withdraw application with status SELECTED or REJECTED"
+                path: "/api/v1/applications/990e8400-e29b-41d4-a716-446655440004"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - application belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Application not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: |
+        Send OTP to user's email/phone for password reset.
+        OTP will be valid for 10 minutes.
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            example:
+              email: creator@example.com
+      responses:
+        '200':
+          description: Password reset OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent to your email"
+                  otpSentTo:
+                    type: string
+                    format: email
+                    example: "c***@example.com"
+              example:
+                message: "OTP sent to your email"
+                otpSentTo: "c***@example.com"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 404
+                error: "Resource Not Found"
+                message: "User with email creator@example.com not found"
+                path: "/api/v1/auth/forgot-password"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: |
+        Authenticate user with email and password.
+        Returns JWT access token and refresh token.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: creator@example.com
+              password: SecurePass123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjcmVhdG9yQGV4YW1wbGUuY29tIiwidXNlcklkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwicm9sZSI6IkNSRUFUT1IiLCJpYXQiOjE3MDIwNDQ2MDAsImV4cCI6MTcwMjEzMTAwMH0
+                refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjcmVhdG9yQGV4YW1wbGUuY29tIiwidXNlcklkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiaWF0IjoxNzAyMDQ0NjAwLCJleHAiOjE3MDI2NDk0MDB9
+                user:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  email: creator@example.com
+                  role: CREATOR
+                  name: Rahul Kumar
+                  emailVerified: true
+                  phoneVerified: true
+                  createdAt: "2024-12-01T08:00:00Z"
+        '401':
+          description: Unauthorized - invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 401
+                error: "Authentication Failed"
+                message: "Invalid email or password"
+                path: "/api/v1/auth/login"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: |
+        Invalidate the current refresh token.
+        Access token will expire naturally.
+      operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+            example:
+              refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+              example:
+                message: "Logged out successfully"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: |
+        Generate a new access token using a valid refresh token.
+        Refresh token must not be expired.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjcmVhdG9yQGV4YW1wbGUuY29tIiwidXNlcklkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwicm9sZSI6IkNSRUFUT1IiLCJpYXQiOjE3MDIwNDQ2MDAsImV4cCI6MTcwMjEzMTAwMH0
+        '401':
+          description: Unauthorized - invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 401
+                error: "Unauthorized"
+                message: "Invalid or expired refresh token"
+                path: "/api/v1/auth/refresh-token"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: |
+        Register a new creator or brand account.
+        After registration, user must verify email/phone via OTP.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              creator:
+                summary: Creator registration
+                value:
+                  email: creator@example.com
+                  password: SecurePass123!
+                  role: CREATOR
+                  name: Rahul Kumar
+                  phone: "+919876543210"
+              brand:
+                summary: Brand registration
+                value:
+                  email: brand@example.com
+                  password: SecurePass123!
+                  role: BRAND
+                  name: StyleCo Fashion
+                  phone: "+919876543211"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                user:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  email: creator@example.com
+                  role: CREATOR
+                  name: Rahul Kumar
+                  emailVerified: false
+                  phoneVerified: false
+                  createdAt: "2024-12-07T10:30:00Z"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Invalid input parameters"
+                path: "/api/v1/auth/register"
+                details:
+                  email: "Email is required and must be valid"
+                  password: "Password must be at least 8 characters"
+                  role: "Role must be CREATOR or BRAND"
+        '409':
+          description: Conflict - user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 409
+                error: "Conflict"
+                message: "User with this email already exists"
+                path: "/api/v1/auth/register"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/verify-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Verify OTP
+      description: |
+        Verify OTP sent via email/phone.
+        Used for email verification, phone verification, or password reset.
+      operationId: verifyOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+            examples:
+              emailVerification:
+                summary: Email verification
+                value:
+                  email: creator@example.com
+                  otp: "123456"
+                  type: EMAIL_VERIFICATION
+              passwordReset:
+                summary: Password reset
+                value:
+                  email: creator@example.com
+                  otp: "123456"
+                  type: PASSWORD_RESET
+                  newPassword: "NewSecurePass123!"
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Email verified successfully"
+                  accessToken:
+                    type: string
+                    nullable: true
+                    description: "Access token returned for email/phone verification, null for password reset"
+                    example: null
+              examples:
+                emailVerification:
+                  summary: Email verification response
+                  value:
+                    verified: true
+                    message: "Email verified successfully"
+                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                passwordReset:
+                  summary: Password reset response
+                  value:
+                    verified: true
+                    message: "Password reset successfully"
+                    accessToken: null
+        '400':
+          description: Bad request - invalid OTP or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Invalid or expired OTP"
+                path: "/api/v1/auth/verify-otp"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /campaigns:
+    get:
+      tags:
+        - Campaigns
+      summary: List campaigns with filters
+      description: |
+        Get paginated list of campaigns with optional filters.
+        Only returns campaigns with status ACTIVE by default.
+      operationId: listCampaigns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+          example: "Fashion"
+        - name: platform
+          in: query
+          description: Filter by platform
+          required: false
+          schema:
+            $ref: '#/components/schemas/Platform'
+          example: INSTAGRAM
+        - name: budget_min
+          in: query
+          description: Minimum budget filter
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: 0
+          example: 10000
+        - name: budget_max
+          in: query
+          description: Maximum budget filter
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: 0
+          example: 100000
+        - name: status
+          in: query
+          description: Filter by campaign status
+          required: false
+          schema:
+            $ref: '#/components/schemas/CampaignStatus'
+          example: ACTIVE
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: List of campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCampaignResponse'
+              example:
+                items:
+                  - id: "550e8400-e29b-41d4-a716-446655440000"
+                    title: "Summer Fashion Collection 2024"
+                    description: "Promote our new summer fashion line"
+                    budget: 50000.00
+                    platforms:
+                      - INSTAGRAM
+                      - YOUTUBE
+                    category: "Fashion"
+                    brand:
+                      id: "660e8400-e29b-41d4-a716-446655440001"
+                      name: "StyleCo Fashion"
+                      logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                    status: ACTIVE
+                    deadline: "2024-12-31"
+                    imageUrl: "https://cdn.creatorx.com/campaigns/summer-2024.jpg"
+                    tags:
+                      - "fashion"
+                      - "summer"
+                      - "trending"
+                    requirements:
+                      - "Minimum 10K followers"
+                      - "High engagement rate"
+                    applicantsCount: 15
+                    isPaid: true
+                    createdAt: "2024-12-01T08:00:00Z"
+                page: 0
+                size: 20
+                total: 150
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request - invalid filter parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/active:
+    get:
+      tags:
+        - Campaigns
+      summary: Get active campaigns
+      description: Get list of campaigns where the creator has been selected and is actively working
+      operationId: getActiveCampaigns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Active campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActiveCampaignResponse'
+              example:
+                items:
+                  - id: "880e8400-e29b-41d4-a716-446655440003"
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                      description: "Promote our new summer fashion line"
+                      budget: 50000.00
+                      platforms:
+                        - INSTAGRAM
+                      category: "Fashion"
+                      brand:
+                        id: "660e8400-e29b-41d4-a716-446655440001"
+                        name: "StyleCo Fashion"
+                        logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                      status: ACTIVE
+                      deadline: "2024-12-31"
+                    paymentStatus: PENDING
+                    paymentAmount: 50000.00
+                    deadline: "2024-12-31"
+                    completedAt: null
+                    createdAt: "2024-12-05T10:00:00Z"
+                page: 0
+                size: 20
+                total: 5
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/saved:
+    get:
+      tags:
+        - Campaigns
+      summary: Get saved campaigns
+      description: Get list of campaigns saved by the authenticated creator
+      operationId: getSavedCampaigns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Saved campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCampaignResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/{id}:
+    get:
+      tags:
+        - Campaigns
+      summary: Get campaign details
+      description: Get detailed information about a specific campaign
+      operationId: getCampaign
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Campaign ID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Campaign details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                title: "Summer Fashion Collection 2024"
+                description: "Promote our new summer fashion line with high-quality content"
+                brief: "We're looking for creators to showcase our summer collection. Content should be vibrant and align with summer vibes."
+                budget: 50000.00
+                platforms:
+                  - INSTAGRAM
+                  - YOUTUBE
+                category: "Fashion"
+                brand:
+                  id: "660e8400-e29b-41d4-a716-446655440001"
+                  name: "StyleCo Fashion"
+                  logo: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                status: ACTIVE
+                deadline: "2024-12-31"
+                imageUrl: "https://cdn.creatorx.com/campaigns/summer-2024.jpg"
+                tags:
+                  - "fashion"
+                  - "summer"
+                  - "trending"
+                requirements:
+                  - "Minimum 10K followers"
+                  - "High engagement rate"
+                  - "Must post within 7 days of delivery"
+                contentTypes:
+                  - "REEL"
+                  - "POST"
+                ageGroup: "18-35"
+                followersRange: "10K-100K"
+                gender: "All"
+                mandatoryDeliverables:
+                  - id: "770e8400-e29b-41d4-a716-446655440002"
+                    type: "REEL"
+                    description: "1 Instagram Reel showcasing the collection"
+                    quantity: 1
+                applicantsCount: 15
+                isPaid: true
+                createdAt: "2024-12-01T08:00:00Z"
+                updatedAt: "2024-12-05T10:30:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 404
+                error: "Resource Not Found"
+                message: "Campaign not found with identifier: 550e8400-e29b-41d4-a716-446655440000"
+                path: "/api/v1/campaigns/550e8400-e29b-41d4-a716-446655440000"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /campaigns/{id}/save:
+    post:
+      tags:
+        - Campaigns
+      summary: Save a campaign
+      description: Save a campaign to the creator's saved list
+      operationId: saveCampaign
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Campaign ID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Campaign saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Campaign saved successfully"
+                  saved:
+                    type: boolean
+                    example: true
+              example:
+                message: "Campaign saved successfully"
+                saved: true
+        '201':
+          description: Campaign saved successfully (created)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Campaign saved successfully"
+                  saved:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - campaign already saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 409
+                error: "Conflict"
+                message: "Campaign already saved"
+                path: "/api/v1/campaigns/550e8400-e29b-41d4-a716-446655440000/save"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /conversations:
+    get:
+      tags:
+        - Messaging
+      summary: Get conversations
+      description: Get list of conversations for the authenticated user (creator or brand)
+      operationId: getConversations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Conversations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+              example:
+                conversations:
+                  - id: "ll0e8400-e29b-41d4-a716-446655440017"
+                    campaignId: "550e8400-e29b-41d4-a716-446655440000"
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                    creator:
+                      id: "110e8400-e29b-41d4-a716-446655440005"
+                      name: "Rahul Kumar"
+                      avatarUrl: "https://cdn.creatorx.com/avatars/rahul.jpg"
+                    brand:
+                      id: "660e8400-e29b-41d4-a716-446655440001"
+                      name: "StyleCo Fashion"
+                      avatarUrl: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                    lastMessage:
+                      id: "mm0e8400-e29b-41d4-a716-446655440018"
+                      text: "Thanks for the update!"
+                      senderId: "660e8400-e29b-41d4-a716-446655440001"
+                      sentAt: "2024-12-07T14:30:00Z"
+                    unreadCount: 2
+                    lastMessageAt: "2024-12-07T14:30:00Z"
+                    createdAt: "2024-12-01T08:00:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /conversations/{id}/mark-read:
+    put:
+      tags:
+        - Messaging
+      summary: Mark conversation as read
+      description: Mark all messages in a conversation as read for the authenticated user
+      operationId: markConversationRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            format: uuid
+          example: "ll0e8400-e29b-41d4-a716-446655440017"
+      responses:
+        '200':
+          description: Conversation marked as read successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Conversation marked as read"
+                  unreadCount:
+                    type: integer
+                    example: 0
+              example:
+                message: "Conversation marked as read"
+                unreadCount: 0
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - conversation does not belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /conversations/{id}/messages:
+    get:
+      tags:
+        - Messaging
+      summary: Get messages
+      description: Get paginated list of messages in a conversation
+      operationId: getMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            format: uuid
+          example: "ll0e8400-e29b-41d4-a716-446655440017"
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMessageResponse'
+              example:
+                items:
+                  - id: "mm0e8400-e29b-41d4-a716-446655440018"
+                    conversationId: "ll0e8400-e29b-41d4-a716-446655440017"
+                    senderId: "660e8400-e29b-41d4-a716-446655440001"
+                    sender:
+                      id: "660e8400-e29b-41d4-a716-446655440001"
+                      name: "StyleCo Fashion"
+                      avatarUrl: "https://cdn.creatorx.com/brands/styleco-logo.png"
+                    text: "Thanks for the update!"
+                    status: READ
+                    sentAt: "2024-12-07T14:30:00Z"
+                    createdAt: "2024-12-07T14:30:00Z"
+                  - id: "nn0e8400-e29b-41d4-a716-446655440019"
+                    conversationId: "ll0e8400-e29b-41d4-a716-446655440017"
+                    senderId: "110e8400-e29b-41d4-a716-446655440005"
+                    sender:
+                      id: "110e8400-e29b-41d4-a716-446655440005"
+                      name: "Rahul Kumar"
+                      avatarUrl: "https://cdn.creatorx.com/avatars/rahul.jpg"
+                    text: "I've submitted the first draft. Please review."
+                    status: DELIVERED
+                    sentAt: "2024-12-07T14:25:00Z"
+                    createdAt: "2024-12-07T14:25:00Z"
+                page: 0
+                size: 20
+                total: 45
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - conversation does not belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Messaging
+      summary: Send message
+      description: Send a message in a conversation
+      operationId: sendMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            format: uuid
+          example: "ll0e8400-e29b-41d4-a716-446655440017"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+            example:
+              text: "I've submitted the first draft. Please review."
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                id: "nn0e8400-e29b-41d4-a716-446655440019"
+                conversationId: "ll0e8400-e29b-41d4-a716-446655440017"
+                senderId: "110e8400-e29b-41d4-a716-446655440005"
+                sender:
+                  id: "110e8400-e29b-41d4-a716-446655440005"
+                  name: "Rahul Kumar"
+                  avatarUrl: "https://cdn.creatorx.com/avatars/rahul.jpg"
+                text: "I've submitted the first draft. Please review."
+                status: SENT
+                sentAt: "2024-12-07T14:25:00Z"
+                createdAt: "2024-12-07T14:25:00Z"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Message text is required and cannot be empty"
+                path: "/api/v1/conversations/ll0e8400-e29b-41d4-a716-446655440017/messages"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - conversation does not belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables:
+    get:
+      tags:
+        - Deliverables
+      summary: Get creator's deliverables
+      description: Get paginated list of deliverables across all active campaigns
+      operationId: getDeliverables
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by deliverable status
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeliverableStatus'
+          example: PENDING
+        - name: campaignId
+          in: query
+          description: Filter by campaign ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Deliverables retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDeliverableResponse'
+              example:
+                items:
+                  - id: "aa0e8400-e29b-41d4-a716-446655440006"
+                    activeCampaignId: "880e8400-e29b-41d4-a716-446655440003"
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                    title: "Instagram Reel - Summer Collection"
+                    description: "Create a vibrant Instagram Reel showcasing the summer collection"
+                    status: PENDING
+                    type: CONTENT_DRAFT
+                    dueDate: "2024-12-20"
+                    submittedFileUrl: null
+                    submittedFileName: null
+                    submittedFileType: null
+                    submittedAt: null
+                    feedback: null
+                    postUrl: null
+                    createdAt: "2024-12-07T10:30:00Z"
+                page: 0
+                size: 20
+                total: 8
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables/{id}:
+    put:
+      tags:
+        - Deliverables
+      summary: Resubmit deliverable after revision
+      description: |
+        Resubmit a deliverable after brand requested revisions.
+        Only deliverables with status REVISION_REQUESTED can be resubmitted.
+      operationId: resubmitDeliverable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deliverable ID
+          schema:
+            type: string
+            format: uuid
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Updated deliverable file
+                description:
+                  type: string
+                  nullable: true
+                  description: Optional description or notes
+                  example: "Updated version based on feedback"
+            encoding:
+              file:
+                contentType: image/*, video/*, application/pdf
+      responses:
+        '200':
+          description: Deliverable resubmitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deliverable'
+              example:
+                id: "aa0e8400-e29b-41d4-a716-446655440006"
+                activeCampaignId: "880e8400-e29b-41d4-a716-446655440003"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                title: "Instagram Reel - Summer Collection"
+                description: "Create a vibrant Instagram Reel showcasing the summer collection"
+                status: SUBMITTED
+                type: CONTENT_DRAFT
+                dueDate: "2024-12-20"
+                submittedFileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel-v2.mp4"
+                submittedFileName: "reel-v2.mp4"
+                submittedFileType: "video/mp4"
+                submittedAt: "2024-12-12T16:45:00Z"
+                feedback: "Please make the colors more vibrant and add product close-ups"
+                postUrl: null
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-12T16:45:00Z"
+        '400':
+          description: Bad request - validation error or cannot resubmit in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Bad Request"
+                message: "Can only resubmit deliverables with status REVISION_REQUESTED"
+                path: "/api/v1/deliverables/aa0e8400-e29b-41d4-a716-446655440006"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - deliverable belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Deliverable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables/{id}/history:
+    get:
+      tags:
+        - Deliverables
+      summary: Get deliverable submission history
+      description: Get history of all submissions and revisions for a deliverable
+      operationId: getDeliverableHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deliverable ID
+          schema:
+            type: string
+            format: uuid
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+      responses:
+        '200':
+          description: Deliverable history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deliverableId:
+                    type: string
+                    format: uuid
+                    example: "aa0e8400-e29b-41d4-a716-446655440006"
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliverableHistoryEntry'
+              example:
+                deliverableId: "aa0e8400-e29b-41d4-a716-446655440006"
+                history:
+                  - submissionId: "bb0e8400-e29b-41d4-a716-446655440007"
+                    status: SUBMITTED
+                    fileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+                    fileName: "reel.mp4"
+                    submittedAt: "2024-12-10T15:30:00Z"
+                    feedback: null
+                    reviewedAt: null
+                  - submissionId: "cc0e8400-e29b-41d4-a716-446655440008"
+                    status: REVISION_REQUESTED
+                    fileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+                    fileName: "reel.mp4"
+                    submittedAt: "2024-12-10T15:30:00Z"
+                    feedback: "Please make the colors more vibrant and add product close-ups"
+                    reviewedAt: "2024-12-11T10:00:00Z"
+                  - submissionId: "dd0e8400-e29b-41d4-a716-446655440009"
+                    status: SUBMITTED
+                    fileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel-v2.mp4"
+                    fileName: "reel-v2.mp4"
+                    submittedAt: "2024-12-12T16:45:00Z"
+                    feedback: null
+                    reviewedAt: null
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - deliverable belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Deliverable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deliverables/{id}/submit:
+    post:
+      tags:
+        - Deliverables
+      summary: Submit deliverable
+      description: |
+        Submit a deliverable by uploading a file.
+        File is uploaded to Supabase Storage and URL is stored.
+      operationId: submitDeliverable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Deliverable ID
+          schema:
+            type: string
+            format: uuid
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Deliverable file (image, video, etc.)
+                description:
+                  type: string
+                  nullable: true
+                  description: Optional description or notes
+                  example: "First draft of the reel"
+            encoding:
+              file:
+                contentType: image/*, video/*, application/pdf
+      responses:
+        '200':
+          description: Deliverable submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deliverable'
+              example:
+                id: "aa0e8400-e29b-41d4-a716-446655440006"
+                activeCampaignId: "880e8400-e29b-41d4-a716-446655440003"
+                campaign:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "Summer Fashion Collection 2024"
+                title: "Instagram Reel - Summer Collection"
+                description: "Create a vibrant Instagram Reel showcasing the summer collection"
+                status: SUBMITTED
+                type: CONTENT_DRAFT
+                dueDate: "2024-12-20"
+                submittedFileUrl: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+                submittedFileName: "reel.mp4"
+                submittedFileType: "video/mp4"
+                submittedAt: "2024-12-10T15:30:00Z"
+                feedback: null
+                postUrl: null
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-10T15:30:00Z"
+        '400':
+          description: Bad request - validation error or invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "File is required and must be a valid image or video"
+                path: "/api/v1/deliverables/aa0e8400-e29b-41d4-a716-446655440006/submit"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - deliverable belongs to another creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Deliverable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /kyc/status:
+    get:
+      tags:
+        - KYC
+      summary: Get KYC status
+      description: Get KYC verification status and all submitted documents
+      operationId: getKYCStatus
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: KYC status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCStatusResponse'
+              example:
+                userId: "110e8400-e29b-41d4-a716-446655440005"
+                overallStatus: PENDING
+                kycVerified: false
+                documents:
+                  - id: "jj0e8400-e29b-41d4-a716-446655440015"
+                    documentType: AADHAAR
+                    documentUrl: "https://cdn.creatorx.com/kyc/jj0e8400-e29b-41d4-a716-446655440015/aadhaar.pdf"
+                    status: PENDING
+                    verifiedAt: null
+                    rejectionReason: null
+                    submittedAt: "2024-12-07T10:30:00Z"
+                  - id: "kk0e8400-e29b-41d4-a716-446655440016"
+                    documentType: PAN
+                    documentUrl: "https://cdn.creatorx.com/kyc/kk0e8400-e29b-41d4-a716-446655440016/pan.pdf"
+                    status: APPROVED
+                    verifiedAt: "2024-12-08T14:20:00Z"
+                    rejectionReason: null
+                    submittedAt: "2024-12-05T08:00:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /kyc/submit:
+    post:
+      tags:
+        - KYC
+      summary: Submit KYC document
+      description: |
+        Submit a KYC document for verification.
+        Supported document types: AADHAAR, PAN, GST, PASSPORT, DRIVING_LICENSE.
+        Document will be reviewed by admin within 2-3 business days.
+      operationId: submitKYC
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - documentType
+                - file
+              properties:
+                documentType:
+                  $ref: '#/components/schemas/KYCDocumentType'
+                file:
+                  type: string
+                  format: binary
+                  description: KYC document file (PDF, JPG, PNG)
+            encoding:
+              file:
+                contentType: application/pdf, image/jpeg, image/png
+      responses:
+        '201':
+          description: KYC document submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYCDocument'
+              example:
+                id: "jj0e8400-e29b-41d4-a716-446655440015"
+                userId: "110e8400-e29b-41d4-a716-446655440005"
+                documentType: AADHAAR
+                documentUrl: "https://cdn.creatorx.com/kyc/jj0e8400-e29b-41d4-a716-446655440015/aadhaar.pdf"
+                status: PENDING
+                verifiedBy: null
+                verifiedAt: null
+                rejectionReason: null
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-07T10:30:00Z"
+        '400':
+          description: Bad request - validation error or invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "File is required and must be PDF, JPG, or PNG"
+                path: "/api/v1/kyc/submit"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - document of this type already submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 409
+                error: "Conflict"
+                message: "AADHAAR document already submitted"
+                path: "/api/v1/kyc/submit"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications
+      description: Get paginated list of notifications for the authenticated user
+      operationId: getNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: read
+          in: query
+          description: Filter by read status
+          required: false
+          schema:
+            type: boolean
+          example: false
+        - name: type
+          in: query
+          description: Filter by notification type
+          required: false
+          schema:
+            $ref: '#/components/schemas/NotificationType'
+          example: CAMPAIGN
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationResponse'
+              example:
+                items:
+                  - id: "oo0e8400-e29b-41d4-a716-446655440020"
+                    type: CAMPAIGN
+                    title: "Application Selected"
+                    body: "Your application for 'Summer Fashion Collection 2024' has been selected!"
+                    read: false
+                    actionLabel: "View Campaign"
+                    actionPath: "/campaigns/550e8400-e29b-41d4-a716-446655440000"
+                    notificationTime: "2024-12-07T10:30:00Z"
+                    createdAt: "2024-12-07T10:30:00Z"
+                  - id: "pp0e8400-e29b-41d4-a716-446655440021"
+                    type: PAYMENT
+                    title: "Payment Received"
+                    body: "You've received INR 150,000 for completing 'Summer Fashion Collection 2024'"
+                    read: false
+                    actionLabel: "View Transaction"
+                    actionPath: "/wallet/transactions"
+                    notificationTime: "2024-12-06T15:20:00Z"
+                    createdAt: "2024-12-06T15:20:00Z"
+                page: 0
+                size: 20
+                total: 15
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/read-all:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      description: Mark all unread notifications as read for the authenticated user
+      operationId: markAllNotificationsRead
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "All notifications marked as read"
+                  markedCount:
+                    type: integer
+                    example: 15
+              example:
+                message: "All notifications marked as read"
+                markedCount: 15
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notification count
+      description: Get the count of unread notifications for the authenticated user
+      operationId: getUnreadCount
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+              example:
+                count: 5
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/{id}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: Mark a specific notification as read
+      operationId: markNotificationRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Notification ID
+          schema:
+            type: string
+            format: uuid
+          example: "oo0e8400-e29b-41d4-a716-446655440020"
+      responses:
+        '200':
+          description: Notification marked as read successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Notification marked as read"
+                  read:
+                    type: boolean
+                    example: true
+              example:
+                message: "Notification marked as read"
+                read: true
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - notification does not belong to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /profile:
+    get:
+      tags:
+        - Profile
+      summary: Get user profile
+      description: Get the authenticated user's profile information
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+              example:
+                id: "110e8400-e29b-41d4-a716-446655440005"
+                name: "Rahul Kumar"
+                email: "rahul@example.com"
+                username: "rahul_creator"
+                avatar: "https://cdn.creatorx.com/avatars/rahul.jpg"
+                bio: "Fashion content creator | 50K+ followers | High engagement"
+                role: CREATOR
+                isVerified: true
+                kycVerified: true
+                isPro: false
+                categories:
+                  - "Fashion"
+                  - "Lifestyle"
+                socialLinks:
+                  - platform: "Instagram"
+                    icon: "instagram"
+                    url: "https://instagram.com/rahul_creator"
+                    followers: "50K"
+                  - platform: "YouTube"
+                    icon: "youtube"
+                    url: "https://youtube.com/@rahul_creator"
+                    followers: "25K"
+                birthDate: "1995-05-15"
+                address:
+                  line1: "123 Main Street"
+                  line2: "Apt 4B"
+                  city: "Mumbai"
+                  state: "Maharashtra"
+                  postalCode: "400001"
+                  country: "India"
+                creatorProfile:
+                  username: "rahul_creator"
+                  category: "Fashion"
+                  followerCount: 50000
+                  engagementRate: 8.5
+                  instagramUrl: "https://instagram.com/rahul_creator"
+                  youtubeUrl: "https://youtube.com/@rahul_creator"
+                  verified: true
+                createdAt: "2024-12-01T08:00:00Z"
+                updatedAt: "2024-12-07T10:30:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Profile
+      summary: Update user profile
+      description: Update the authenticated user's profile information
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdateRequest'
+            example:
+              name: "Rahul Kumar"
+              bio: "Fashion content creator | 50K+ followers | High engagement"
+              username: "rahul_creator"
+              birthDate: "1995-05-15"
+              categories:
+                - "Fashion"
+                - "Lifestyle"
+              address:
+                line1: "123 Main Street"
+                line2: "Apt 4B"
+                city: "Mumbai"
+                state: "Maharashtra"
+                postalCode: "400001"
+                country: "India"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Username already taken"
+                path: "/api/v1/profile"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /profile/avatar:
+    post:
+      tags:
+        - Profile
+      summary: Upload profile avatar
+      description: Upload or update the user's profile avatar image
+      operationId: uploadAvatar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Avatar image file (JPG, PNG, max 5MB)
+            encoding:
+              file:
+                contentType: image/jpeg, image/png
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatarUrl:
+                    type: string
+                    format: uri
+                    example: "https://cdn.creatorx.com/avatars/110e8400-e29b-41d4-a716-446655440005/avatar.jpg"
+                  message:
+                    type: string
+                    example: "Avatar uploaded successfully"
+              example:
+                avatarUrl: "https://cdn.creatorx.com/avatars/110e8400-e29b-41d4-a716-446655440005/avatar.jpg"
+                message: "Avatar uploaded successfully"
+        '400':
+          description: Bad request - invalid file or file too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "File must be JPG or PNG and less than 5MB"
+                path: "/api/v1/profile/avatar"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /profile/portfolio:
+    get:
+      tags:
+        - Profile
+      summary: Get portfolio items
+      description: Get list of portfolio items for the authenticated creator
+      operationId: getPortfolio
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Portfolio items retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  portfolio:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PortfolioItem'
+              example:
+                portfolio:
+                  - id: "qq0e8400-e29b-41d4-a716-446655440022"
+                    title: "Summer Fashion Lookbook"
+                    description: "A vibrant summer collection showcase"
+                    mediaUrl: "https://cdn.creatorx.com/portfolio/summer-lookbook.jpg"
+                    type: IMAGE
+                    createdAt: "2024-12-01T08:00:00Z"
+                  - id: "rr0e8400-e29b-41d4-a716-446655440023"
+                    title: "Fashion Reel - Trending Styles"
+                    description: "Quick fashion tips and trends"
+                    mediaUrl: "https://cdn.creatorx.com/portfolio/fashion-reel.mp4"
+                    type: VIDEO
+                    createdAt: "2024-12-05T10:00:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - only creators can access portfolio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Profile
+      summary: Add portfolio item
+      description: Add a new portfolio item (image or video) for the authenticated creator
+      operationId: addPortfolioItem
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - title
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Portfolio media file (image or video)
+                title:
+                  type: string
+                  description: Portfolio item title
+                  example: "Summer Fashion Lookbook"
+                description:
+                  type: string
+                  nullable: true
+                  description: Portfolio item description
+                  example: "A vibrant summer collection showcase"
+            encoding:
+              file:
+                contentType: image/jpeg, image/png, video/mp4, video/quicktime
+      responses:
+        '201':
+          description: Portfolio item added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioItem'
+              example:
+                id: "qq0e8400-e29b-41d4-a716-446655440022"
+                title: "Summer Fashion Lookbook"
+                description: "A vibrant summer collection showcase"
+                mediaUrl: "https://cdn.creatorx.com/portfolio/qq0e8400-e29b-41d4-a716-446655440022/summer-lookbook.jpg"
+                type: IMAGE
+                createdAt: "2024-12-07T10:30:00Z"
+        '400':
+          description: Bad request - validation error or invalid file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - only creators can add portfolio items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /referrals/apply:
+    post:
+      tags:
+        - Referrals
+      summary: Apply referral code
+      description: |
+        Apply a referral code during signup or account creation.
+        The referral code must belong to another user.
+      operationId: applyReferralCode
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: Referral code to apply
+                  example: "RAHUL2024"
+            example:
+              code: "RAHUL2024"
+      responses:
+        '200':
+          description: Referral code applied successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Referral code applied successfully"
+                  referrerName:
+                    type: string
+                    example: "Rahul Kumar"
+                  rewardInfo:
+                    type: string
+                    example: "You'll both earn rewards when you complete your first campaign"
+              example:
+                message: "Referral code applied successfully"
+                referrerName: "Rahul Kumar"
+                rewardInfo: "You'll both earn rewards when you complete your first campaign"
+        '400':
+          description: Bad request - invalid or already applied referral code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Bad Request"
+                message: "Invalid referral code or code already applied"
+                path: "/api/v1/referrals/apply"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Referral code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /referrals/code:
+    get:
+      tags:
+        - Referrals
+      summary: Get referral code
+      description: Get the authenticated user's referral code
+      operationId: getReferralCode
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Referral code retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralCode'
+              example:
+                code: "RAHUL2024"
+                createdAt: "2024-12-01T08:00:00Z"
+                shareUrl: "https://creatorx.com/signup?ref=RAHUL2024"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /referrals/stats:
+    get:
+      tags:
+        - Referrals
+      summary: Get referral statistics
+      description: Get referral statistics for the authenticated user
+      operationId: getReferralStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Referral statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferralStats'
+              example:
+                totalReferrals: 15
+                successfulReferrals: 8
+                pendingReferrals: 7
+                totalEarnings: 5000.00
+                referrerReward: 3000.00
+                refereeReward: 2000.00
+                referralCode: "RAHUL2024"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /wallet:
+    get:
+      tags:
+        - Wallet
+      summary: Get wallet balance
+      description: Get current wallet balance and statistics for the authenticated user
+      operationId: getWallet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Wallet balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+              example:
+                userId: "110e8400-e29b-41d4-a716-446655440005"
+                balance: 125000.50
+                pending: 25000.00
+                withdrawn: 50000.00
+                monthlyChange: 75000.50
+                lifetimeEarnings: 200000.50
+                currency: "INR"
+                createdAt: "2024-12-01T08:00:00Z"
+                updatedAt: "2024-12-07T10:30:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /wallet/bank-accounts:
+    get:
+      tags:
+        - Wallet
+      summary: Get bank accounts
+      description: Get list of bank accounts for the authenticated user
+      operationId: getBankAccounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Bank accounts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BankAccount'
+              example:
+                accounts:
+                  - id: "gg0e8400-e29b-41d4-a716-446655440012"
+                    accountHolderName: "Rahul Kumar"
+                    accountNumber: "123456789012"
+                    ifscCode: "HDFC0001234"
+                    upiId: "rahul@paytm"
+                    bankName: "HDFC Bank"
+                    branchName: "Mumbai Main Branch"
+                    verified: true
+                    isDefault: true
+                    createdAt: "2024-12-01T08:00:00Z"
+                  - id: "ii0e8400-e29b-41d4-a716-446655440014"
+                    accountHolderName: "Rahul Kumar"
+                    accountNumber: "987654321098"
+                    ifscCode: "SBIN0005678"
+                    upiId: null
+                    bankName: "State Bank of India"
+                    branchName: "Delhi Branch"
+                    verified: true
+                    isDefault: false
+                    createdAt: "2024-12-05T12:00:00Z"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Wallet
+      summary: Add bank account
+      description: |
+        Add a new bank account for withdrawals.
+        Account must be verified before it can be used for withdrawals.
+      operationId: addBankAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankAccountRequest'
+            example:
+              accountHolderName: "Rahul Kumar"
+              accountNumber: "123456789012"
+              ifscCode: "HDFC0001234"
+              upiId: "rahul@paytm"
+              bankName: "HDFC Bank"
+              branchName: "Mumbai Main Branch"
+              isDefault: true
+      responses:
+        '201':
+          description: Bank account added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankAccount'
+              example:
+                id: "gg0e8400-e29b-41d4-a716-446655440012"
+                accountHolderName: "Rahul Kumar"
+                accountNumber: "123456789012"
+                ifscCode: "HDFC0001234"
+                upiId: "rahul@paytm"
+                bankName: "HDFC Bank"
+                branchName: "Mumbai Main Branch"
+                verified: false
+                isDefault: true
+                createdAt: "2024-12-07T10:30:00Z"
+                updatedAt: "2024-12-07T10:30:00Z"
+        '400':
+          description: Bad request - validation error or invalid IFSC/account number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Invalid IFSC code format"
+                path: "/api/v1/wallet/bank-accounts"
+                details:
+                  ifscCode: "IFSC code must be in format: AAAA0XXXXXX"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /wallet/transactions:
+    get:
+      tags:
+        - Wallet
+      summary: Get transaction history
+      description: Get paginated list of transactions for the authenticated user
+      operationId: getTransactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: Filter by transaction type
+          required: false
+          schema:
+            $ref: '#/components/schemas/TransactionType'
+          example: EARNING
+        - name: status
+          in: query
+          description: Filter by transaction status
+          required: false
+          schema:
+            $ref: '#/components/schemas/TransactionStatus'
+          example: COMPLETED
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransactionResponse'
+              example:
+                items:
+                  - id: "ee0e8400-e29b-41d4-a716-446655440010"
+                    type: EARNING
+                    title: "Campaign Payment - Summer Fashion"
+                    description: "Payment for completed campaign deliverables"
+                    amount: 50000.00
+                    status: COMPLETED
+                    campaign:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      title: "Summer Fashion Collection 2024"
+                    transactionDate: "2024-12-05T14:30:00Z"
+                    createdAt: "2024-12-05T14:30:00Z"
+                  - id: "ff0e8400-e29b-41d4-a716-446655440011"
+                    type: WITHDRAWAL
+                    title: "Withdrawal to Bank Account"
+                    description: "Withdrawal to HDFC Bank - ****1234"
+                    amount: 25000.00
+                    status: PENDING
+                    razorpayPaymentId: "payout_ABC123XYZ"
+                    transactionDate: "2024-12-07T10:00:00Z"
+                    createdAt: "2024-12-07T10:00:00Z"
+                page: 0
+                size: 20
+                total: 45
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /wallet/withdraw:
+    post:
+      tags:
+        - Wallet
+      summary: Request withdrawal
+      description: |
+        Request withdrawal to a bank account.
+        Minimum withdrawal amount is INR 11,000.
+        Withdrawal will be processed within 3-5 business days.
+      operationId: requestWithdrawal
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalRequest'
+            example:
+              amount: 25000.00
+              bankAccountId: "gg0e8400-e29b-41d4-a716-446655440012"
+      responses:
+        '200':
+          description: Withdrawal request submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawalResponse'
+              example:
+                id: "hh0e8400-e29b-41d4-a716-446655440013"
+                amount: 25000.00
+                bankAccount:
+                  id: "gg0e8400-e29b-41d4-a716-446655440012"
+                  accountHolderName: "Rahul Kumar"
+                  accountNumber: "****1234"
+                  bankName: "HDFC Bank"
+                status: PENDING
+                requestedAt: "2024-12-07T10:30:00Z"
+                message: "Withdrawal request submitted. Will be processed within 3-5 business days."
+        '400':
+          description: Bad request - validation error or insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Insufficient balance. Available: INR 1100000.00, Requested: INR 1150000.00"
+                path: "/api/v1/wallet/withdraw"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Bank account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from /api/v1/auth/login or /api/v1/auth/register.
+        Include in Authorization header: `Bearer <token>`
+  schemas:
+    ActiveCampaign:
+      type: object
+      required:
+        - id
+        - campaign
+        - paymentStatus
+        - paymentAmount
+        - deadline
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Active campaign unique identifier
+          example: "880e8400-e29b-41d4-a716-446655440003"
+        campaign:
+          $ref: '#/components/schemas/Campaign'
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        paymentAmount:
+          type: number
+          format: double
+          description: Payment amount in INR
+          example: 50000.00
+        deadline:
+          type: string
+          format: date
+          description: Campaign deadline
+          example: "2024-12-31"
+        completedAt:
+          type: string
+          format: date
+          nullable: true
+          description: Campaign completion date
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+          description: Active campaign creation timestamp
+          example: "2024-12-05T10:00:00Z"
+
+    Address:
+      type: object
+      properties:
+        line1:
+          type: string
+          nullable: true
+          description: Address line 1
+          example: "123 Main Street"
+        line2:
+          type: string
+          nullable: true
+          description: Address line 2
+          example: "Apt 4B"
+        city:
+          type: string
+          nullable: true
+          description: City
+          example: "Mumbai"
+        state:
+          type: string
+          nullable: true
+          description: State/Province
+          example: "Maharashtra"
+        postalCode:
+          type: string
+          nullable: true
+          description: Postal/ZIP code
+          example: "400001"
+        country:
+          type: string
+          nullable: true
+          description: Country
+          example: "India"
+
+    Application:
+      type: object
+      required:
+        - id
+        - campaignId
+        - creatorId
+        - status
+        - pitch
+        - expectedTimeline
+        - submittedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Application unique identifier
+          example: "990e8400-e29b-41d4-a716-446655440004"
+        campaignId:
+          type: string
+          format: uuid
+          description: Campaign ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        campaign:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+            description:
+              type: string
+              nullable: true
+            budget:
+              type: number
+              format: double
+            brand:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                logo:
+                  type: string
+                  format: uri
+                  nullable: true
+          description: Campaign details (included in detail view)
+        creatorId:
+          type: string
+          format: uuid
+          description: Creator user ID
+          example: "110e8400-e29b-41d4-a716-446655440005"
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        pitch:
+          type: string
+          description: Application pitch
+          example: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+        expectedTimeline:
+          type: string
+          description: Expected timeline for completion
+          example: "7-10 days"
+        extraDetails:
+          type: string
+          nullable: true
+          description: Additional details
+          example: "I can also create behind-the-scenes content and stories."
+        brandFeedback:
+          type: string
+          nullable: true
+          description: Feedback from brand
+          example: "Great portfolio! We'd like to see more details about your engagement rate."
+        submittedAt:
+          type: string
+          format: date-time
+          description: Application submission timestamp
+          example: "2024-12-07T10:30:00Z"
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Application review timestamp
+          example: "2024-12-08T14:20:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Application creation timestamp
+          example: "2024-12-07T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Application last update timestamp
+          example: "2024-12-08T14:20:00Z"
+
+    ApplicationRequest:
+      type: object
+      required:
+        - campaignId
+        - pitch
+        - expectedTimeline
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+          description: Campaign ID to apply to
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        pitch:
+          type: string
+          minLength: 50
+          maxLength: 2000
+          description: Application pitch (50-2000 characters)
+          example: "I have 50K followers on Instagram with high engagement. I specialize in fashion content and would love to showcase your summer collection."
+        expectedTimeline:
+          type: string
+          description: Expected timeline for completion
+          example: "7-10 days"
+        extraDetails:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Additional details or notes
+          example: "I can also create behind-the-scenes content and stories."
+
+    ApplicationStatus:
+      type: string
+      enum:
+        - APPLIED
+        - SHORTLISTED
+        - SELECTED
+        - REJECTED
+        - WITHDRAWN
+      description: Application status
+      example: APPLIED
+
+    AuthResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - user
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token (valid for 24 hours)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: JWT refresh token (valid for 7 days)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/User'
+
+    BankAccount:
+      type: object
+      required:
+        - id
+        - accountHolderName
+        - accountNumber
+        - ifscCode
+        - verified
+        - isDefault
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Bank account unique identifier
+          example: "gg0e8400-e29b-41d4-a716-446655440012"
+        accountHolderName:
+          type: string
+          description: Account holder name
+          example: "Rahul Kumar"
+        accountNumber:
+          type: string
+          description: Bank account number (masked in responses)
+          example: "123456789012"
+        ifscCode:
+          type: string
+          pattern: '^[A-Z]{4}0[A-Z0-9]{6}$'
+          description: IFSC code
+          example: "HDFC0001234"
+        upiId:
+          type: string
+          nullable: true
+          description: UPI ID (optional)
+          example: "rahul@paytm"
+        bankName:
+          type: string
+          nullable: true
+          description: Bank name
+          example: "HDFC Bank"
+        branchName:
+          type: string
+          nullable: true
+          description: Branch name
+          example: "Mumbai Main Branch"
+        verified:
+          type: boolean
+          description: Account verification status
+          example: true
+        isDefault:
+          type: boolean
+          description: Default account for withdrawals
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2024-12-01T08:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Account last update timestamp
+          example: "2024-12-01T08:00:00Z"
+
+    BankAccountRequest:
+      type: object
+      required:
+        - accountHolderName
+        - accountNumber
+        - ifscCode
+      properties:
+        accountHolderName:
+          type: string
+          minLength: 2
+          maxLength: 255
+          description: Account holder name as per bank records
+          example: "Rahul Kumar"
+        accountNumber:
+          type: string
+          pattern: '^[0-9]{9,18}$'
+          description: Bank account number (9-18 digits)
+          example: "123456789012"
+        ifscCode:
+          type: string
+          pattern: '^[A-Z]{4}0[A-Z0-9]{6}$'
+          description: IFSC code (format: AAAA0XXXXXX)
+          example: "HDFC0001234"
+        upiId:
+          type: string
+          nullable: true
+          pattern: '^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$'
+          description: UPI ID (optional, format: user@provider)
+          example: "rahul@paytm"
+        bankName:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Bank name (optional)
+          example: "HDFC Bank"
+        branchName:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Branch name (optional)
+          example: "Mumbai Main Branch"
+        isDefault:
+          type: boolean
+          default: false
+          description: Set as default account for withdrawals
+          example: true
+
+    BrandInfo:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Brand user ID
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          description: Brand name
+          example: "StyleCo Fashion"
+        logo:
+          type: string
+          format: uri
+          nullable: true
+          description: Brand logo URL
+          example: "https://cdn.creatorx.com/brands/styleco-logo.png"
+
+    BrandProfile:
+      type: object
+      properties:
+        companyName:
+          type: string
+        industry:
+          type: string
+          nullable: true
+        website:
+          type: string
+          format: uri
+          nullable: true
+        verified:
+          type: boolean
+
+    Campaign:
+      type: object
+      required:
+        - id
+        - title
+        - budget
+        - platforms
+        - category
+        - brand
+        - status
+        - deadline
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Campaign unique identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          description: Campaign title
+          example: "Summer Fashion Collection 2024"
+        description:
+          type: string
+          nullable: true
+          description: Campaign description
+          example: "Promote our new summer fashion line with high-quality content"
+        brief:
+          type: string
+          nullable: true
+          description: Detailed campaign brief
+          example: "We're looking for creators to showcase our summer collection. Content should be vibrant and align with summer vibes."
+        budget:
+          type: number
+          format: double
+          description: Campaign budget in INR
+          example: 50000.00
+        platforms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Platform'
+          description: List of platforms for this campaign
+          example:
+            - INSTAGRAM
+            - YOUTUBE
+        category:
+          type: string
+          description: Campaign category
+          example: "Fashion"
+        brand:
+          $ref: '#/components/schemas/BrandInfo'
+        status:
+          $ref: '#/components/schemas/CampaignStatus'
+        deadline:
+          type: string
+          format: date
+          description: Campaign deadline
+          example: "2024-12-31"
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Campaign image URL
+          example: "https://cdn.creatorx.com/campaigns/summer-2024.jpg"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Campaign tags
+          example:
+            - "fashion"
+            - "summer"
+            - "trending"
+        requirements:
+          type: array
+          items:
+            type: string
+          description: Campaign requirements
+          example:
+            - "Minimum 10K followers"
+            - "High engagement rate"
+            - "Must post within 7 days of delivery"
+        contentTypes:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Required content types
+          example:
+            - "REEL"
+            - "POST"
+        ageGroup:
+          type: string
+          nullable: true
+          description: Target age group
+          example: "18-35"
+        followersRange:
+          type: string
+          nullable: true
+          description: Target follower range
+          example: "10K-100K"
+        gender:
+          type: string
+          nullable: true
+          description: Target gender
+          example: "All"
+        mandatoryDeliverables:
+          type: array
+          items:
+            $ref: '#/components/schemas/CampaignDeliverable'
+          description: List of mandatory deliverables
+        applicantsCount:
+          type: integer
+          description: Number of applicants
+          example: 15
+        isPaid:
+          type: boolean
+          description: Whether this is a paid campaign
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Campaign creation timestamp
+          example: "2024-12-01T08:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Campaign last update timestamp
+          example: "2024-12-05T10:30:00Z"
+
+    CampaignDeliverable:
+      type: object
+      required:
+        - id
+        - type
+        - quantity
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Deliverable unique identifier
+          example: "770e8400-e29b-41d4-a716-446655440002"
+        type:
+          type: string
+          description: Deliverable type
+          example: "REEL"
+        description:
+          type: string
+          nullable: true
+          description: Deliverable description
+          example: "1 Instagram Reel showcasing the collection"
+        quantity:
+          type: integer
+          description: Required quantity
+          example: 1
+
+    CampaignStatus:
+      type: string
+      enum:
+        - DRAFT
+        - ACTIVE
+        - PAUSED
+        - COMPLETED
+        - CANCELLED
+      description: Campaign status
+      example: ACTIVE
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - creator
+        - brand
+        - unreadCount
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Conversation unique identifier
+          example: "ll0e8400-e29b-41d4-a716-446655440017"
+        campaignId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Associated campaign ID (if conversation is campaign-related)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        campaign:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+          description: Campaign details (if applicable)
+        creator:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+          description: Creator participant
+        brand:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+          description: Brand participant
+        lastMessage:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            text:
+              type: string
+            senderId:
+              type: string
+              format: uuid
+            sentAt:
+              type: string
+              format: date-time
+          description: Last message in the conversation
+        unreadCount:
+          type: integer
+          description: Number of unread messages for the authenticated user
+          example: 2
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of the last message
+          example: "2024-12-07T14:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Conversation creation timestamp
+          example: "2024-12-01T08:00:00Z"
+
+    CreatorProfile:
+      type: object
+      properties:
+        username:
+          type: string
+        category:
+          type: string
+        followerCount:
+          type: integer
+        engagementRate:
+          type: number
+          format: double
+        instagramUrl:
+          type: string
+          format: uri
+          nullable: true
+        youtubeUrl:
+          type: string
+          format: uri
+          nullable: true
+        verified:
+          type: boolean
+
+    Deliverable:
+      type: object
+      required:
+        - id
+        - activeCampaignId
+        - title
+        - status
+        - type
+        - dueDate
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Deliverable unique identifier
+          example: "aa0e8400-e29b-41d4-a716-446655440006"
+        activeCampaignId:
+          type: string
+          format: uuid
+          description: Active campaign ID
+          example: "880e8400-e29b-41d4-a716-446655440003"
+        campaign:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+          description: Campaign details (included in detail view)
+        title:
+          type: string
+          description: Deliverable title
+          example: "Instagram Reel - Summer Collection"
+        description:
+          type: string
+          nullable: true
+          description: Deliverable description
+          example: "Create a vibrant Instagram Reel showcasing the summer collection"
+        status:
+          $ref: '#/components/schemas/DeliverableStatus'
+        type:
+          $ref: '#/components/schemas/DeliverableType'
+        dueDate:
+          type: string
+          format: date
+          description: Deliverable due date
+          example: "2024-12-20"
+        submittedFileUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL of submitted file in Supabase Storage
+          example: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+        submittedFileName:
+          type: string
+          nullable: true
+          description: Original file name
+          example: "reel.mp4"
+        submittedFileType:
+          type: string
+          nullable: true
+          description: File MIME type
+          example: "video/mp4"
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Submission timestamp
+          example: "2024-12-10T15:30:00Z"
+        feedback:
+          type: string
+          nullable: true
+          description: Feedback from brand
+          example: "Please make the colors more vibrant and add product close-ups"
+        postUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL where content was posted (for verification)
+          example: "https://www.instagram.com/p/ABC123"
+        createdAt:
+          type: string
+          format: date-time
+          description: Deliverable creation timestamp
+          example: "2024-12-07T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Deliverable last update timestamp
+          example: "2024-12-10T15:30:00Z"
+
+    DeliverableHistoryEntry:
+      type: object
+      required:
+        - submissionId
+        - status
+        - submittedAt
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+          description: Submission unique identifier
+          example: "bb0e8400-e29b-41d4-a716-446655440007"
+        status:
+          $ref: '#/components/schemas/DeliverableStatus'
+        fileUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL of submitted file
+          example: "https://cdn.creatorx.com/deliverables/aa0e8400-e29b-41d4-a716-446655440006/reel.mp4"
+        fileName:
+          type: string
+          nullable: true
+          description: Original file name
+          example: "reel.mp4"
+        submittedAt:
+          type: string
+          format: date-time
+          description: Submission timestamp
+          example: "2024-12-10T15:30:00Z"
+        feedback:
+          type: string
+          nullable: true
+          description: Feedback from brand
+          example: "Please make the colors more vibrant and add product close-ups"
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Review timestamp
+          example: "2024-12-11T10:00:00Z"
+
+    DeliverableStatus:
+      type: string
+      enum:
+        - PENDING
+        - APPROVED
+        - REVISION_REQUESTED
+        - REJECTED
+        - SUBMITTED
+      description: Deliverable status
+      example: PENDING
+
+    DeliverableType:
+      type: string
+      enum:
+        - CONTENT_DRAFT
+        - THUMBNAIL
+        - CAPTION
+        - RAW_FILE
+        - POST_PROOF
+      description: Deliverable type
+      example: CONTENT_DRAFT
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-12-07T10:30:00Z"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        error:
+          type: string
+          description: Error type
+          example: "Validation Failed"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid input parameters"
+        path:
+          type: string
+          description: Request path
+          example: "/api/v1/auth/register"
+        details:
+          type: object
+          nullable: true
+          description: Additional error details (validation errors, etc.)
+          additionalProperties:
+            type: string
+          example:
+            email: "Email is required and must be valid"
+            password: "Password must be at least 8 characters"
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+
+    KYCDocument:
+      type: object
+      required:
+        - id
+        - userId
+        - documentType
+        - documentUrl
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: KYC document unique identifier
+          example: "jj0e8400-e29b-41d4-a716-446655440015"
+        userId:
+          type: string
+          format: uuid
+          description: User ID
+          example: "110e8400-e29b-41d4-a716-446655440005"
+        documentType:
+          $ref: '#/components/schemas/KYCDocumentType'
+        documentUrl:
+          type: string
+          format: uri
+          description: URL to document in Supabase Storage
+          example: "https://cdn.creatorx.com/kyc/jj0e8400-e29b-41d4-a716-446655440015/aadhaar.pdf"
+        status:
+          $ref: '#/components/schemas/KYCStatus'
+        verifiedBy:
+          type: string
+          format: uuid
+          nullable: true
+          description: Admin user ID who verified the document
+          example: null
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Document verification timestamp
+          example: null
+        rejectionReason:
+          type: string
+          nullable: true
+          description: Rejection reason (if status is REJECTED)
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+          description: Document submission timestamp
+          example: "2024-12-07T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Document last update timestamp
+          example: "2024-12-07T10:30:00Z"
+
+    KYCDocumentType:
+      type: string
+      enum:
+        - AADHAAR
+        - PAN
+        - GST
+        - PASSPORT
+        - DRIVING_LICENSE
+      description: KYC document type
+      example: AADHAAR
+
+    KYCStatus:
+      type: string
+      enum:
+        - NOT_SUBMITTED
+        - PENDING
+        - APPROVED
+        - REJECTED
+      description: KYC verification status
+      example: PENDING
+
+    KYCStatusResponse:
+      type: object
+      required:
+        - userId
+        - overallStatus
+        - kycVerified
+        - documents
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: User ID
+          example: "110e8400-e29b-41d4-a716-446655440005"
+        overallStatus:
+          $ref: '#/components/schemas/KYCStatus'
+          description: Overall KYC verification status
+        kycVerified:
+          type: boolean
+          description: Whether user is KYC verified
+          example: false
+        documents:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              documentType:
+                $ref: '#/components/schemas/KYCDocumentType'
+              documentUrl:
+                type: string
+                format: uri
+              status:
+                $ref: '#/components/schemas/KYCStatus'
+              verifiedAt:
+                type: string
+                format: date-time
+                nullable: true
+              rejectionReason:
+                type: string
+                nullable: true
+              submittedAt:
+                type: string
+                format: date-time
+          description: List of submitted KYC documents
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        password:
+          type: string
+          format: password
+          description: User password
+          example: SecurePass123!
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token to invalidate
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    Message:
+      type: object
+      required:
+        - id
+        - conversationId
+        - senderId
+        - text
+        - status
+        - sentAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Message unique identifier
+          example: "mm0e8400-e29b-41d4-a716-446655440018"
+        conversationId:
+          type: string
+          format: uuid
+          description: Conversation ID
+          example: "ll0e8400-e29b-41d4-a716-446655440017"
+        senderId:
+          type: string
+          format: uuid
+          description: Sender user ID
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        sender:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+          description: Sender details (included in list responses)
+        text:
+          type: string
+          description: Message content
+          example: "Thanks for the update!"
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        sentAt:
+          type: string
+          format: date-time
+          description: Message sent timestamp
+          example: "2024-12-07T14:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Message creation timestamp
+          example: "2024-12-07T14:30:00Z"
+
+    MessageRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: Message text content
+          example: "I've submitted the first draft. Please review."
+
+    MessageStatus:
+      type: string
+      enum:
+        - SENDING
+        - SENT
+        - DELIVERED
+        - READ
+      description: Message delivery status
+      example: SENT
+
+    Notification:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - body
+        - read
+        - notificationTime
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Notification unique identifier
+          example: "oo0e8400-e29b-41d4-a716-446655440020"
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+          description: Notification title
+          example: "Application Selected"
+        body:
+          type: string
+          description: Notification body/description
+          example: "Your application for 'Summer Fashion Collection 2024' has been selected!"
+        read:
+          type: boolean
+          description: Whether the notification has been read
+          example: false
+        actionLabel:
+          type: string
+          nullable: true
+          description: Label for action button (if applicable)
+          example: "View Campaign"
+        actionPath:
+          type: string
+          nullable: true
+          description: Path for action navigation (if applicable)
+          example: "/campaigns/550e8400-e29b-41d4-a716-446655440000"
+        notificationTime:
+          type: string
+          format: date-time
+          description: Notification timestamp
+          example: "2024-12-07T10:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Notification creation timestamp
+          example: "2024-12-07T10:30:00Z"
+
+    NotificationType:
+      type: string
+      enum:
+        - PAYMENT
+        - CAMPAIGN
+        - MESSAGE
+        - REFERRAL
+        - SYSTEM
+        - APPLICATION
+      description: Notification type
+      example: CAMPAIGN
+
+    OtpType:
+      type: string
+      enum:
+        - EMAIL_VERIFICATION
+        - PHONE_VERIFICATION
+        - PASSWORD_RESET
+      description: Type of OTP verification
+      example: EMAIL_VERIFICATION
+
+    PaginatedActiveCampaignResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActiveCampaign'
+          description: List of active campaigns
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of active campaigns
+          example: 5
+
+    PaginatedApplicationResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Application'
+          description: List of applications
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of applications
+          example: 15
+
+    PaginatedCampaignResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Campaign'
+          description: List of campaigns
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of campaigns
+          example: 150
+
+    PaginatedDeliverableResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Deliverable'
+          description: List of deliverables
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of deliverables
+          example: 8
+
+    PaginatedMessageResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: List of messages
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of messages
+          example: 45
+
+    PaginatedNotificationResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+          description: List of notifications
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of notifications
+          example: 15
+
+    PaginatedResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items: {}
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+      description: Generic paginated response wrapper
+
+    PaginatedTransactionResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+          description: List of transactions
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+          example: 0
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        total:
+          type: integer
+          description: Total number of transactions
+          example: 45
+
+    PaymentStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - PAID
+        - FAILED
+        - REFUNDED
+      description: Payment status
+      example: PENDING
+
+    Platform:
+      type: string
+      enum:
+        - INSTAGRAM
+        - YOUTUBE
+        - TWITTER
+        - FACEBOOK
+        - LINKEDIN
+        - TIKTOK
+      description: Social media platform
+      example: INSTAGRAM
+
+    PortfolioItem:
+      type: object
+      required:
+        - id
+        - title
+        - mediaUrl
+        - type
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Portfolio item unique identifier
+          example: "qq0e8400-e29b-41d4-a716-446655440022"
+        title:
+          type: string
+          description: Portfolio item title
+          example: "Summer Fashion Lookbook"
+        description:
+          type: string
+          nullable: true
+          description: Portfolio item description
+          example: "A vibrant summer collection showcase"
+        mediaUrl:
+          type: string
+          format: uri
+          description: URL to portfolio media (image or video)
+          example: "https://cdn.creatorx.com/portfolio/summer-lookbook.jpg"
+        type:
+          $ref: '#/components/schemas/PortfolioMediaType'
+        createdAt:
+          type: string
+          format: date-time
+          description: Portfolio item creation timestamp
+          example: "2024-12-01T08:00:00Z"
+
+    PortfolioMediaType:
+      type: string
+      enum:
+        - IMAGE
+        - VIDEO
+      description: Portfolio media type
+      example: IMAGE
+
+    Profile:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User unique identifier
+          example: "110e8400-e29b-41d4-a716-446655440005"
+        name:
+          type: string
+          description: User full name
+          example: "Rahul Kumar"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: "rahul@example.com"
+        username:
+          type: string
+          nullable: true
+          description: User username/handle
+          example: "rahul_creator"
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile avatar URL
+          example: "https://cdn.creatorx.com/avatars/rahul.jpg"
+        bio:
+          type: string
+          nullable: true
+          description: User bio/description
+          example: "Fashion content creator | 50K+ followers | High engagement"
+        role:
+          $ref: '#/components/schemas/UserRole'
+        isVerified:
+          type: boolean
+          description: Account verification status
+          example: true
+        kycVerified:
+          type: boolean
+          description: KYC verification status
+          example: true
+        isPro:
+          type: boolean
+          description: Pro account status
+          example: false
+        categories:
+          type: array
+          items:
+            type: string
+          description: User categories/interests
+          example:
+            - "Fashion"
+            - "Lifestyle"
+        socialLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialLink'
+          description: Social media links
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+          description: Date of birth
+          example: "1995-05-15"
+        address:
+          $ref: '#/components/schemas/Address'
+        creatorProfile:
+          type: object
+          nullable: true
+          properties:
+            username:
+              type: string
+            category:
+              type: string
+            followerCount:
+              type: integer
+            engagementRate:
+              type: number
+              format: double
+            instagramUrl:
+              type: string
+              format: uri
+              nullable: true
+            youtubeUrl:
+              type: string
+              format: uri
+              nullable: true
+            verified:
+              type: boolean
+          description: Creator-specific profile data (only for CREATOR role)
+        brandProfile:
+          type: object
+          nullable: true
+          properties:
+            companyName:
+              type: string
+            industry:
+              type: string
+              nullable: true
+            website:
+              type: string
+              format: uri
+              nullable: true
+            verified:
+              type: boolean
+          description: Brand-specific profile data (only for BRAND role)
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2024-12-01T08:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Profile last update timestamp
+          example: "2024-12-07T10:30:00Z"
+
+    ProfileUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          description: User full name
+          example: "Rahul Kumar"
+        bio:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: User bio/description
+          example: "Fashion content creator | 50K+ followers | High engagement"
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          nullable: true
+          description: User username/handle (must be unique)
+          example: "rahul_creator"
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+          description: Date of birth
+          example: "1995-05-15"
+        categories:
+          type: array
+          items:
+            type: string
+          maxItems: 10
+          nullable: true
+          description: User categories/interests
+          example:
+            - "Fashion"
+            - "Lifestyle"
+        address:
+          $ref: '#/components/schemas/Address'
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Valid refresh token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    RefreshTokenResponse:
+      type: object
+      required:
+        - accessToken
+      properties:
+        accessToken:
+          type: string
+          description: New JWT access token (valid for 24 hours)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    ReferralCode:
+      type: object
+      required:
+        - code
+        - createdAt
+      properties:
+        code:
+          type: string
+          description: Referral code
+          example: "RAHUL2024"
+        createdAt:
+          type: string
+          format: date-time
+          description: Referral code creation timestamp
+          example: "2024-12-01T08:00:00Z"
+        shareUrl:
+          type: string
+          format: uri
+          description: Shareable referral URL
+          example: "https://creatorx.com/signup?ref=RAHUL2024"
+
+    ReferralStats:
+      type: object
+      required:
+        - totalReferrals
+        - successfulReferrals
+        - totalEarnings
+      properties:
+        totalReferrals:
+          type: integer
+          description: Total number of referrals made
+          example: 15
+        successfulReferrals:
+          type: integer
+          description: Number of successful/completed referrals
+          example: 8
+        pendingReferrals:
+          type: integer
+          description: Number of pending referrals
+          example: 7
+        totalEarnings:
+          type: number
+          format: double
+          description: Total referral earnings in INR
+          example: 5000.00
+        referrerReward:
+          type: number
+          format: double
+          description: Total rewards earned as referrer
+          example: 3000.00
+        refereeReward:
+          type: number
+          format: double
+          description: Total rewards earned as referee
+          example: 2000.00
+        referralCode:
+          type: string
+          description: User's referral code
+          example: "RAHUL2024"
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - role
+        - name
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: User password (minimum 8 characters)
+          example: SecurePass123!
+        role:
+          $ref: '#/components/schemas/UserRole'
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          description: User full name
+          example: Rahul Kumar
+        phone:
+          type: string
+          nullable: true
+          pattern: '^\\+?[1-9]\\d{1,14}$'
+          description: Phone number in E.164 format (optional)
+          example: "+919876543210"
+
+    SocialLink:
+      type: object
+      required:
+        - platform
+        - url
+      properties:
+        platform:
+          type: string
+          description: Social media platform name
+          example: "Instagram"
+        icon:
+          type: string
+          nullable: true
+          description: Platform icon identifier
+          example: "instagram"
+        url:
+          type: string
+          format: uri
+          description: Social media profile URL
+          example: "https://instagram.com/rahul_creator"
+        followers:
+          type: string
+          nullable: true
+          description: Follower count (as string, e.g., "50K")
+          example: "50K"
+
+    Transaction:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - amount
+        - status
+        - transactionDate
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Transaction unique identifier
+          example: "ee0e8400-e29b-41d4-a716-446655440010"
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        title:
+          type: string
+          description: Transaction title
+          example: "Campaign Payment - Summer Fashion"
+        description:
+          type: string
+          nullable: true
+          description: Transaction description
+          example: "Payment for completed campaign deliverables"
+        amount:
+          type: number
+          format: double
+          description: Transaction amount in INR
+          example: 50000.00
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+        campaign:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            title:
+              type: string
+          description: Associated campaign (if applicable)
+        razorpayPaymentId:
+          type: string
+          nullable: true
+          description: Razorpay payment ID (for withdrawals)
+          example: "payout_ABC123XYZ"
+        razorpayOrderId:
+          type: string
+          nullable: true
+          description: Razorpay order ID
+          example: "order_XYZ789ABC"
+        transactionDate:
+          type: string
+          format: date-time
+          description: Transaction date
+          example: "2024-12-05T14:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Transaction creation timestamp
+          example: "2024-12-05T14:30:00Z"
+
+    TransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+      description: Transaction status
+      example: COMPLETED
+
+    TransactionType:
+      type: string
+      enum:
+        - EARNING
+        - WITHDRAWAL
+        - REFUND
+      description: Transaction type
+      example: EARNING
+
+    UnreadCountResponse:
+      type: object
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          description: Number of unread notifications
+          example: 5
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User unique identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        role:
+          $ref: '#/components/schemas/UserRole'
+        name:
+          type: string
+          nullable: true
+          description: User full name
+          example: Rahul Kumar
+        emailVerified:
+          type: boolean
+          description: Email verification status
+          example: true
+        phoneVerified:
+          type: boolean
+          description: Phone verification status
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2024-12-01T08:00:00Z"
+
+    UserRole:
+      type: string
+      enum:
+        - CREATOR
+        - BRAND
+        - ADMIN
+      description: User role in the platform
+      example: CREATOR
+
+    VerifyOtpRequest:
+      type: object
+      required:
+        - email
+        - otp
+        - type
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        otp:
+          type: string
+          pattern: '^\\d{6}$'
+          description: 6-digit OTP code
+          example: "123456"
+        type:
+          $ref: '#/components/schemas/OtpType'
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          nullable: true
+          description: New password (required for PASSWORD_RESET type)
+          example: NewSecurePass123!
+
+    Wallet:
+      type: object
+      required:
+        - userId
+        - balance
+        - pending
+        - withdrawn
+        - monthlyChange
+        - lifetimeEarnings
+        - currency
+        - createdAt
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: User ID
+          example: "110e8400-e29b-41d4-a716-446655440005"
+        balance:
+          type: number
+          format: double
+          description: Available balance in INR
+          example: 125000.50
+        pending:
+          type: number
+          format: double
+          description: Pending earnings (not yet available for withdrawal)
+          example: 25000.00
+        withdrawn:
+          type: number
+          format: double
+          description: Total amount withdrawn
+          example: 50000.00
+        monthlyChange:
+          type: number
+          format: double
+          description: Earnings this month
+          example: 75000.50
+        lifetimeEarnings:
+          type: number
+          format: double
+          description: Total lifetime earnings
+          example: 200000.50
+        currency:
+          type: string
+          description: Currency code
+          example: "INR"
+        createdAt:
+          type: string
+          format: date-time
+          description: Wallet creation timestamp
+          example: "2024-12-01T08:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Wallet last update timestamp
+          example: "2024-12-07T10:30:00Z"
+
+    WithdrawalRequest:
+      type: object
+      required:
+        - amount
+        - bankAccountId
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 1000
+          description: Withdrawal amount in INR (minimum INR 11,000)
+          example: 25000.00
+        bankAccountId:
+          type: string
+          format: uuid
+          description: Bank account ID for withdrawal
+          example: "gg0e8400-e29b-41d4-a716-446655440012"
+
+    WithdrawalResponse:
+      type: object
+      required:
+        - id
+        - amount
+        - status
+        - requestedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Withdrawal request ID
+          example: "hh0e8400-e29b-41d4-a716-446655440013"
+        amount:
+          type: number
+          format: double
+          description: Withdrawal amount in INR
+          example: 25000.00
+        bankAccount:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            accountHolderName:
+              type: string
+            accountNumber:
+              type: string
+              description: Masked account number
+            bankName:
+              type: string
+          description: Bank account details
+        status:
+          $ref: '#/components/schemas/WithdrawalStatus'
+        requestedAt:
+          type: string
+          format: date-time
+          description: Withdrawal request timestamp
+          example: "2024-12-07T10:30:00Z"
+        message:
+          type: string
+          description: Status message
+          example: "Withdrawal request submitted. Will be processed within 3-5 business days."
+
+    WithdrawalStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - COMPLETED
+        - REJECTED
+        - FAILED
+      description: Withdrawal request status
+      example: PENDING
+
+    delete:
+      tags:
+        - Campaigns
+      summary: Unsave a campaign
+      description: Remove a campaign from the creator's saved list
+      operationId: unsaveCampaign
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Campaign ID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Campaign unsaved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Campaign unsaved successfully"
+                  saved:
+                    type: boolean
+                    example: false
+              example:
+                message: "Campaign unsaved successfully"
+                saved: false
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found or not saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

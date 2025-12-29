@@ -1,0 +1,142 @@
+Full Creator Journey Prompt (Refined & Functional)
+
+Creator Authentication Flow:
+
+On the creator auth screen, display 3 centered social login buttons:
+
+Instagram (official gradient background + white logo + text “Instagram”)
+
+YouTube (official red background + white logo + text “YouTube”)
+
+LinkedIn (official blue background + white logo + text “LinkedIn”)
+
+Do not use “Continue with”. Use only platform names.
+
+After connecting a platform, automatically fetch the creator’s follower count.
+
+If the creator has ≥ 1000 followers, redirect them to the Profile Creation Screen.
+
+If <1000 followers, show a blocking message: “You’re not eligible for collaborations yet.”
+
+Creator Profile Creation Flow:
+
+Creator fills: name, bio, niche, city, audience stats, pricing, sample content.
+
+Creator dashboard unlocks after completion.
+
+Campaign Discovery & Application Flow:
+
+Dashboard shows available brand campaigns with filters (budget, category, platform).
+
+Creator opens a campaign to see:
+
+Campaign brief
+
+Mandatory deliverables
+
+Timeline
+
+Requirements
+
+Compensation
+
+Creator taps “Apply to Campaign”.
+
+Creator submits:
+
+Short pitch
+
+Expected timeline
+
+Any extra details requested by brand
+
+Brand Review Flow:
+
+After applying, application status shows in creator dashboard:
+
+Pending Review
+
+Approved
+
+Rejected
+
+Brand sees the creator’s application in the brand dashboard with details, stats, pitch, pricing.
+
+Brand can:
+
+Approve
+
+Reject
+
+Request more info
+
+After Approval – Deliverables Flow:
+
+Once approved, creator sees the campaign moved to “Active Campaigns”.
+
+Creator sees required deliverables and uploads:
+
+Content drafts
+
+Thumbnail options
+
+Captions & hashtags
+
+Raw files (if required)
+
+Deliverable status options:
+
+Draft Submitted
+
+Brand Reviewing
+
+Changes Requested
+
+Approved
+
+Posted (with link)
+
+Brand Feedback Flow:
+
+Brand reviews submitted content.
+
+Brand can:
+
+Request revisions with comments
+
+Approve final content
+
+Once approved, creator posts content with required hashtags & tags.
+
+Creator submits post URL or screenshot for verification.
+
+Campaign Completion Flow:
+
+After final approval + posting proof, campaign moves to Completed.
+
+Payment status shows:
+
+Pending
+
+Processing
+
+Paid
+
+Creator can rate the brand.
+
+Brand can rate the creator.
+
+End-to-End Functionality Summary
+
+This flow includes:
+✔ Creator social auth
+✔ Eligibility check
+✔ Profile creation
+✔ Campaign discovery
+✔ Application + status
+✔ Brand side review
+✔ Deliverables submission
+✔ Feedback + approvals
+✔ Posting verification
+✔ Payment tracking
+✔ Ratings & completion

@@ -1,0 +1,26 @@
+dependencies {
+    // Repository module
+    implementation project(':creatorx-repository')
+    implementation project(':creatorx-common')
+    
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    
+    // Cache
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+    
+    // Web client for Supabase JWKS
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // MapStruct for DTO mapping
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    
+    // HTTP Client for Supabase Storage
+    implementation 'org.springframework.boot:spring-boot-starter-webflux' // For WebClient
+}

@@ -1,0 +1,133 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'jacoco' // JaCoCo plugin for code coverage
+}
+
+allprojects {
+    group = 'com.creatorx'
+    version = '1.0.0'
+    
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'jacoco'
+    
+    java {
+        sourceCompatibility = '17'
+        targetCompatibility = '17'
+    }
+    
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+    
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
+    
+    dependencies {
+        // Lombok
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        
+        // Testing
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.springframework.security:spring-security-test'
+        
+        // JUnit 5
+        testImplementation 'org.junit.jupiter:junit-jupiter-api'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+        
+        // Mockito
+        testImplementation 'org.mockito:mockito-core'
+        testImplementation 'org.mockito:mockito-junit-jupiter'
+        
+        // AssertJ
+        testImplementation 'org.assertj:assertj-core'
+        
+        // TestContainers
+        testImplementation platform('org.testcontainers:testcontainers-bom:1.19.3')
+        testImplementation 'org.testcontainers:testcontainers'
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation 'org.testcontainers:postgresql'
+        
+        // REST Assured
+        testImplementation 'io.rest-assured:rest-assured:5.4.0'
+        testImplementation 'io.rest-assured:spring-mock-mvc:5.4.0'
+        
+        // AssertJ
+        testImplementation 'org.assertj:assertj-core:3.24.2'
+    }
+    
+    tasks.named('test') {
+        useJUnitPlatform()
+        finalizedBy jacocoTestReport
+    }
+    
+    jacoco {
+        toolVersion = "0.8.10"
+    }
+    
+    jacocoTestReport {
+        dependsOn test
+        reports {
+            xml.required = true
+            html.required = true
+            csv.required = false
+        }
+        
+        // Exclude generated code, DTOs, and configuration
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                    '**/dto/**',
+                    '**/config/**',
+                    '**/entity/**',
+                    '**/CreatorXApplication.class'
+                ])
+            }))
+        }
+    }
+    
+    jacocoTestCoverageVerification {
+        dependsOn jacocoTestReport
+        violationRules {
+            rule {
+                limit {
+                    minimum = 0.80 // 80% coverage required
+                }
+            }
+        }
+    }
+    
+    check.dependsOn jacocoTestCoverageVerification
+}
+
+// Root project JaCoCo report (aggregate all modules)
+task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    dependsOn = subprojects.test
+    additionalSourceDirs.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+    sourceDirectories.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(files(subprojects.sourceSets.main.output))
+    executionData.setFrom(files(subprojects.jacocoTestReport.executionData))
+    
+    reports {
+        html.required = true
+        xml.required = true
+    }
+    
+    doFirst {
+        executionData.setFrom(files(executionData.findAll { it.exists() }))
+    }
+}

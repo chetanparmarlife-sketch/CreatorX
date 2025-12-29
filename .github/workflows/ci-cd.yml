@@ -1,0 +1,370 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/creatorx-backend
+  JAVA_VERSION: '17'
+  GRADLE_VERSION: '8.5'
+
+jobs:
+  # ============================================
+  # Build & Test
+  # ============================================
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: creatorx_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Grant execute permission for gradlew
+        working-directory: ./backend
+        run: chmod +x gradlew
+      
+      - name: Run Gradle build
+        working-directory: ./backend
+        run: ./gradlew build --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/creatorx_test
+          TEST_DATABASE_USERNAME: test
+          TEST_DATABASE_PASSWORD: test
+      
+      - name: Run unit tests
+        working-directory: ./backend
+        run: ./gradlew test --no-daemon
+        continue-on-error: false
+      
+      - name: Run integration tests
+        working-directory: ./backend
+        run: ./gradlew integrationTest --no-daemon || ./gradlew test --tests "*IntegrationTest" --no-daemon
+        continue-on-error: false
+      
+      - name: Generate JaCoCo report
+        working-directory: ./backend
+        run: ./gradlew jacocoRootReport --no-daemon
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+      
+      - name: Check coverage threshold
+        working-directory: ./backend
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon
+        continue-on-error: true
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: |
+            backend/**/build/test-results/**/*.xml
+            backend/**/build/reports/jacoco/**/*
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        if: success()
+        with:
+          name: build-artifacts
+          path: backend/creatorx-api/build/libs/*.jar
+          retention-days: 7
+
+  # ============================================
+  # Code Quality
+  # ============================================
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+      
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Run Checkstyle
+        working-directory: ./backend
+        run: |
+          chmod +x gradlew
+          ./gradlew checkstyleMain checkstyleTest --no-daemon || true
+        continue-on-error: true
+      
+      - name: Run SpotBugs
+        working-directory: ./backend
+        run: ./gradlew spotbugsMain spotbugsTest --no-daemon || true
+        continue-on-error: true
+      
+      - name: Upload Checkstyle results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: checkstyle-results
+          path: backend/**/build/reports/checkstyle/**
+      
+      - name: Upload SpotBugs results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: spotbugs-results
+          path: backend/**/build/reports/spotbugs/**
+      
+      - name: SonarQube Scan
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true
+      
+      - name: Snyk Security Scan
+        uses: snyk/actions/gradle@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+        continue-on-error: true
+
+  # ============================================
+  # Build Docker Image
+  # ============================================
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_VERSION=${{ github.sha }}
+
+  # ============================================
+  # Deploy to Dev
+  # ============================================
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: dev
+      url: https://api-dev.creatorx.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to Cloud Run
+        run: |
+          chmod +x ./scripts/deploy-dev.sh
+          ./scripts/deploy-dev.sh ${{ needs.build-docker.outputs.image-tag }}
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          SERVICE_NAME: creatorx-backend-dev
+          REGION: us-central1
+      
+      - name: Run smoke tests
+        run: |
+          chmod +x ./scripts/smoke-tests.sh
+          ./scripts/smoke-tests.sh https://api-dev.creatorx.com
+        continue-on-error: false
+
+  # ============================================
+  # Deploy to Staging
+  # ============================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: staging
+      url: https://api-staging.creatorx.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to Cloud Run
+        run: |
+          chmod +x ./scripts/deploy-staging.sh
+          ./scripts/deploy-staging.sh ${{ needs.build-docker.outputs.image-tag }} ${{ github.ref_name }}
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          SERVICE_NAME: creatorx-backend-staging
+          REGION: us-central1
+      
+      - name: Run E2E tests
+        run: |
+          chmod +x ./scripts/e2e-tests.sh
+          ./scripts/e2e-tests.sh https://api-staging.creatorx.com
+        continue-on-error: false
+
+  # ============================================
+  # Deploy to Production
+  # ============================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://api.creatorx.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          chmod +x ./scripts/deploy-production.sh
+          ./scripts/deploy-production.sh ${{ needs.build-docker.outputs.image-tag }}
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          SERVICE_NAME: creatorx-backend-prod
+          REGION: us-central1
+      
+      - name: Health check
+        run: |
+          chmod +x ./scripts/health-check.sh
+          ./scripts/health-check.sh https://api.creatorx.com
+        continue-on-error: false
+      
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          chmod +x ./scripts/rollback.sh
+          ./scripts/rollback.sh production
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+

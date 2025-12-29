@@ -1,0 +1,43 @@
+/**
+ * Example: Root layout with AuthProvider
+ */
+
+import { useEffect } from 'react';
+import { useRouter, useSegments } from 'expo-router';
+import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { SplashScreen } from 'expo-router';
+
+function RootLayoutNav() {
+  const { initialized, isAuthenticated } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!initialized) return;
+
+    const inAuthGroup = segments[0] === 'auth';
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // Redirect to login if not authenticated
+      router.replace('/auth/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      // Redirect to app if authenticated and in auth group
+      router.replace('/(tabs)');
+    }
+  }, [initialized, isAuthenticated, segments]);
+
+  if (!initialized) {
+    return <SplashScreen />;
+  }
+
+  return null; // Your app content will be rendered by expo-router
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
+  );
+}
+

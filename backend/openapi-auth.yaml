@@ -1,0 +1,648 @@
+openapi: 3.0.3
+info:
+  title: CreatorX Authentication API
+  description: |
+    Authentication endpoints for CreatorX marketplace.
+    These endpoints are public and do not require authentication.
+  version: 1.0.0
+  contact:
+    name: CreatorX API Support
+    email: support@creatorx.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api-staging.creatorx.com/api/v1
+    description: Staging server
+  - url: https://api.creatorx.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and registration endpoints
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: |
+        Register a new creator or brand account.
+        After registration, user must verify email/phone via OTP.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              creator:
+                summary: Creator registration
+                value:
+                  email: creator@example.com
+                  password: SecurePass123!
+                  role: CREATOR
+                  name: Rahul Kumar
+                  phone: "+919876543210"
+              brand:
+                summary: Brand registration
+                value:
+                  email: brand@example.com
+                  password: SecurePass123!
+                  role: BRAND
+                  name: StyleCo Fashion
+                  phone: "+919876543211"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                user:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  email: creator@example.com
+                  role: CREATOR
+                  name: Rahul Kumar
+                  emailVerified: false
+                  phoneVerified: false
+                  createdAt: "2024-12-07T10:30:00Z"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Invalid input parameters"
+                path: "/api/v1/auth/register"
+                details:
+                  email: "Email is required and must be valid"
+                  password: "Password must be at least 8 characters"
+                  role: "Role must be CREATOR or BRAND"
+        '409':
+          description: Conflict - user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 409
+                error: "Conflict"
+                message: "User with this email already exists"
+                path: "/api/v1/auth/register"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: |
+        Authenticate user with email and password.
+        Returns JWT access token and refresh token.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: creator@example.com
+              password: SecurePass123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjcmVhdG9yQGV4YW1wbGUuY29tIiwidXNlcklkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwicm9sZSI6IkNSRUFUT1IiLCJpYXQiOjE3MDIwNDQ2MDAsImV4cCI6MTcwMjEzMTAwMH0
+                refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjcmVhdG9yQGV4YW1wbGUuY29tIiwidXNlcklkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiaWF0IjoxNzAyMDQ0NjAwLCJleHAiOjE3MDI2NDk0MDB9
+                user:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  email: creator@example.com
+                  role: CREATOR
+                  name: Rahul Kumar
+                  emailVerified: true
+                  phoneVerified: true
+                  createdAt: "2024-12-01T08:00:00Z"
+        '401':
+          description: Unauthorized - invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 401
+                error: "Authentication Failed"
+                message: "Invalid email or password"
+                path: "/api/v1/auth/login"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: |
+        Generate a new access token using a valid refresh token.
+        Refresh token must not be expired.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjcmVhdG9yQGV4YW1wbGUuY29tIiwidXNlcklkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwicm9sZSI6IkNSRUFUT1IiLCJpYXQiOjE3MDIwNDQ2MDAsImV4cCI6MTcwMjEzMTAwMH0
+        '401':
+          description: Unauthorized - invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 401
+                error: "Unauthorized"
+                message: "Invalid or expired refresh token"
+                path: "/api/v1/auth/refresh-token"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: |
+        Invalidate the current refresh token.
+        Access token will expire naturally.
+      operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+            example:
+              refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+              example:
+                message: "Logged out successfully"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: |
+        Send OTP to user's email/phone for password reset.
+        OTP will be valid for 10 minutes.
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            example:
+              email: creator@example.com
+      responses:
+        '200':
+          description: Password reset OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent to your email"
+                  otpSentTo:
+                    type: string
+                    format: email
+                    example: "c***@example.com"
+              example:
+                message: "OTP sent to your email"
+                otpSentTo: "c***@example.com"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 404
+                error: "Resource Not Found"
+                message: "User with email creator@example.com not found"
+                path: "/api/v1/auth/forgot-password"
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/verify-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Verify OTP
+      description: |
+        Verify OTP sent via email/phone.
+        Used for email verification, phone verification, or password reset.
+      operationId: verifyOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+            examples:
+              emailVerification:
+                summary: Email verification
+                value:
+                  email: creator@example.com
+                  otp: "123456"
+                  type: EMAIL_VERIFICATION
+              passwordReset:
+                summary: Password reset
+                value:
+                  email: creator@example.com
+                  otp: "123456"
+                  type: PASSWORD_RESET
+                  newPassword: "NewSecurePass123!"
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Email verified successfully"
+                  accessToken:
+                    type: string
+                    nullable: true
+                    description: "Access token returned for email/phone verification, null for password reset"
+                    example: null
+              examples:
+                emailVerification:
+                  summary: Email verification response
+                  value:
+                    verified: true
+                    message: "Email verified successfully"
+                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                passwordReset:
+                  summary: Password reset response
+                  value:
+                    verified: true
+                    message: "Password reset successfully"
+                    accessToken: null
+        '400':
+          description: Bad request - invalid OTP or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: "2024-12-07T10:30:00Z"
+                status: 400
+                error: "Validation Failed"
+                message: "Invalid or expired OTP"
+                path: "/api/v1/auth/verify-otp"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - role
+        - name
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: User password (minimum 8 characters)
+          example: SecurePass123!
+        role:
+          $ref: '#/components/schemas/UserRole'
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          description: User full name
+          example: Rahul Kumar
+        phone:
+          type: string
+          nullable: true
+          pattern: '^\+?[1-9]\d{1,14}$'
+          description: Phone number in E.164 format (optional)
+          example: "+919876543210"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        password:
+          type: string
+          format: password
+          description: User password
+          example: SecurePass123!
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Valid refresh token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token to invalidate
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+
+    VerifyOtpRequest:
+      type: object
+      required:
+        - email
+        - otp
+        - type
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        otp:
+          type: string
+          pattern: '^\d{6}$'
+          description: 6-digit OTP code
+          example: "123456"
+        type:
+          $ref: '#/components/schemas/OtpType'
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          nullable: true
+          description: New password (required for PASSWORD_RESET type)
+          example: NewSecurePass123!
+
+    AuthResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - user
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token (valid for 24 hours)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: JWT refresh token (valid for 7 days)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/User'
+
+    RefreshTokenResponse:
+      type: object
+      required:
+        - accessToken
+      properties:
+        accessToken:
+          type: string
+          description: New JWT access token (valid for 24 hours)
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User unique identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: creator@example.com
+        role:
+          $ref: '#/components/schemas/UserRole'
+        name:
+          type: string
+          nullable: true
+          description: User full name
+          example: Rahul Kumar
+        emailVerified:
+          type: boolean
+          description: Email verification status
+          example: true
+        phoneVerified:
+          type: boolean
+          description: Phone verification status
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2024-12-01T08:00:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-12-07T10:30:00Z"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        error:
+          type: string
+          description: Error type
+          example: "Validation Failed"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid input parameters"
+        path:
+          type: string
+          description: Request path
+          example: "/api/v1/auth/register"
+        details:
+          type: object
+          nullable: true
+          description: Additional error details (validation errors, etc.)
+          additionalProperties:
+            type: string
+          example:
+            email: "Email is required and must be valid"
+            password: "Password must be at least 8 characters"
+
+    UserRole:
+      type: string
+      enum:
+        - CREATOR
+        - BRAND
+        - ADMIN
+      description: User role in the platform
+      example: CREATOR
+
+    OtpType:
+      type: string
+      enum:
+        - EMAIL_VERIFICATION
+        - PHONE_VERIFICATION
+        - PASSWORD_RESET
+      description: Type of OTP verification
+      example: EMAIL_VERIFICATION
+
+
+

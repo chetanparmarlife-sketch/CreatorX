@@ -1,0 +1,19 @@
+spring:
+  jpa:
+    show-sql: false
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    com.creatorx: INFO
+    root: WARN
+
+server:
+  error:
+    include-stacktrace: never
+    include-exception: false
+
+
+
+

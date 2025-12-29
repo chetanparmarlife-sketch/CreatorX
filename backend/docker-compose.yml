@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Supabase-compatible)
+  postgres:
+    image: supabase/postgres:15.1.0.147
+    container_name: creatorx-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-creatorx}
+      POSTGRES_HOST: /var/run/postgresql
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+      - ./db/seed:/docker-entrypoint-initdb.d/seed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-creatorx}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - creatorx-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: creatorx-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - creatorx-network
+
+  # Spring Boot Application
+  spring-boot-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: creatorx-backend
+    restart: unless-stopped
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      
+      # Database Configuration
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-creatorx}
+      DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # Redis Configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      
+      # Supabase Configuration
+      SUPABASE_URL: ${SUPABASE_URL:-http://localhost:8000}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      
+      # Server Configuration
+      SERVER_PORT: 8080
+      
+      # JVM Options
+      JAVA_OPTS: >-
+        -Xms512m
+        -Xmx1024m
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      - ./creatorx-api/src:/app/creatorx-api/src
+      - ./creatorx-service/src:/app/creatorx-service/src
+      - ./creatorx-repository/src:/app/creatorx-repository/src
+      - ./creatorx-common/src:/app/creatorx-common/src
+      - maven_cache:/root/.m2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - creatorx-network
+
+  # Supabase Studio (Database Management UI)
+  supabase-studio:
+    image: supabase/studio:20240115-7b4b0c4
+    container_name: creatorx-studio
+    restart: unless-stopped
+    environment:
+      STUDIO_PG_META_URL: http://postgres-meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DEFAULT_ORGANIZATION_NAME: CreatorX
+      DEFAULT_PROJECT_NAME: Local Development
+    ports:
+      - "${STUDIO_PORT:-3000}:3000"
+    depends_on:
+      - postgres
+      - postgres-meta
+    networks:
+      - creatorx-network
+
+  # Postgres Meta (for Supabase Studio)
+  postgres-meta:
+    image: supabase/postgres-meta:v0.80.0
+    container_name: creatorx-postgres-meta
+    restart: unless-stopped
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: postgres
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: ${POSTGRES_DB:-creatorx}
+      PG_META_DB_USER: ${POSTGRES_USER:-postgres}
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - creatorx-network
+
+  # MailHog (Email Testing)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: creatorx-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - creatorx-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  maven_cache:
+    driver: local
+
+networks:
+  creatorx-network:
+    driver: bridge
+    name: creatorx-network

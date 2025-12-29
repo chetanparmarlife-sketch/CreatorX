@@ -1,0 +1,535 @@
+{
+  "info": {
+    "name": "CreatorX API",
+    "description": "Complete API collection for CreatorX backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "creatorx"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.accessToken);",
+                  "    pm.environment.set('refresh_token', jsonData.refreshToken);",
+                  "    pm.environment.set('user_id', jsonData.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"creator@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"CREATOR\",\n  \"name\": \"John Doe\",\n  \"phone\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Link Supabase User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supabaseUserId\": \"supabase-uuid\",\n  \"email\": \"creator@example.com\",\n  \"name\": \"John Doe\",\n  \"role\": \"CREATOR\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/link-supabase-user",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "link-supabase-user"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "Get Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/campaigns?category=Fashion&platform=INSTAGRAM&budgetMin=1000&budgetMax=50000&page=0&size=20&sortBy=created_at&sortDirection=desc",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Fashion"
+                },
+                {
+                  "key": "platform",
+                  "value": "INSTAGRAM"
+                },
+                {
+                  "key": "budgetMin",
+                  "value": "1000"
+                },
+                {
+                  "key": "budgetMax",
+                  "value": "50000"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "created_at"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('campaign_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{campaign_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Summer Fashion Campaign\",\n  \"description\": \"Promote summer collection\",\n  \"budget\": 50000.00,\n  \"platform\": \"INSTAGRAM\",\n  \"category\": \"Fashion\",\n  \"deliverableTypes\": [\"IMAGE\", \"VIDEO\"],\n  \"startDate\": \"2024-06-01\",\n  \"endDate\": \"2024-06-30\",\n  \"applicationDeadline\": \"2024-05-25\",\n  \"maxApplicants\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Campaign Title\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{campaign_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Save Campaign",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/campaigns/:id/save",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", ":id", "save"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{campaign_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Saved Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/campaigns/saved",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "saved"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Submit Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignId\": \"{{campaign_id}}\",\n  \"pitch\": \"I have 100K followers and would love to collaborate...\",\n  \"expectedTimeline\": \"2 weeks\",\n  \"extraDetails\": \"Available immediately\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/applications",
+              "host": ["{{base_url}}"],
+              "path": ["applications"]
+            }
+          }
+        },
+        {
+          "name": "Get Applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/applications?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["applications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Withdraw Application",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/applications/:id",
+              "host": ["{{base_url}}"],
+              "path": ["applications", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Wallet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet",
+              "host": ["{{base_url}}"],
+              "path": ["wallet"]
+            }
+          }
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wallet/transactions?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["wallet", "transactions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Request Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000.00,\n  \"bankAccountId\": \"bank-account-uuid\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wallet/withdraw",
+              "host": ["{{base_url}}"],
+              "path": ["wallet", "withdraw"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messaging",
+      "item": [
+        {
+          "name": "Get Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/messages/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["messages", "conversations"]
+            }
+          }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/messages/conversation/:id?page=0&size=50",
+              "host": ["{{base_url}}"],
+              "path": ["messages", "conversation", ":id"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "50"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{conversation_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/messages/conversation/:id/read",
+              "host": ["{{base_url}}"],
+              "path": ["messages", "conversation", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{conversation_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Storage",
+      "item": [
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/storage/upload/avatar",
+              "host": ["{{base_url}}"],
+              "path": ["storage", "upload", "avatar"]
+            }
+          }
+        },
+        {
+          "name": "Upload KYC Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "documentType",
+                  "value": "AADHAAR",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/storage/upload/kyc",
+              "host": ["{{base_url}}"],
+              "path": ["storage", "upload", "kyc"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
