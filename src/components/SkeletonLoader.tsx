@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { StyleSheet, Animated } from 'react-native';
 import { useTheme } from '@/src/hooks';
 
 export interface SkeletonLoaderProps {
@@ -58,35 +58,9 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   );
 };
 
-export const CampaignCardSkeleton: React.FC = () => {
-  const { colors } = useTheme();
-
-  return (
-    <View style={[styles.card, { backgroundColor: colors.card }]}>
-      <SkeletonLoader width="100%" height={120} borderRadius={8} />
-      <View style={styles.cardContent}>
-        <SkeletonLoader width="60%" height={16} style={styles.marginBottom} />
-        <SkeletonLoader width="40%" height={14} style={styles.marginBottom} />
-        <SkeletonLoader width="80%" height={12} />
-      </View>
-    </View>
-  );
-};
-
 const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: '#e0e0e0',
-  },
-  card: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  cardContent: {
-    marginTop: 12,
-  },
-  marginBottom: {
-    marginBottom: 8,
   },
 });
 

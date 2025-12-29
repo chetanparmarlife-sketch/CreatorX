@@ -21,4 +21,4 @@ export * from './DraftSubmissionModal';
 export * from './RatingModal';
 export * from './ErrorView';
 export * from './OfflineNotice';
-export * from './SkeletonLoader';
+export { SkeletonLoader } from './SkeletonLoader';
