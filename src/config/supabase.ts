@@ -1,20 +1,15 @@
 /**
  * Supabase configuration
  * 
- * For local development:
- * 1. Create .env.local file
- * 2. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
- * 3. Or use remote Supabase instance
- * 
- * To get your Supabase credentials:
- * - Go to your Supabase project dashboard
- * - Settings > API
- * - Copy Project URL and anon/public key
+ * Environment variables are set in Replit Secrets:
+ * - EXPO_PUBLIC_SUPABASE_URL
+ * - EXPO_PUBLIC_SUPABASE_ANON_KEY
  */
 
 const getSupabaseUrl = (): string => {
+  // Try multiple ways to access environment variables
   // @ts-ignore - Expo environment variables
-  const url = typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_URL;
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   if (url && url !== 'your-supabase-url' && url !== 'https://your-project.supabase.co') {
     return url;
   }
@@ -24,8 +19,8 @@ const getSupabaseUrl = (): string => {
 };
 
 const getSupabaseAnonKey = (): string => {
-  // @ts-ignore - Expo environment variables
-  const key = typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  // @ts-ignore - Expo environment variables  
+  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   if (key && key !== 'your-supabase-key' && key !== 'your-anon-key') {
     return key;
   }
