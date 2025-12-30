@@ -17,7 +17,7 @@ const mockLists: ListCard[] = [
     name: 'Fashion Influencers',
     count: 24,
     description: 'Top fashion and lifestyle creators for summer campaign',
-    color: 'bg-sky-100 text-sky-700',
+    color: 'bg-purple-100 text-purple-700',
   },
   {
     id: 2,

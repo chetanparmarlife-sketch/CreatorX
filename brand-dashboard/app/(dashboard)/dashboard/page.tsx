@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { TrendingUp, Users, Calendar, DollarSign } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { StatCardsSkeleton, Skeleton } from '@/components/shared/skeleton'
 
 interface StatCard {
   icon: React.ComponentType<{ className?: string }>
@@ -87,6 +89,43 @@ const recentActivities: RecentActivity[] = [
 ]
 
 export default function DashboardPage() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div>
+        <PageHeader title="Dashboard" />
+        <StatCardsSkeleton />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+          <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <Skeleton className="h-6 w-28 mb-4" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <PageHeader title="Dashboard" />

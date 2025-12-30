@@ -1,575 +1,531 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { format, formatDistanceToNow } from 'date-fns'
-import { Search, Send, ArrowLeft } from 'lucide-react'
-import { useAuthStore } from '@/lib/store/auth-store'
-import { messageService } from '@/lib/api/messages'
-import { websocketService } from '@/lib/services/websocket-service'
-import { Conversation, Message } from '@/lib/types'
+import { useState } from 'react'
+import { Search, Send, Paperclip, Smile, ExternalLink, Phone, Video, MoreVertical, Plus, File, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils/cn'
 
-export default function MessagesPage() {
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [messageInput, setMessageInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messageInputRef = useRef<HTMLInputElement>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+interface Message {
+  id: string
+  text: string
+  timestamp: string
+  sender: 'brand' | 'influencer'
+  attachment?: { name: string }
+}
 
-  const { user } = useAuthStore()
-  const queryClient = useQueryClient()
+interface Influencer {
+  name: string
+  username: string
+  avatar: string
+  followers: string
+  engagementRate: string
+  platform: string
+}
 
-  // Get access token from localStorage
-  const token = typeof window !== 'undefined' ? localStorage.getItem('creatorx_access_token') : null
+interface Campaign {
+  name: string
+  status: 'ACTIVE' | 'PENDING' | 'COMPLETED'
+  platform: string
+}
 
-  // Fetch conversations
-  const { data: conversations = [], isLoading: conversationsLoading } = useQuery({
-    queryKey: ['conversations'],
-    queryFn: () => messageService.getConversations(),
-    refetchInterval: 30000, // Refetch every 30 seconds
-  })
+interface Conversation {
+  id: string
+  influencer: Influencer
+  campaign: Campaign
+  messages: Message[]
+  lastMessage: string
+  lastMessageTime: string
+  unreadCount: number
+}
 
-  // Fetch messages for selected conversation
-  const { data: messagesData, isLoading: messagesLoading } = useQuery({
-    queryKey: ['messages', selectedConversationId],
-    queryFn: () => {
-      if (!selectedConversationId) return null
-      return messageService.getMessages(selectedConversationId)
+const mockConversations: Conversation[] = [
+  {
+    id: '1',
+    influencer: {
+      name: 'Sarah Johnson',
+      username: '@sarahjstyle',
+      avatar: 'SJ',
+      followers: '245K',
+      engagementRate: '4.2%',
+      platform: 'instagram',
     },
-    enabled: !!selectedConversationId,
-  })
-
-  const messages = messagesData?.items || []
-
-  // Mark as read mutation
-  const markAsReadMutation = useMutation({
-    mutationFn: (conversationId: string) => messageService.markAsRead(conversationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+    campaign: {
+      name: 'Summer Collection Launch',
+      status: 'ACTIVE',
+      platform: 'instagram',
     },
-  })
-
-  // Send message mutation (REST fallback)
-  const sendMessageMutation = useMutation({
-    mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
-      messageService.sendMessage(conversationId, content),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', selectedConversationId] })
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
-      setMessageInput('')
+    messages: [
+      { id: 'm1', text: 'Hi! I\'m excited to collaborate on the Summer Collection campaign!', timestamp: '10:30 AM', sender: 'influencer' },
+      { id: 'm2', text: 'Great to hear from you, Sarah! We\'re excited to work with you too.', timestamp: '10:32 AM', sender: 'brand' },
+      { id: 'm3', text: 'Could you share the product samples and brief?', timestamp: '10:33 AM', sender: 'influencer' },
+      { id: 'm4', text: 'Of course! I\'ll send over the creative brief and product details.', timestamp: '10:35 AM', sender: 'brand' },
+    ],
+    lastMessage: 'Of course! I\'ll send over the creative brief...',
+    lastMessageTime: '10:35 AM',
+    unreadCount: 0,
+  },
+  {
+    id: '2',
+    influencer: {
+      name: 'Michael Chen',
+      username: '@techbymike',
+      avatar: 'MC',
+      followers: '180K',
+      engagementRate: '3.8%',
+      platform: 'youtube',
     },
-  })
+    campaign: {
+      name: 'Tech Product Review Series',
+      status: 'PENDING',
+      platform: 'youtube',
+    },
+    messages: [
+      { id: 'm1', text: 'Looking forward to reviewing the new product line!', timestamp: '9:15 AM', sender: 'influencer' },
+    ],
+    lastMessage: 'Looking forward to reviewing the new product line!',
+    lastMessageTime: '9:15 AM',
+    unreadCount: 2,
+  },
+  {
+    id: '3',
+    influencer: {
+      name: 'Emma Davis',
+      username: '@emmafoodie',
+      avatar: 'ED',
+      followers: '320K',
+      engagementRate: '5.1%',
+      platform: 'instagram',
+    },
+    campaign: {
+      name: 'Food & Recipe Campaign',
+      status: 'ACTIVE',
+      platform: 'instagram',
+    },
+    messages: [
+      { id: 'm1', text: 'The recipe photos are ready for review!', timestamp: 'Yesterday', sender: 'influencer' },
+    ],
+    lastMessage: 'The recipe photos are ready for review!',
+    lastMessageTime: 'Yesterday',
+    unreadCount: 1,
+  },
+]
 
-  // WebSocket connection
-  useEffect(() => {
-    if (!token) return
+function NewConversationModal({ isOpen, onClose, onStart }: { isOpen: boolean; onClose: () => void; onStart: (i: string, c: string) => void }) {
+  const [selectedCampaign, setSelectedCampaign] = useState('')
+  const [selectedInfluencer, setSelectedInfluencer] = useState('')
 
-    const connect = async () => {
-      try {
-        await websocketService.connect(token)
-      } catch (error) {
-        console.error('[MessagesPage] WebSocket connection failed:', error)
-      }
+  if (!isOpen) return null
+
+  const handleStart = () => {
+    if (selectedCampaign && selectedInfluencer) {
+      onStart(selectedInfluencer, selectedCampaign)
+      onClose()
     }
-
-    connect()
-
-    return () => {
-      websocketService.disconnect()
-    }
-  }, [token])
-
-  // Handle incoming WebSocket messages
-  useEffect(() => {
-    const unsubscribe = websocketService.onMessage((message) => {
-      // Update messages if this conversation is open
-      if (message.conversationId === selectedConversationId) {
-        queryClient.setQueryData(['messages', selectedConversationId], (old: any) => {
-          if (!old) return { items: [message], page: 0, size: 50, total: 1, totalPages: 1 }
-          // Check if message already exists
-          const exists = old.items.some((m: Message) => m.id === message.id)
-          if (exists) return old
-          return {
-            ...old,
-            items: [...old.items, message],
-            total: old.total + 1,
-          }
-        })
-      }
-
-      // Update conversations list
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
-    })
-
-    return unsubscribe
-  }, [selectedConversationId, queryClient])
-
-  // Handle typing indicators
-  useEffect(() => {
-    const unsubscribe = websocketService.onTyping((data) => {
-      if (data.conversationId === selectedConversationId && data.userId !== user?.id) {
-        setIsTyping(data.isTyping)
-        if (data.isTyping) {
-          // Clear existing timeout
-          if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current)
-          }
-          // Set timeout to hide typing indicator after 3 seconds
-          typingTimeoutRef.current = setTimeout(() => {
-            setIsTyping(false)
-          }, 3000)
-        }
-      }
-    })
-
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current)
-      }
-      unsubscribe()
-    }
-  }, [selectedConversationId, user?.id])
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  // Mark conversation as read when opened
-  useEffect(() => {
-    if (selectedConversationId) {
-      markAsReadMutation.mutate(selectedConversationId)
-    }
-  }, [selectedConversationId])
-
-  // Filter conversations by search query
-  const filteredConversations = conversations.filter((conv: Conversation) => {
-    if (!searchQuery.trim()) return true
-    const searchLower = searchQuery.toLowerCase()
-    const creatorName = conv.creator?.profile?.fullName || conv.creator?.email || ''
-    const campaignTitle = conv.campaign?.title || ''
-    return (
-      creatorName.toLowerCase().includes(searchLower) ||
-      campaignTitle.toLowerCase().includes(searchLower) ||
-      conv.lastMessage?.content.toLowerCase().includes(searchLower)
-    )
-  })
-
-  // Sort conversations by last message time
-  const sortedConversations = [...filteredConversations].sort((a: Conversation, b: Conversation) => {
-    const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0
-    const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0
-    return timeB - timeA
-  })
-
-  const selectedConversation = conversations.find((c) => c.id === selectedConversationId)
-
-  const handleSendMessage = useCallback(() => {
-    if (!selectedConversationId || !messageInput.trim()) return
-
-    const content = messageInput.trim()
-
-    // Try WebSocket first
-    if (websocketService.getConnected()) {
-      websocketService.sendMessage(selectedConversationId, content)
-      setMessageInput('')
-      
-      // Optimistically add message to UI
-      const optimisticMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversationId: selectedConversationId,
-        senderId: user?.id || '',
-        content,
-        read: false,
-        createdAt: new Date().toISOString(),
-      }
-
-      queryClient.setQueryData(['messages', selectedConversationId], (old: any) => {
-        if (!old) return { items: [optimisticMessage], page: 0, size: 50, total: 1, totalPages: 1 }
-        return {
-          ...old,
-          items: [...old.items, optimisticMessage],
-          total: old.total + 1,
-        }
-      })
-    } else {
-      // Fallback to REST API
-      sendMessageMutation.mutate({ conversationId: selectedConversationId, content })
-    }
-  }, [selectedConversationId, messageInput, user?.id, queryClient, sendMessageMutation])
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
-    }
-  }
-
-  const handleTyping = useCallback(() => {
-    if (!selectedConversationId || !websocketService.getConnected()) return
-
-    // Send typing indicator
-    websocketService.sendTyping(selectedConversationId, true)
-
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
-    }
-
-    // Send stop typing after 2 seconds of inactivity
-    typingTimeoutRef.current = setTimeout(() => {
-      websocketService.sendTyping(selectedConversationId, false)
-    }, 2000)
-  }, [selectedConversationId])
-
-  const getCreatorName = (conversation: Conversation) => {
-    return conversation.creator?.profile?.fullName || conversation.creator?.email || 'Unknown Creator'
-  }
-
-  const getCreatorInitials = (conversation: Conversation) => {
-    const name = getCreatorName(conversation)
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] border rounded-lg bg-white overflow-hidden">
-      {/* Left Sidebar - Conversation List */}
-      <div className="w-full md:w-96 border-r flex flex-col">
-        {/* Search Bar */}
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">New Conversation</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Campaign</label>
+            <select
+              value={selectedCampaign}
+              onChange={(e) => setSelectedCampaign(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="">Choose a campaign...</option>
+              <option value="camp1">Summer Collection Launch</option>
+              <option value="camp2">Tech Product Review Series</option>
+              <option value="camp3">Food & Recipe Campaign</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Influencer</label>
+            <select
+              value={selectedInfluencer}
+              onChange={(e) => setSelectedInfluencer(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="">Choose an influencer...</option>
+              <option value="inf1">Sarah Johnson (@sarahjstyle)</option>
+              <option value="inf2">Michael Chen (@techbymike)</option>
+              <option value="inf3">Emma Davis (@emmafoodie)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={handleStart}
+            disabled={!selectedCampaign || !selectedInfluencer}
+            className="bg-sky-500 hover:bg-sky-600 text-white"
+          >
+            Start Chat
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConversationList({
+  conversations,
+  activeId,
+  onSelect,
+  onNewConversation,
+}: {
+  conversations: Conversation[]
+  activeId: string | null
+  onSelect: (id: string) => void
+  onNewConversation: () => void
+}) {
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filtered = conversations.filter(
+    (conv) =>
+      conv.influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  return (
+    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
+          <button
+            onClick={onNewConversation}
+            className="w-9 h-9 rounded-lg bg-sky-500 hover:bg-sky-600 flex items-center justify-center text-white transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search influencer or campaign..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10 bg-gray-50 border-gray-200"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-sm text-gray-600">No conversations found</p>
+          </div>
+        ) : (
+          filtered.map((conv) => (
+            <button
+              key={conv.id}
+              onClick={() => onSelect(conv.id)}
+              className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
+                activeId === conv.id ? 'bg-gray-100' : ''
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center text-white flex-shrink-0">
+                  <span className="text-sm font-medium">{conv.influencer.avatar}</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-sm font-medium text-gray-900 truncate">{conv.influencer.name}</h4>
+                    <span className="text-xs text-gray-500 ml-2">{conv.lastMessageTime}</span>
+                  </div>
+                  <p className="text-xs text-sky-600 mb-1 truncate">{conv.campaign.name}</p>
+                  <p className="text-sm text-gray-600 truncate">{conv.lastMessage}</p>
+                </div>
+
+                {conv.unreadCount > 0 && (
+                  <div className="w-5 h-5 rounded-full bg-sky-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs text-white">{conv.unreadCount}</span>
+                  </div>
+                )}
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ChatWindow({
+  conversation,
+  onSendMessage,
+}: {
+  conversation: Conversation | null
+  onSendMessage: (text: string) => void
+}) {
+  const [messageText, setMessageText] = useState('')
+
+  const handleSend = () => {
+    if (messageText.trim()) {
+      onSendMessage(messageText)
+      setMessageText('')
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  if (!conversation) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Send className="w-10 h-10 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Start a conversation</h3>
+          <p className="text-sm text-gray-600">
+            Select a conversation from the list or start a new one to begin messaging with influencers.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex-1 flex flex-col bg-white">
+      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center text-white">
+            <span className="text-sm font-medium">{conversation.influencer.avatar}</span>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">{conversation.influencer.name}</h3>
+            <button className="text-sm text-sky-600 hover:text-sky-700 flex items-center gap-1">
+              {conversation.campaign.name}
+              <ExternalLink className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
+            <Phone className="w-5 h-5" />
+          </button>
+          <button className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
+            <Video className="w-5 h-5" />
+          </button>
+          <button className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {conversation.messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.sender === 'brand' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[70%] rounded-lg px-4 py-3 ${
+                message.sender === 'brand'
+                  ? 'bg-sky-500 text-white'
+                  : 'bg-gray-100 text-gray-900'
+              }`}
+            >
+              <p className="text-sm">{message.text}</p>
+              {message.attachment && (
+                <div className="mt-2 pt-2 border-t border-white/20">
+                  <div className="flex items-center gap-2 text-xs">
+                    <File className="w-4 h-4" />
+                    <span>{message.attachment.name}</span>
+                  </div>
+                </div>
+              )}
+              <span className={`text-xs mt-1 block ${message.sender === 'brand' ? 'text-sky-100' : 'text-gray-500'}`}>
+                {message.timestamp}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 border-t border-gray-200">
+        <div className="flex items-end gap-3">
+          <button className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors flex-shrink-0">
+            <Paperclip className="w-5 h-5" />
+          </button>
+          
+          <div className="flex-1 relative">
+            <textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Type a message..."
+              rows={1}
+              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
             />
+            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <Smile className="w-5 h-5" />
+            </button>
           </div>
+
+          <Button
+            onClick={handleSend}
+            disabled={!messageText.trim()}
+            className="w-10 h-10 p-0 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex-shrink-0"
+          >
+            <Send className="w-5 h-5" />
+          </Button>
         </div>
+      </div>
+    </div>
+  )
+}
 
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto">
-          {conversationsLoading ? (
-            <div className="p-4 text-center text-sm text-slate-500">Loading conversations...</div>
-          ) : sortedConversations.length === 0 ? (
-            <div className="p-4 text-center text-sm text-slate-500">
-              {searchQuery ? 'No conversations found' : 'No conversations yet'}
-            </div>
-          ) : (
-            <div className="divide-y">
-              {sortedConversations.map((conversation) => {
-                const isSelected = conversation.id === selectedConversationId
-                const unreadCount = conversation.brandUnreadCount || 0
+function ContextPanel({ conversation }: { conversation: Conversation | null }) {
+  if (!conversation) return null
 
-                return (
-                  <button
-                    key={conversation.id}
-                    onClick={() => setSelectedConversationId(conversation.id)}
-                    className={cn(
-                      'w-full p-4 text-left hover:bg-slate-50 transition-colors',
-                      isSelected && 'bg-purple-50 border-l-4 border-l-purple-600'
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-12 w-12 flex-shrink-0">
-                        <AvatarImage src={conversation.creator?.profile?.avatarUrl} />
-                        <AvatarFallback className="bg-purple-600 text-white">
-                          {getCreatorInitials(conversation)}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-sm text-slate-900 truncate">
-                            {getCreatorName(conversation)}
-                          </h3>
-                          {conversation.lastMessageAt && (
-                            <span className="text-xs text-slate-500 flex-shrink-0 ml-2">
-                              {formatDistanceToNow(new Date(conversation.lastMessageAt), {
-                                addSuffix: true,
-                              })}
-                            </span>
-                          )}
-                        </div>
-
-                        {conversation.campaign && (
-                          <p className="text-xs text-purple-600 mb-1 truncate">
-                            {conversation.campaign.title}
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm text-slate-600 truncate">
-                            {conversation.lastMessage?.content || 'No messages yet'}
-                          </p>
-                          {unreadCount > 0 && (
-                            <Badge className="ml-2 bg-purple-600 text-white flex-shrink-0">
-                              {unreadCount > 99 ? '99+' : unreadCount}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          )}
+  return (
+    <div className="w-80 bg-gray-50 border-l border-gray-200 p-6 overflow-y-auto">
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Campaign Details</h3>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Campaign Name</div>
+            <div className="text-sm font-medium text-gray-900">{conversation.campaign.name}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Status</div>
+            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+              conversation.campaign.status === 'ACTIVE'
+                ? 'bg-green-100 text-green-700'
+                : conversation.campaign.status === 'PENDING'
+                ? 'bg-yellow-100 text-yellow-700'
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {conversation.campaign.status}
+            </span>
+          </div>
+          <div>
+            <div className="text-xs text-gray-600 mb-1">Platform</div>
+            <div className="text-sm text-gray-900 capitalize">{conversation.campaign.platform}</div>
+          </div>
         </div>
       </div>
 
-      {/* Right Panel - Message Thread */}
-      <div className="flex-1 flex flex-col hidden md:flex">
-        {selectedConversation ? (
-          <>
-            {/* Header */}
-            <div className="p-4 border-b flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={selectedConversation.creator?.profile?.avatarUrl} />
-                <AvatarFallback className="bg-purple-600 text-white">
-                  {getCreatorInitials(selectedConversation)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="font-semibold text-slate-900">
-                  {getCreatorName(selectedConversation)}
-                </h2>
-                {selectedConversation.campaign && (
-                  <p className="text-xs text-slate-500">{selectedConversation.campaign.title}</p>
-                )}
-              </div>
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Influencer Details</h3>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center text-white">
+              <span className="font-medium">{conversation.influencer.avatar}</span>
             </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messagesLoading ? (
-                <div className="text-center text-sm text-slate-500">Loading messages...</div>
-              ) : messages.length === 0 ? (
-                <div className="text-center text-sm text-slate-500 py-8">
-                  No messages yet. Start the conversation!
-                </div>
-              ) : (
-                <>
-                  {messages.map((message: Message) => {
-                    const isOwnMessage = message.senderId === user?.id
-                    const senderName = isOwnMessage
-                      ? 'You'
-                      : selectedConversation.creator?.profile?.fullName ||
-                        selectedConversation.creator?.email ||
-                        'Creator'
-
-                    return (
-                      <div
-                        key={message.id}
-                        className={cn(
-                          'flex',
-                          isOwnMessage ? 'justify-end' : 'justify-start'
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'max-w-[70%] rounded-lg px-4 py-2',
-                            isOwnMessage
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-slate-100 text-slate-900'
-                          )}
-                        >
-                          {!isOwnMessage && (
-                            <p className="text-xs font-semibold mb-1 opacity-75">{senderName}</p>
-                          )}
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                          <p
-                            className={cn(
-                              'text-xs mt-1',
-                              isOwnMessage ? 'text-purple-100' : 'text-slate-500'
-                            )}
-                          >
-                            {format(new Date(message.createdAt), 'HH:mm')}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="bg-slate-100 rounded-lg px-4 py-2">
-                        <p className="text-sm text-slate-500 italic">Typing...</p>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </>
-              )}
-            </div>
-
-            {/* Message Input */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  ref={messageInputRef}
-                  placeholder="Type a message..."
-                  value={messageInput}
-                  onChange={(e) => {
-                    setMessageInput(e.target.value)
-                    handleTyping()
-                  }}
-                  onKeyPress={handleKeyPress}
-                  disabled={sendMessageMutation.isPending}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-slate-500">
-              <p className="text-lg font-medium mb-2">Select a conversation</p>
-              <p className="text-sm">Choose a conversation from the list to start messaging</p>
+            <div>
+              <div className="text-sm font-medium text-gray-900">{conversation.influencer.name}</div>
+              <div className="text-xs text-gray-600">{conversation.influencer.username}</div>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Mobile: Show selected conversation or list */}
-      <div className="flex-1 flex flex-col md:hidden">
-        {selectedConversationId ? (
-          <>
-            {/* Mobile Header */}
-            <div className="p-4 border-b flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedConversationId(null)}
-                type="button"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={selectedConversation?.creator?.profile?.avatarUrl} />
-                <AvatarFallback className="bg-purple-600 text-white">
-                  {selectedConversation && getCreatorInitials(selectedConversation)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="font-semibold text-slate-900">
-                  {selectedConversation && getCreatorName(selectedConversation)}
-                </h2>
-                {selectedConversation?.campaign && (
-                  <p className="text-xs text-slate-500">{selectedConversation.campaign.title}</p>
-                )}
-              </div>
+          <div className="space-y-3">
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Followers</div>
+              <div className="text-sm text-gray-900">{conversation.influencer.followers}</div>
             </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messagesLoading ? (
-                <div className="text-center text-sm text-slate-500">Loading messages...</div>
-              ) : messages.length === 0 ? (
-                <div className="text-center text-sm text-slate-500 py-8">
-                  No messages yet. Start the conversation!
-                </div>
-              ) : (
-                <>
-                  {messages.map((message: Message) => {
-                    const isOwnMessage = message.senderId === user?.id
-                    const senderName = isOwnMessage
-                      ? 'You'
-                      : selectedConversation?.creator?.profile?.fullName ||
-                        selectedConversation?.creator?.email ||
-                        'Creator'
-
-                    return (
-                      <div
-                        key={message.id}
-                        className={cn('flex', isOwnMessage ? 'justify-end' : 'justify-start')}
-                      >
-                        <div
-                          className={cn(
-                            'max-w-[70%] rounded-lg px-4 py-2',
-                            isOwnMessage
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-slate-100 text-slate-900'
-                          )}
-                        >
-                          {!isOwnMessage && (
-                            <p className="text-xs font-semibold mb-1 opacity-75">{senderName}</p>
-                          )}
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                          <p
-                            className={cn(
-                              'text-xs mt-1',
-                              isOwnMessage ? 'text-purple-100' : 'text-slate-500'
-                            )}
-                          >
-                            {format(new Date(message.createdAt), 'HH:mm')}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="bg-slate-100 rounded-lg px-4 py-2">
-                        <p className="text-sm text-slate-500 italic">Typing...</p>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </>
-              )}
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Engagement Rate</div>
+              <div className="text-sm text-gray-900">{conversation.influencer.engagementRate}</div>
             </div>
-
-            {/* Message Input */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  ref={messageInputRef}
-                  placeholder="Type a message..."
-                  value={messageInput}
-                  onChange={(e) => {
-                    setMessageInput(e.target.value)
-                    handleTyping()
-                  }}
-                  onKeyPress={handleKeyPress}
-                  disabled={sendMessageMutation.isPending}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-slate-500">
-              <p className="text-sm">Select a conversation to start messaging</p>
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Platform</div>
+              <div className="text-sm text-gray-900 capitalize">{conversation.influencer.platform}</div>
             </div>
           </div>
-        )}
+        </div>
       </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
+        <div className="space-y-2">
+          <button className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
+            View Influencer Profile
+          </button>
+          <button className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
+            View Campaign Details
+          </button>
+          <button className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
+            Share Files
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function MessagesPage() {
+  const [conversations, setConversations] = useState(mockConversations)
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [showNewConversationModal, setShowNewConversationModal] = useState(false)
+
+  const activeConversation = conversations.find((c) => c.id === activeConversationId) || null
+
+  const handleSendMessage = (text: string) => {
+    if (!activeConversationId) return
+
+    const newMessage: Message = {
+      id: `msg-${Date.now()}`,
+      text,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      sender: 'brand',
+    }
+
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === activeConversationId
+          ? {
+              ...conv,
+              messages: [...conv.messages, newMessage],
+              lastMessage: text,
+              lastMessageTime: 'Just now',
+            }
+          : conv
+      )
+    )
+  }
+
+  const handleStartNewConversation = (influencerId: string, campaignId: string) => {
+    console.log('Starting new conversation:', { influencerId, campaignId })
+  }
+
+  return (
+    <div className="fixed inset-0 left-64 top-0 bg-[#F7F9FC] flex">
+      <ConversationList
+        conversations={conversations}
+        activeId={activeConversationId}
+        onSelect={setActiveConversationId}
+        onNewConversation={() => setShowNewConversationModal(true)}
+      />
+      
+      <ChatWindow conversation={activeConversation} onSendMessage={handleSendMessage} />
+      
+      <ContextPanel conversation={activeConversation} />
+
+      <NewConversationModal
+        isOpen={showNewConversationModal}
+        onClose={() => setShowNewConversationModal(false)}
+        onStart={handleStartNewConversation}
+      />
     </div>
   )
 }

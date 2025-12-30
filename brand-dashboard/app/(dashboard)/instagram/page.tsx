@@ -1,8 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Search, ChevronDown, MapPin, Users, TrendingUp, Tag } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { Input } from '@/components/ui/input'
+import { TableSkeleton } from '@/components/shared/skeleton'
 
 interface Influencer {
   id: number
@@ -90,16 +92,32 @@ function FilterButton({ label }: { label: string }) {
 }
 
 export default function InstagramPage() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const filtered = mockInfluencers.filter(
+    (inf) =>
+      inf.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inf.handle.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
     <div>
       <PageHeader title="Instagram" />
 
       <div className="mb-6 space-y-4">
-        <div className="relative">
+        <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
             type="text"
             placeholder="Search Instagram name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 bg-white border-gray-300"
           />
         </div>
@@ -113,6 +131,9 @@ export default function InstagramPage() {
         </div>
       </div>
 
+      {isLoading ? (
+        <TableSkeleton rows={5} />
+      ) : (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="w-full">
           <thead>
@@ -127,8 +148,8 @@ export default function InstagramPage() {
             </tr>
           </thead>
           <tbody>
-            {mockInfluencers.map((influencer) => (
-              <tr key={influencer.id} className="border-b border-gray-100 hover:bg-gray-50">
+            {filtered.map((influencer) => (
+              <tr key={influencer.id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <img
@@ -180,6 +201,7 @@ export default function InstagramPage() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }
