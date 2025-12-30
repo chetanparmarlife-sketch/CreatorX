@@ -1,97 +1,75 @@
-'use client'
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
-import { useAuthStore } from '@/lib/store/auth-store'
-import { authService } from '@/lib/services/auth-service'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+interface LoginPageProps {
+  onLogin: () => void;
+}
 
-export default function LoginPage() {
-  const router = useRouter()
-  const { login: setUser } = useAuthStore()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
+export function LoginPage({ onLogin }: LoginPageProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const user = await authService.login(formData)
-      setUser(user)
-      router.push('/dashboard')
-    } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onLogin();
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
+        {/* Login Card */}
+        <div className="bg-white rounded-xl border border-gray-200 p-8">
+          {/* Brand */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">CreatorX</h2>
+            <h2 className="text-gray-900 mb-1">CreatorX</h2>
           </div>
 
+          {/* Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Welcome back.</h1>
+            <h1 className="text-gray-900 mb-2">Welcome back.</h1>
             <p className="text-sm text-gray-600">Login to manage your account.</p>
           </div>
 
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
+            {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm text-gray-700 mb-2">
                 Email address
               </label>
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-11 bg-white border-gray-300"
                 required
-                disabled={isLoading}
               />
             </div>
 
+            {/* Password Field */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="text-sm text-gray-700">
                   Password
                 </label>
-                <Link href="#" className="text-sm text-sky-600 hover:text-sky-700">
+                <a href="#" className="text-sm text-sky-600 hover:text-sky-700">
                   Forgot password?
-                </Link>
+                </a>
               </div>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full h-11 bg-white border-gray-300 pr-10"
                   required
-                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -107,15 +85,16 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full h-11 bg-sky-500 hover:bg-sky-600 text-white"
-              disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              Sign in
             </Button>
           </form>
 
+          {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
@@ -125,6 +104,7 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Social Login Buttons */}
           <div className="space-y-3">
             <button className="w-full h-11 flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -156,14 +136,15 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* Sign Up Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link href="/register" className="text-sky-600 hover:text-sky-700 font-medium">
+            <a href="#" className="text-sky-600 hover:text-sky-700">
               Sign up here
-            </Link>
+            </a>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
