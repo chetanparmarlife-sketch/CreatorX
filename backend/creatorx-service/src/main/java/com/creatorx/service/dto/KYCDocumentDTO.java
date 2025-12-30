@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 public class KYCDocumentDTO {
     private String id;
     private String userId;
+    private String userEmail;
     private DocumentType documentType;
     private String documentNumber;
     private String fileUrl;
@@ -26,4 +27,3 @@ public class KYCDocumentDTO {
     private LocalDateTime submittedAt;
     private LocalDateTime verifiedAt;
 }
-

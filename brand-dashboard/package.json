@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001 -H 0.0.0.0",
+    "admin:dev": "next dev ../admin-dashboard -p 3002 -H 0.0.0.0",
     "build": "next build",
+    "admin:build": "next build ../admin-dashboard",
     "start": "next start",
+    "admin:start": "next start ../admin-dashboard -p 3002",
     "lint": "next lint"
   },
   "dependencies": {
@@ -51,4 +54,3 @@
     "eslint-config-next": "14.2.5"
   }
 }
-

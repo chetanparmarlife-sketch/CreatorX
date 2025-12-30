@@ -23,12 +23,12 @@ CreatorX is a comprehensive React Native/Expo mobile application for content cre
 ## Project Architecture
 
 ### Technology Stack
-- **Framework**: React Native with Expo (Mobile App), Next.js (Brand Dashboard)
+- **Framework**: React Native with Expo (Mobile App), Next.js (Brand & Admin Dashboards)
 - **Navigation**: Expo Router (file-based routing), Next.js App Router
-- **State Management**: React Context API, Zustand (Brand Dashboard)
+- **State Management**: React Context API, Zustand (Dashboards)
 - **Storage**: AsyncStorage for persistence
-- **UI Components**: Custom components with Linear Gradient effects (Mobile), shadcn/ui (Dashboard)
-- **Icons**: Feather icons from @expo/vector-icons, Lucide icons (Dashboard)
+- **UI Components**: Custom components with Linear Gradient effects (Mobile), shadcn/ui (Dashboards)
+- **Icons**: Feather icons from @expo/vector-icons, Lucide icons (Dashboards)
 
 ### Directory Structure
 
@@ -119,6 +119,14 @@ components/
 6. **Payments**: Manage payment methods and transactions
 7. **Settings**: Profile, team, notifications, security
 
+### Admin Dashboard
+1. **Overview**: Platform-wide stats (users, campaigns, KYC, disputes)
+2. **User Management**: Users, KYC Review, Brand Verification, Appeals
+3. **Moderation**: Campaign Flags, Moderation Rules, Disputes
+4. **Compliance**: GDPR Requests, Audit Log
+5. **Finance**: Reconciliation dashboard
+6. **Settings**: System configuration
+
 ## Running the Project
 
 ### Mobile App
@@ -133,6 +141,12 @@ cd brand-dashboard && npm run dev
 ```
 Runs on port 3001.
 
+### Admin Dashboard
+```bash
+cd admin-dashboard && npm run dev
+```
+Runs on port 3002.
+
 ## User Preferences
 - Dark mode design for mobile app
 - Light mode for brand dashboard
@@ -141,4 +155,4 @@ Runs on port 3001.
 - Smooth animations and transitions
 
 ## Demo Mode
-Brand dashboard has demo mode enabled (DEMO_MODE = true in lib/api/auth.ts). Any email/password works for login.
+Brand and Admin dashboards have demo mode enabled (DEMO_MODE = true in lib/api/auth.ts). Any email/password works for login.

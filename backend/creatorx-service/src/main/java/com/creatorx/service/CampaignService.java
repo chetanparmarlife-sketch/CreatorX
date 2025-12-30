@@ -18,6 +18,7 @@ import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.CampaignDTO;
 import com.creatorx.service.dto.CampaignDeliverableDTO;
 import com.creatorx.service.mapper.CampaignMapper;
+import com.creatorx.service.admin.ModerationService;
 import com.creatorx.service.util.SearchQuerySanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class CampaignService {
     private final UserService userService;
     private final CampaignMapper campaignMapper;
     private final SearchQuerySanitizer searchQuerySanitizer;
+    private final ModerationService moderationService;
     
     /**
      * Get campaigns with filters and pagination using CampaignFilterRequest.
@@ -264,6 +266,7 @@ public class CampaignService {
         }
         
         Campaign saved = campaignRepository.save(campaign);
+        moderationService.evaluateCampaign(saved, brand);
         log.info("Created campaign: {} by brand: {}", saved.getId(), brandId);
         
         return campaignMapper.toDTO(saved);
@@ -324,6 +327,7 @@ public class CampaignService {
         }
         
         Campaign updated = campaignRepository.save(campaign);
+        moderationService.evaluateCampaign(updated, campaign.getBrand());
         log.info("Updated campaign: {} by brand: {}", id, brandId);
         
         return campaignMapper.toDTO(updated);
@@ -623,4 +627,3 @@ public class CampaignService {
         }
     }
 }
-

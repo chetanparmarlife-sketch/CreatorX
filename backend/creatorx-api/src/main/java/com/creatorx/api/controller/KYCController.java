@@ -92,6 +92,30 @@ public class KYCController {
         List<KYCDocumentDTO> documents = kycService.getKYCDocuments(userId);
         return ResponseEntity.ok(documents);
     }
+
+    /**
+     * Get pending KYC documents (Admin only)
+     */
+    @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "List pending KYC documents", description = "List KYC documents awaiting review (Admin only)")
+    public ResponseEntity<List<KYCDocumentDTO>> getPendingDocuments() {
+        return ResponseEntity.ok(kycService.getPendingDocuments());
+    }
+
+    /**
+     * Bulk review KYC documents (Admin only)
+     */
+    @PostMapping("/documents/bulk-review")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Bulk review KYC documents", description = "Approve or reject multiple KYC documents")
+    public ResponseEntity<Void> bulkReview(
+            @RequestBody com.creatorx.api.dto.KycBulkReviewRequest request,
+            Authentication authentication
+    ) {
+        kycService.bulkReview(authentication.getName(), request.getDocumentIds(), request.getStatus(), request.getReason());
+        return ResponseEntity.noContent().build();
+    }
     
     /**
      * Approve KYC document (Admin only)
@@ -124,4 +148,3 @@ public class KYCController {
         return ResponseEntity.noContent().build();
     }
 }
-

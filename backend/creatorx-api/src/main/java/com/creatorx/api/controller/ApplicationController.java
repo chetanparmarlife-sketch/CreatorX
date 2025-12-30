@@ -190,6 +190,25 @@ public class ApplicationController {
         );
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * Bulk update application status (Brand only)
+     */
+    @PostMapping("/bulk-status")
+    @PreAuthorize("hasRole('BRAND')")
+    @Operation(summary = "Bulk update application status", description = "Update status for multiple applications")
+    public ResponseEntity<Void> bulkUpdateStatus(
+            @Valid @RequestBody com.creatorx.api.dto.BulkStatusRequest request
+    ) {
+        User currentUser = getCurrentUser();
+        applicationService.updateApplicationsStatusBulk(
+                currentUser.getId(),
+                request.getApplicationIds(),
+                request.getStatus(),
+                request.getReason()
+        );
+        return ResponseEntity.ok().build();
+    }
     
     // Helper methods
     
@@ -223,4 +242,3 @@ public class ApplicationController {
         };
     }
 }
-

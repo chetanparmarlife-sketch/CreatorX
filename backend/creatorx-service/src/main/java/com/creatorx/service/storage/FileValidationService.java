@@ -31,12 +31,14 @@ public class FileValidationService {
     private static final long MAX_KYC_SIZE = 10 * 1024 * 1024; // 10MB
     private static final long MAX_DELIVERABLE_SIZE = 100 * 1024 * 1024; // 100MB
     private static final long MAX_PORTFOLIO_SIZE = 100 * 1024 * 1024; // 100MB
+    private static final long MAX_BRAND_VERIFICATION_SIZE = 10 * 1024 * 1024; // 10MB
     
     public enum FileCategory {
         AVATAR,
         KYC_DOCUMENT,
         DELIVERABLE,
-        PORTFOLIO
+        PORTFOLIO,
+        BRAND_VERIFICATION
     }
     
     /**
@@ -66,6 +68,7 @@ public class FileValidationService {
             case KYC_DOCUMENT -> MAX_KYC_SIZE;
             case DELIVERABLE -> MAX_DELIVERABLE_SIZE;
             case PORTFOLIO -> MAX_PORTFOLIO_SIZE;
+            case BRAND_VERIFICATION -> MAX_BRAND_VERIFICATION_SIZE;
         };
         
         if (file.getSize() > maxSize) {
@@ -93,6 +96,8 @@ public class FileValidationService {
                                VIDEO_TYPES.contains(contentType.toLowerCase());
             case PORTFOLIO -> IMAGE_TYPES.contains(contentType.toLowerCase()) || 
                              VIDEO_TYPES.contains(contentType.toLowerCase());
+            case BRAND_VERIFICATION -> IMAGE_TYPES.contains(contentType.toLowerCase()) ||
+                             DOCUMENT_TYPES.contains(contentType.toLowerCase());
         };
         
         if (!isValid) {
@@ -193,4 +198,3 @@ public class FileValidationService {
         // For now, we skip this validation
     }
 }
-

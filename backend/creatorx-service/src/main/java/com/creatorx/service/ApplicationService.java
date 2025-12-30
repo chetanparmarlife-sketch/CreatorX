@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -504,6 +505,20 @@ public class ApplicationService {
                 throw new BusinessException("Invalid status transition from " + currentStatus + " to " + newStatus);
         }
     }
+
+    /**
+     * Bulk update application status (Brand only)
+     */
+    @Transactional
+    public void updateApplicationsStatusBulk(String brandId, List<String> ids, ApplicationStatus status, String reason) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException("No application IDs provided");
+        }
+
+        for (String id : ids) {
+            updateApplicationStatus(brandId, id, status, reason);
+        }
+    }
     
     // Helper methods
     
@@ -575,4 +590,3 @@ public class ApplicationService {
         return creator.getEmail();
     }
 }
-

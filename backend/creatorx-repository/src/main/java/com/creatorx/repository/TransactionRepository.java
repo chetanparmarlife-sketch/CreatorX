@@ -66,8 +66,22 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
     // Count transactions by user and type
     @Query("SELECT COUNT(t) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type")
     long countByUserIdAndType(@Param("userId") String userId, @Param("type") TransactionType type);
-}
 
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND t.status = :status")
+    BigDecimal sumByTypeAndStatus(
+        @Param("type") TransactionType type,
+        @Param("status") TransactionStatus status
+    );
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE " +
+           "t.type = :type AND t.status = :status AND t.createdAt >= :startDate AND t.createdAt <= :endDate")
+    BigDecimal sumByTypeAndStatusAndDateRange(
+        @Param("type") TransactionType type,
+        @Param("status") TransactionStatus status,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
+    );
+}
 
 
 

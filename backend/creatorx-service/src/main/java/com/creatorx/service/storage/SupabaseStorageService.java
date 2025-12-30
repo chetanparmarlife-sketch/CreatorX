@@ -37,6 +37,9 @@ public class SupabaseStorageService {
     
     @Value("${supabase.storage.bucket.portfolio:portfolio}")
     private String portfolioBucket;
+
+    @Value("${supabase.storage.bucket.brand-verification:brand-verification-docs}")
+    private String brandVerificationBucket;
     
     private final FileValidationService fileValidationService;
     private final SupabaseStorageClient storageClient;
@@ -120,6 +123,14 @@ public class SupabaseStorageService {
     public FileUploadResponse uploadPortfolioItem(String userId, MultipartFile file) {
         String folder = "users/" + userId + "/portfolio";
         return uploadFile(file, portfolioBucket, folder, FileValidationService.FileCategory.PORTFOLIO);
+    }
+
+    /**
+     * Upload brand verification document (GST)
+     */
+    public FileUploadResponse uploadBrandVerificationDocument(String brandId, MultipartFile file) {
+        String folder = "brands/" + brandId + "/gst";
+        return uploadFile(file, brandVerificationBucket, folder, FileValidationService.FileCategory.BRAND_VERIFICATION);
     }
     
     /**
@@ -270,4 +281,3 @@ public class SupabaseStorageService {
         return new String[]{bucket, path};
     }
 }
-

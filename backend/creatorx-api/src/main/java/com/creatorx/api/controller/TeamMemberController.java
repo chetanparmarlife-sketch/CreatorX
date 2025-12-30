@@ -45,7 +45,7 @@ public class TeamMemberController {
     @Operation(summary = "Invite team member", description = "Invite a team member to the brand account (Brand only)")
     public ResponseEntity<Void> inviteTeamMember(@Valid @RequestBody InviteRequest request) {
         User currentUser = getCurrentUser();
-        teamMemberService.inviteTeamMember(currentUser.getId(), request.getEmail(), request.getRole());
+        teamMemberService.inviteTeamMemberForUser(currentUser.getId(), request.getEmail(), request.getRole());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
     
@@ -60,7 +60,7 @@ public class TeamMemberController {
         if (currentUser == null) {
             throw new org.springframework.security.access.AccessDeniedException("Authentication required");
         }
-        List<TeamMemberDTO> teamMembers = teamMemberService.getTeamMembers(currentUser.getId());
+        List<TeamMemberDTO> teamMembers = teamMemberService.getTeamMembersForUser(currentUser.getId());
         return ResponseEntity.ok(teamMembers);
     }
     
@@ -75,8 +75,28 @@ public class TeamMemberController {
         if (currentUser == null) {
             throw new org.springframework.security.access.AccessDeniedException("Authentication required");
         }
-        teamMemberService.removeTeamMember(currentUser.getId(), id);
+        teamMemberService.removeTeamMemberForUser(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Accept team invitation
+     */
+    @PostMapping("/accept")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Accept team invitation", description = "Accept a team invitation using token")
+    public ResponseEntity<Void> acceptInvitation(@RequestBody java.util.Map<String, String> body) {
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Authentication required");
+        }
+        String token = body != null ? body.get("token") : null;
+        if (token == null || token.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Invitation token is required");
+        }
+        teamMemberService.acceptInvitation(token, currentUser.getId());
+        return ResponseEntity.ok().build();
     }
     
     private User getCurrentUser() {
@@ -92,4 +112,3 @@ public class TeamMemberController {
         throw new org.springframework.security.access.AccessDeniedException("Invalid authentication principal");
     }
 }
-

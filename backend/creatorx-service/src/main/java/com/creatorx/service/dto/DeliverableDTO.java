@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class DeliverableDTO {
     private String id;
+    private String applicationId;
+    private String campaignId;
+    private String campaignTitle;
+    private String creatorId;
+    private String creatorName;
     private CampaignDeliverableDTO campaignDeliverable;
     private String fileUrl;
     private String fileName;
@@ -29,4 +34,3 @@ public class DeliverableDTO {
     private Integer versionNumber; // version number for this deliverable
     private Boolean isLatest; // is this the latest version
 }
-

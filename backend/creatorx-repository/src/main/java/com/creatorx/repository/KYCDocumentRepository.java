@@ -31,5 +31,6 @@ public interface KYCDocumentRepository extends JpaRepository<KYCDocument, String
     
     @Query("SELECT k FROM KYCDocument k WHERE k.user.id = :userId AND k.documentType = :documentType AND k.status = 'PENDING'")
     Optional<KYCDocument> findPendingByUserIdAndDocumentType(@Param("userId") String userId, @Param("documentType") DocumentType documentType);
-}
 
+    long countByStatus(DocumentStatus status);
+}

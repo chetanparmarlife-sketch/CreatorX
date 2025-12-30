@@ -10,6 +10,7 @@ import com.creatorx.repository.KYCDocumentRepository;
 import com.creatorx.repository.UserRepository;
 import com.creatorx.repository.entity.KYCDocument;
 import com.creatorx.repository.entity.User;
+import com.creatorx.service.admin.AdminAuditService;
 import com.creatorx.service.dto.FileUploadResponse;
 import com.creatorx.service.dto.KYCDocumentDTO;
 import com.creatorx.service.dto.KYCStatusDTO;
@@ -35,6 +36,7 @@ public class KYCService {
     private final UserRepository userRepository;
     private final SupabaseStorageService storageService;
     private final NotificationService notificationService;
+    private final AdminAuditService adminAuditService;
     
     /**
      * Submit KYC document
@@ -127,6 +129,33 @@ public class KYCService {
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Get pending KYC documents for admin review
+     */
+    @Transactional(readOnly = true)
+    public List<KYCDocumentDTO> getPendingDocuments() {
+        return kycDocumentRepository.findPendingDocuments().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Bulk review KYC documents
+     */
+    @Transactional
+    public void bulkReview(String adminId, List<String> documentIds, DocumentStatus status, String reason) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            return;
+        }
+        for (String documentId : documentIds) {
+            if (status == DocumentStatus.APPROVED) {
+                approveKYC(adminId, documentId);
+            } else if (status == DocumentStatus.REJECTED) {
+                rejectKYC(adminId, documentId, reason);
+            }
+        }
+    }
     
     /**
      * Approve KYC document (Admin only)
@@ -162,6 +191,16 @@ public class KYCService {
         
         // Update user profile if needed (mark as verified)
         updateUserVerificationStatus(document.getUser());
+
+        adminAuditService.logAction(
+                adminId,
+                com.creatorx.common.enums.AdminActionType.KYC_APPROVED,
+                "KYC_DOCUMENT",
+                document.getId(),
+                Map.of("documentType", document.getDocumentType().name()),
+                null,
+                null
+        );
     }
     
     /**
@@ -199,6 +238,16 @@ public class KYCService {
         
         // Notify creator
         notifyCreatorKYCRejected(document, reason);
+
+        adminAuditService.logAction(
+                adminId,
+                com.creatorx.common.enums.AdminActionType.KYC_REJECTED,
+                "KYC_DOCUMENT",
+                document.getId(),
+                Map.of("documentType", document.getDocumentType().name(), "reason", reason),
+                null,
+                null
+        );
     }
     
     /**
@@ -215,6 +264,7 @@ public class KYCService {
         return KYCDocumentDTO.builder()
                 .id(document.getId())
                 .userId(document.getUser().getId())
+                .userEmail(document.getUser().getEmail())
                 .documentType(document.getDocumentType())
                 .documentNumber(document.getDocumentNumber())
                 .fileUrl(document.getDocumentUrl())
@@ -324,4 +374,3 @@ public class KYCService {
         }
     }
 }
-

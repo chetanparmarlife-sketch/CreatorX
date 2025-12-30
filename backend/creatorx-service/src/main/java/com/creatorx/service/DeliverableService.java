@@ -507,6 +507,12 @@ public class DeliverableService {
     // Helper methods
     
     private void enrichDeliverableDTO(DeliverableDTO dto, DeliverableSubmission submission) {
+        dto.setApplicationId(submission.getApplication().getId());
+        dto.setCampaignId(submission.getApplication().getCampaign().getId());
+        dto.setCampaignTitle(submission.getApplication().getCampaign().getTitle());
+        dto.setCreatorId(submission.getApplication().getCreator().getId());
+        dto.setCreatorName(getCreatorName(submission.getApplication().getCreator()));
+
         // Extract file name and type from URL if needed
         if (dto.getFileUrl() != null && dto.getFileName() == null) {
             // Extract from URL or set from entity if available
@@ -565,4 +571,3 @@ public class DeliverableService {
         return creator.getEmail();
     }
 }
-
