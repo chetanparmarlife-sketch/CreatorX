@@ -27,7 +27,7 @@ const stats: StatCard[] = [
     value: '89',
     change: '+15 from last month',
     changeType: 'positive',
-    color: 'bg-purple-100 text-purple-700',
+    color: 'bg-sky-100 text-sky-700',
   },
   {
     icon: TrendingUp,

@@ -19,7 +19,7 @@ const helpCategories = [
     title: 'Campaign Management',
     description: 'Tips for running successful campaigns',
     icon: MessageSquare,
-    color: 'bg-purple-100 text-purple-700',
+    color: 'bg-sky-100 text-sky-700',
     links: [
       'Campaign best practices',
       'Managing deliverables',
