@@ -4,6 +4,7 @@
 CreatorX is a comprehensive React Native/Expo mobile application for content creators to discover brand collaboration campaigns, manage deliverables, track earnings, and communicate with brands. The app features a premium dark mode design aesthetic inspired by Linear and Stripe.
 
 ## Recent Changes
+- **December 2024**: Added marketing profile screen with rate cards and engagement metrics for influencer onboarding
 - **December 2024**: Rebuilt mobile app auth/onboarding flow with social connect, eligibility gates, and OTP login
 - **December 2024**: Brand Dashboard UI overhaul to match new Figma design (light theme, sky blue primary)
 - **December 2024**: New sidebar navigation with Influencer Discovery section (Instagram/Facebook/YouTube)
@@ -105,14 +106,15 @@ components/
 3. **Eligibility Screen**: Shows eligible/not eligible status based on follower count
 4. **Phone OTP Login**: For existing users - phone number + OTP verification
 5. **Onboarding Form**: Collect creator profile details after social connect
-6. **Home Dashboard**: Earnings overview, quick stats, active campaigns, quick actions
-7. **Explore**: Browse and filter available brand campaigns
-8. **Upload**: Submit content deliverables for campaigns
-9. **Chat**: Real-time messaging with brands
-10. **Wallet**: Track earnings, pending payments, withdrawal history
-11. **Profile**: User settings, referral system, KYC verification
-12. **Analytics**: Performance metrics, earnings charts, insights
-13. **Saved Campaigns**: Bookmark campaigns for later
+6. **Marketing Profile**: Set commercial rates and engagement metrics for brand matching
+7. **Home Dashboard**: Earnings overview, quick stats, active campaigns, quick actions
+8. **Explore**: Browse and filter available brand campaigns
+9. **Upload**: Submit content deliverables for campaigns
+10. **Chat**: Real-time messaging with brands
+11. **Wallet**: Track earnings, pending payments, withdrawal history
+12. **Profile**: User settings, referral system, KYC verification
+13. **Analytics**: Performance metrics, earnings charts, insights
+14. **Saved Campaigns**: Bookmark campaigns for later
 
 ### Brand Dashboard
 1. **Dashboard**: Lifecycle progress, spend/budget health, deliverables status, quick actions
