@@ -39,7 +39,7 @@ export default function ConnectScreen() {
     }
   };
 
-  const handleSkip = () => {
+  const handleLogin = () => {
     router.push('/(auth)/login-otp');
   };
 
@@ -51,11 +51,6 @@ export default function ConnectScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>Skip</Text>
-        <Feather name="arrow-right" size={16} color={colors.text} />
-      </TouchableOpacity>
 
       <View style={styles.content}>
         <View style={styles.logoContainer}>
@@ -135,7 +130,12 @@ export default function ConnectScreen() {
           <Text style={styles.infoText}>Minimum 1,000 followers required to join</Text>
         </View>
 
-        <Text style={styles.footerText}>Choose a platform to connect</Text>
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginPrompt}>Already have an account?</Text>
+          <TouchableOpacity onPress={handleLogin}>
+            <Text style={styles.loginLink}>Login</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -148,22 +148,6 @@ const styles = StyleSheet.create({
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-  },
-  skipButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    zIndex: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  skipText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '500',
   },
   content: {
     flex: 1,
@@ -240,9 +224,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
   },
-  footerText: {
-    color: colors.textMuted,
+  loginContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 40,
+  },
+  loginPrompt: {
+    color: colors.textSecondary,
     fontSize: 14,
-    marginTop: 16,
+  },
+  loginLink: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
