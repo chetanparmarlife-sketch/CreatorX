@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRouter } from 'expo-router';
-import { DEFAULT_APP_ROUTE } from '@/src/constants/routes';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -46,7 +45,7 @@ export default function RegisterScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.replace(DEFAULT_APP_ROUTE),
+            onPress: () => router.replace('/(app)/(tabs)/explore'),
           },
         ]
       );
