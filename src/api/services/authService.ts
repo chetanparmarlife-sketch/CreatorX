@@ -13,6 +13,7 @@ import {
   VerifyOtpRequest,
 } from '../types';
 import { STORAGE_KEYS } from '@/src/config/env';
+import { deleteSecureItem, getSecureItem, setSecureItem } from '@/src/lib/secureStore';
 
 export const authService = {
   /**
@@ -22,8 +23,8 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>('/auth/register', data);
     
     // Store tokens
-    await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
-    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
+    await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
+    await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
     
     return response;
@@ -36,8 +37,8 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>('/auth/login', data);
     
     // Store tokens
-    await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
-    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
+    await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
+    await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
     
     return response;
@@ -50,9 +51,9 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>('/auth/refresh-token', { refreshToken });
     
     // Update tokens
-    await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
+    await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
     if (response.refreshToken) {
-      await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
+      await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
     }
     
     return response;
@@ -68,11 +69,9 @@ export const authService = {
       console.error('Logout error:', error);
     } finally {
       // Clear local storage regardless of API call result
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.ACCESS_TOKEN,
-        STORAGE_KEYS.REFRESH_TOKEN,
-        STORAGE_KEYS.USER,
-      ]);
+      await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+      await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
+      await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
     }
   },
 
@@ -94,21 +93,21 @@ export const authService = {
    * Get stored access token
    */
   async getAccessToken(): Promise<string | null> {
-    return await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    return await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
   },
 
   /**
    * Get stored refresh token
    */
   async getRefreshToken(): Promise<string | null> {
-    return await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    return await getSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
   },
 
   /**
    * Check if user is authenticated
    */
   async isAuthenticated(): Promise<boolean> {
-    const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const token = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
     return !!token;
   },
 
@@ -124,4 +123,3 @@ export const authService = {
     await apiClient.post('/auth/link-supabase-user', data);
   },
 };
-

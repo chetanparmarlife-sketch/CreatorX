@@ -134,7 +134,13 @@ export interface BrandProfile {
 
 // ==================== Campaign Types ====================
 
-export type CampaignStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
+export type CampaignStatus =
+  | 'DRAFT'
+  | 'PENDING_REVIEW'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'COMPLETED'
+  | 'CANCELLED';
 export type CampaignPlatform = 'INSTAGRAM' | 'YOUTUBE' | 'TWITTER' | 'FACEBOOK' | 'LINKEDIN' | 'TIKTOK';
 
 export interface Campaign {
@@ -152,7 +158,9 @@ export interface Campaign {
   endDate: string;
   applicationDeadline?: string;
   maxApplicants?: number;
+  applicationsCount?: number;
   selectedCreatorsCount: number;
+  userApplicationStatus?: ApplicationStatus;
   createdAt: string;
   updatedAt: string;
   brand?: {
@@ -226,6 +234,11 @@ export type SubmissionStatus = 'PENDING' | 'APPROVED' | 'REVISION_REQUESTED' | '
 export interface DeliverableSubmission {
   id: string;
   applicationId: string;
+  campaignId: string;
+  campaignTitle: string;
+  brandName: string;
+  dueDate: string;
+  type: string;
   campaignDeliverableId: string;
   fileUrl: string;
   description?: string;
@@ -457,4 +470,3 @@ export interface ReferralStats {
 export interface ApplyReferralRequest {
   code: string;
 }
-

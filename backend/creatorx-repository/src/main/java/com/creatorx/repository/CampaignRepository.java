@@ -71,6 +71,26 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
         @Param("search") String search,
         Pageable pageable
     );
+
+    @Query("SELECT c FROM Campaign c WHERE " +
+           "(:brandId IS NULL OR c.brand.id = :brandId) AND " +
+           "(:status IS NULL OR c.status = :status) AND " +
+           "(:category IS NULL OR c.category = :category) AND " +
+           "(:platform IS NULL OR c.platform = :platform) AND " +
+           "(:minBudget IS NULL OR c.budget >= :minBudget) AND " +
+           "(:maxBudget IS NULL OR c.budget <= :maxBudget) AND " +
+           "(:search IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(c.description) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Campaign> findAdminCampaigns(
+        @Param("brandId") String brandId,
+        @Param("status") CampaignStatus status,
+        @Param("category") String category,
+        @Param("platform") CampaignPlatform platform,
+        @Param("minBudget") BigDecimal minBudget,
+        @Param("maxBudget") BigDecimal maxBudget,
+        @Param("search") String search,
+        Pageable pageable
+    );
     
     // Count campaigns by status
     long countByStatus(CampaignStatus status);
@@ -78,7 +98,6 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
     @Query("SELECT COUNT(c) FROM Campaign c WHERE c.brand.id = :brandId AND c.status = :status")
     long countByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") CampaignStatus status);
 }
-
 
 
 

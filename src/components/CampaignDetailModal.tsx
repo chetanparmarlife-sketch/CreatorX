@@ -25,6 +25,7 @@ export const CampaignDetailModal = memo(function CampaignDetailModal({
   isSaved,
 }: CampaignDetailModalProps) {
   if (!campaign) return null;
+  const userState = campaign.userState;
 
   const getPlatformIcon = () => {
     switch (campaign.platform) {
@@ -38,21 +39,39 @@ export const CampaignDetailModal = memo(function CampaignDetailModal({
   };
 
   const getStatusBadge = () => {
+    if (userState) {
+      switch (userState) {
+        case 'SAVED':
+          return <Badge label="Saved" variant="primary" size="md" />;
+        case 'APPLIED':
+        case 'SHORTLISTED':
+          return <Badge label="Under Review" variant="warning" size="md" />;
+        case 'SELECTED':
+          return <Badge label="Accepted" variant="success" size="md" />;
+        case 'REJECTED':
+          return <Badge label="Rejected" variant="error" size="md" />;
+        case 'WITHDRAWN':
+          return <Badge label="Withdrawn" variant="error" size="md" />;
+        default:
+          return <Badge label="Status" variant="warning" size="md" />;
+      }
+    }
+
     switch (campaign.status) {
-      case 'accepted':
-        return <Badge label="Accepted" variant="success" size="md" />;
-      case 'applied':
-        return <Badge label="Applied" variant="primary" size="md" />;
-      case 'pending_review':
-        return <Badge label="Under Review" variant="warning" size="md" />;
-      case 'active':
+      case 'DRAFT':
+        return <Badge label="Draft" variant="warning" size="md" />;
+      case 'PENDING_REVIEW':
+        return <Badge label="Pending Review" variant="warning" size="md" />;
+      case 'ACTIVE':
         return <Badge label="Active" variant="success" size="md" />;
-      case 'completed':
+      case 'PAUSED':
+        return <Badge label="Paused" variant="warning" size="md" />;
+      case 'COMPLETED':
         return <Badge label="Completed" variant="success" size="md" />;
-      case 'rejected':
-        return <Badge label="Rejected" variant="error" size="md" />;
+      case 'CANCELLED':
+        return <Badge label="Cancelled" variant="error" size="md" />;
       default:
-        return <Badge label="Open" variant="warning" size="md" />;
+        return <Badge label="Status" variant="warning" size="md" />;
     }
   };
 
@@ -86,7 +105,7 @@ export const CampaignDetailModal = memo(function CampaignDetailModal({
           color={isSaved ? colors.primary : colors.textSecondary}
         />
       </TouchableOpacity>
-      {campaign.status === 'open' && (
+      {campaign.status === 'ACTIVE' && (!userState || userState === 'SAVED') && (
         <Button
           title="Apply Now"
           onPress={() => onApply(campaign.id)}
@@ -97,13 +116,13 @@ export const CampaignDetailModal = memo(function CampaignDetailModal({
           data-testid="button-apply-campaign"
         />
       )}
-      {(campaign.status === 'applied' || campaign.status === 'pending_review') && (
+      {(userState === 'APPLIED' || userState === 'SHORTLISTED') && (
         <View style={styles.appliedBanner}>
           <Feather name="clock" size={18} color={colors.primary} />
           <Text style={styles.appliedText}>Application Under Review</Text>
         </View>
       )}
-      {(campaign.status === 'accepted' || campaign.status === 'active') && (
+      {userState === 'SELECTED' && (
         <Button
           title="View Deliverables"
           onPress={onClose}
@@ -114,10 +133,12 @@ export const CampaignDetailModal = memo(function CampaignDetailModal({
           data-testid="button-view-deliverables"
         />
       )}
-      {campaign.status === 'rejected' && (
+      {(userState === 'REJECTED' || userState === 'WITHDRAWN') && (
         <View style={styles.rejectedBanner}>
           <Feather name="x-circle" size={18} color={colors.red} />
-          <Text style={styles.rejectedText}>Application Not Selected</Text>
+          <Text style={styles.rejectedText}>
+            {userState === 'WITHDRAWN' ? 'Application Withdrawn' : 'Application Not Selected'}
+          </Text>
         </View>
       )}
     </View>
@@ -278,7 +299,7 @@ This campaign is perfect for creators who are passionate about ${campaign.catego
         </View>
       </View>
 
-      {campaign.status === 'open' && (
+      {campaign.status === 'ACTIVE' && (!userState || userState === 'SAVED') && (
         <View style={styles.applyPrompt}>
           <Feather name="zap" size={16} color={colors.amber} />
           <Text style={styles.applyPromptText}>

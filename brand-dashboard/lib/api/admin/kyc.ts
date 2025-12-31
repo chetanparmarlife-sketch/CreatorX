@@ -1,9 +1,14 @@
 import { apiClient } from '@/lib/api/client'
-import { DocumentStatus, KYCDocument } from '@/lib/types'
+import { DocumentStatus, KYCDocument, Page } from '@/lib/types'
 
 export const adminKycService = {
-  async listPending(): Promise<KYCDocument[]> {
-    return apiClient.get<KYCDocument[]>('/kyc/pending')
+  async listPending(params?: {
+    page?: number
+    size?: number
+    sortDir?: 'ASC' | 'DESC'
+    sortBy?: string
+  }): Promise<Page<KYCDocument>> {
+    return apiClient.get<Page<KYCDocument>>('/kyc/pending', { params })
   },
 
   async approve(documentId: string): Promise<void> {

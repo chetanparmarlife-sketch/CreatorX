@@ -3,11 +3,17 @@
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { TrendingUp, Users, Calendar, DollarSign } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/shared/page-header'
 import { StatCardsSkeleton, Skeleton } from '@/components/shared/skeleton'
 import { useCampaigns } from '@/lib/hooks/use-campaigns'
 import { useCreators } from '@/lib/hooks/use-creators'
 import { useTransactions } from '@/lib/hooks/use-payments'
+import { deliverableService } from '@/lib/api/deliverables'
+import { ActionBar } from '@/components/shared/action-bar'
+import { ContextPanel } from '@/components/shared/context-panel'
+import { EmptyState } from '@/components/shared/empty-state'
+import { StatusChip } from '@/components/shared/status-chip'
 import { CampaignStatus, Transaction } from '@/lib/types'
 
 interface StatCard {
@@ -54,6 +60,10 @@ export default function DashboardPage() {
     page: 0,
     size: 20,
   })
+  const { data: deliverablesData, isLoading: deliverablesLoading } = useQuery({
+    queryKey: ['brand-deliverables-summary'],
+    queryFn: () => deliverableService.getBrandDeliverables(),
+  })
 
   const campaigns = campaignsData?.items ?? []
   const creatorsResponse = creatorsData as { items?: any[]; total?: number } | any[] | undefined
@@ -68,6 +78,8 @@ export default function DashboardPage() {
     (sum: number, transaction: Transaction) => sum + (transaction.amount ?? 0),
     0
   )
+  const totalBudget = campaigns.reduce((sum, campaign) => sum + (campaign.budget ?? 0), 0)
+  const budgetUtilization = totalBudget ? Math.min(100, Math.round((totalSpend / totalBudget) * 100)) : 0
 
   const averageEngagement = useMemo(() => {
     if (!creators.length) return 0
@@ -78,6 +90,22 @@ export default function DashboardPage() {
   const activeCampaigns = campaigns.filter(
     (campaign) => campaign.status === CampaignStatus.ACTIVE
   )
+  const draftCampaigns = campaigns.filter((campaign) => campaign.status === CampaignStatus.DRAFT)
+  const reviewCampaigns = campaigns.filter((campaign) => campaign.status === CampaignStatus.PENDING_REVIEW)
+  const completedCampaigns = campaigns.filter((campaign) => campaign.status === CampaignStatus.COMPLETED)
+
+  const deliverables = (deliverablesData as any[]) ?? []
+  const deliverableCounts = deliverables.reduce(
+    (acc: Record<string, number>, item: any) => {
+      const key = item.status || 'PENDING'
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    },
+    {}
+  )
+  const inProgressTasks = deliverables
+    .filter((item: any) => item.status === 'PENDING' || item.status === 'REVISION_REQUESTED')
+    .slice(0, 4)
 
   const recentActivities = useMemo(() => {
     const campaignActivities: RecentActivity[] = campaigns
@@ -138,7 +166,7 @@ export default function DashboardPage() {
     },
   ]
 
-  const isLoading = campaignsLoading || creatorsLoading || transactionsLoading
+  const isLoading = campaignsLoading || creatorsLoading || transactionsLoading || deliverablesLoading
 
   if (isLoading) {
     return (
@@ -198,6 +226,59 @@ export default function DashboardPage() {
         })}
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-3 mb-8">
+        <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
+          <ActionBar
+            title="Lifecycle progress"
+            description="Track campaigns across their stages."
+          >
+            <button
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700"
+              onClick={() => router.push('/campaigns')}
+            >
+              View campaigns
+            </button>
+          </ActionBar>
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <ContextPanel title="Draft" description={String(draftCampaigns.length)} />
+            <ContextPanel title="In Review" description={String(reviewCampaigns.length)} />
+            <ContextPanel title="Active" description={String(activeCampaigns.length)} />
+            <ContextPanel title="Completed" description={String(completedCampaigns.length)} />
+          </div>
+          <div className="mt-4">
+            <div className="h-2 w-full rounded-full bg-gray-100">
+              <div
+                className="h-2 rounded-full bg-sky-500"
+                style={{ width: `${budgetUtilization}%` }}
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+              <span>Spend vs budget</span>
+              <span>{budgetUtilization}% utilized</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Spend & budget health</h3>
+          <div className="space-y-3 text-sm text-gray-600">
+            <div className="flex items-center justify-between">
+              <span>Total budget</span>
+              <span className="font-semibold text-gray-900">{formatCurrency(totalBudget)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Total spend</span>
+              <span className="font-semibold text-gray-900">{formatCurrency(totalSpend)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <StatusChip tone={budgetUtilization > 80 ? 'needs_action' : 'approved'} size="compact">
+                {budgetUtilization > 80 ? 'Near budget cap' : 'On track'}
+              </StatusChip>
+              <span className="text-xs text-gray-500">Monitor pacing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200">
           <div className="p-6 border-b border-gray-200">
@@ -252,6 +333,43 @@ export default function DashboardPage() {
               <div className="text-sm font-medium">View Reports</div>
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Deliverables status</h3>
+          <div className="grid gap-3 md:grid-cols-2 text-sm text-gray-600">
+            <ContextPanel title="Pending" description={String(deliverableCounts.PENDING || 0)} />
+            <ContextPanel title="Approved" description={String(deliverableCounts.APPROVED || 0)} />
+            <ContextPanel title="Needs revision" description={String(deliverableCounts.REVISION_REQUESTED || 0)} />
+            <ContextPanel title="Rejected" description={String(deliverableCounts.REJECTED || 0)} />
+          </div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">In-progress creator tasks</h3>
+          {inProgressTasks.length === 0 ? (
+            <EmptyState
+              title="No active creator tasks"
+              description="Pending deliverables will show up here."
+            />
+          ) : (
+            <div className="space-y-3">
+              {inProgressTasks.map((task: any) => (
+                <div key={task.id} className="rounded-lg border border-gray-100 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900">
+                      {task.campaignTitle || 'Campaign'} · {task.creatorName || 'Creator'}
+                    </p>
+                    <StatusChip tone="needs_action" size="compact">
+                      {task.status || 'PENDING'}
+                    </StatusChip>
+                  </div>
+                  <p className="text-xs text-gray-500">{task.campaignDeliverable?.title || 'Deliverable'}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

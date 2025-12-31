@@ -26,6 +26,11 @@ public class DisputeDTO {
     private DisputeStatus status;
     private String description;
     private String resolution;
+    private String assignedAdminId;
+    private String nextAction;
+    private String resolutionType;
+    private LocalDateTime slaFirstResponseDueAt;
+    private LocalDateTime slaResolutionDueAt;
     private String resolvedBy;
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;

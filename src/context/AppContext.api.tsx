@@ -29,6 +29,9 @@ import {
 } from '@/src/api/adapters';
 import { handleAPIError, isNetworkError } from '@/src/api/errors';
 import { cacheUtils } from '@/src/api/utils/cache';
+import { clearApiCacheKeys } from '@/src/storage/cleanup';
+import { APP_OWNED_KEYS } from '@/src/storage/schema';
+import { safeParseJSON } from '@/src/storage/serialization';
 import {
   Campaign,
   Transaction,
@@ -61,6 +64,7 @@ interface AppContextType {
   transactions: Transaction[];
   chats: ChatPreview[];
   conversations: Conversation[];
+  messagesByConversation: Record<string, Message[]>;
   savedCampaigns: string[];
   notifications: Notification[];
   unreadNotifications: number;
@@ -112,6 +116,7 @@ interface AppContextType {
   getConversation: (chatId: string) => Message[];
   markChatRead: (chatId: string) => Promise<void>;
   fetchConversations: () => Promise<void>;
+  loadMessages: (conversationId: string, page?: number, size?: number) => Promise<void>;
 
   // Actions - Deliverables
   submitDeliverable: (
@@ -133,6 +138,7 @@ interface AppContextType {
   toggleDarkMode: () => void;
   refreshData: () => Promise<void>;
   copyReferralCode: () => Promise<boolean>;
+  resetAppState: () => Promise<void>;
 
   // Actions - Deliverables (legacy)
   addDeliverable: (deliverable: Omit<Deliverable, 'id'>) => void;
@@ -152,6 +158,48 @@ const STORAGE_KEYS = {
   DARK_MODE: '@dark_mode',
   ACTIVE_CAMPAIGNS: '@active_campaigns',
   APPLICATIONS: '@applications',
+};
+
+const getMessageTimestamp = (message: Message): number | null => {
+  if (!message.createdAt) return null;
+  const timestamp = Date.parse(message.createdAt);
+  return Number.isNaN(timestamp) ? null : timestamp;
+};
+
+const normalizeMessages = (messages: Message[]): Message[] => {
+  const byId = new Map<string, { message: Message; index: number }>();
+
+  messages.forEach((message, index) => {
+    const existing = byId.get(message.id);
+    if (!existing) {
+      byId.set(message.id, { message, index });
+      return;
+    }
+
+    const existingTs = getMessageTimestamp(existing.message);
+    const incomingTs = getMessageTimestamp(message);
+
+    if (incomingTs !== null && (existingTs === null || incomingTs > existingTs)) {
+      byId.set(message.id, { message, index: existing.index });
+    }
+  });
+
+  const items = Array.from(byId.values());
+  items.sort((a, b) => {
+    const aTs = getMessageTimestamp(a.message);
+    const bTs = getMessageTimestamp(b.message);
+
+    if (aTs !== null && bTs !== null) {
+      if (aTs !== bTs) return aTs - bTs;
+      return a.index - b.index;
+    }
+
+    if (aTs !== null) return -1;
+    if (bTs !== null) return 1;
+    return a.index - b.index;
+  });
+
+  return items.map((item) => item.message);
 };
 
 // Default mock data (fallback)
@@ -196,6 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messagesByConversation, setMessagesByConversation] = useState<Record<string, Message[]>>({});
   const [savedCampaigns, setSavedCampaigns] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeCampaigns, setActiveCampaigns] = useState<ActiveCampaign[]>([]);
@@ -220,7 +269,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Load cached data on mount
   useEffect(() => {
     loadCachedData();
-    refreshData();
   }, []);
 
   /**
@@ -230,11 +278,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       // Load saved campaigns
       const saved = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_CAMPAIGNS);
-      if (saved) setSavedCampaigns(JSON.parse(saved));
+      if (saved) setSavedCampaigns(safeParseJSON<string[]>(saved, []));
 
       // Load dark mode
       const dark = await AsyncStorage.getItem(STORAGE_KEYS.DARK_MODE);
-      if (dark) setDarkMode(JSON.parse(dark));
+      if (dark) setDarkMode(safeParseJSON<boolean>(dark, true));
 
       // Load cached campaigns if using API
       if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
@@ -279,7 +327,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const adapted = adaptCampaignsResponse(result);
           const adaptedCampaigns = adapted.campaigns.map((c) => ({
             ...c,
-            isSaved: savedCampaigns.includes(c.id),
+            userState: savedCampaigns.includes(c.id)
+              ? 'SAVED'
+              : c.userState,
           }));
 
           if (reset) {
@@ -344,7 +394,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (campaignId: string) => {
       // Optimistic update
       setCampaigns((prev) =>
-        prev.map((c) => (c.id === campaignId ? { ...c, isSaved: true } : c))
+        prev.map((c) =>
+          c.id === campaignId ? { ...c, userState: 'SAVED' } : c
+        )
       );
       setSavedCampaigns((prev) => [...prev, campaignId]);
       await AsyncStorage.setItem(STORAGE_KEYS.SAVED_CAMPAIGNS, JSON.stringify([...savedCampaigns, campaignId]));
@@ -356,7 +408,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         // Revert on error
         setCampaigns((prev) =>
-          prev.map((c) => (c.id === campaignId ? { ...c, isSaved: false } : c))
+          prev.map((c) =>
+            c.id === campaignId
+              ? { ...c, userState: c.userState === 'SAVED' ? undefined : c.userState }
+              : c
+          )
         );
         setSavedCampaigns((prev) => prev.filter((id) => id !== campaignId));
         const apiError = handleAPIError(err);
@@ -374,7 +430,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (campaignId: string) => {
       // Optimistic update
       setCampaigns((prev) =>
-        prev.map((c) => (c.id === campaignId ? { ...c, isSaved: false } : c))
+        prev.map((c) =>
+          c.id === campaignId
+            ? { ...c, userState: c.userState === 'SAVED' ? undefined : c.userState }
+            : c
+        )
       );
       setSavedCampaigns((prev) => prev.filter((id) => id !== campaignId));
       await AsyncStorage.setItem(
@@ -389,7 +449,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         // Revert on error
         setCampaigns((prev) =>
-          prev.map((c) => (c.id === campaignId ? { ...c, isSaved: true } : c))
+          prev.map((c) =>
+            c.id === campaignId ? { ...c, userState: 'SAVED' } : c
+          )
         );
         setSavedCampaigns((prev) => [...prev, campaignId]);
         const apiError = handleAPIError(err);
@@ -431,7 +493,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setCampaigns((prev) =>
             prev.map((c) =>
               c.id === campaignId
-                ? { ...c, status: 'applied' as const, applicants: (c.applicants || 0) + 1 }
+                ? { ...c, userState: 'APPLIED', applicants: (c.applicants || 0) + 1 }
                 : c
             )
           );
@@ -453,7 +515,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             pitch: applicationData.pitch,
             expectedTimeline: applicationData.expectedTimeline,
             extraDetails: applicationData.extraDetails,
-            status: 'pending_review',
+            status: 'APPLIED',
             submittedAt: new Date().toISOString(),
           };
           setApplications((prev) => [mockApplication, ...prev]);
@@ -711,6 +773,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [loadingChats, user.id]);
 
   /**
+   * Load messages for a conversation
+   */
+  const loadMessages = useCallback(
+    async (conversationId: string, page: number = 0, size: number = 50) => {
+      try {
+        if (featureFlags.isEnabled('USE_API_MESSAGING')) {
+          const response = await messagingService.getMessages(conversationId, page, size);
+          const items = Array.isArray(response) ? response : response.items ?? [];
+          const adapted = items.map((message) => adaptMessage(message, user.id));
+
+          setMessagesByConversation((prev) => {
+            const existing = prev[conversationId] ?? [];
+            const mergedInput = page > 0 ? [...existing, ...adapted] : [...adapted, ...existing];
+            const merged = normalizeMessages(mergedInput);
+            return { ...prev, [conversationId]: merged };
+          });
+        } else {
+          setMessagesByConversation((prev) => ({
+            ...prev,
+            [conversationId]: normalizeMessages(prev[conversationId] ?? []),
+          }));
+        }
+      } catch (err) {
+        const apiError = handleAPIError(err);
+        setError(apiError.message);
+      }
+    },
+    [user.id]
+  );
+
+  /**
    * Send message
    */
   const sendMessage = useCallback(
@@ -720,17 +813,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const apiMessage = await messagingService.sendMessage(chatId, text);
           const adapted = adaptMessage(apiMessage, user.id);
 
-          // Update conversation
-          setConversations((prev) => {
-            const conv = prev.find((c) => c.chatId === chatId);
-            if (conv) {
-              return prev.map((c) =>
-                c.chatId === chatId
-                  ? { ...c, messages: [...(c.messages || []), adapted] }
-                  : c
-              );
-            }
-            return prev;
+          setMessagesByConversation((prev) => {
+            const existing = prev[chatId] ?? [];
+            return { ...prev, [chatId]: normalizeMessages([...existing, adapted]) };
           });
 
           // Update chat preview
@@ -754,18 +839,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             time: new Date().toLocaleTimeString(),
             status: 'sent',
             chatId,
+            createdAt: new Date().toISOString(),
           };
 
-          setConversations((prev) => {
-            const conv = prev.find((c) => c.chatId === chatId);
-            if (conv) {
-              return prev.map((c) =>
-                c.chatId === chatId
-                  ? { ...c, messages: [...(c.messages || []), mockMessage] }
-                  : c
-              );
-            }
-            return [...prev, { chatId, messages: [mockMessage] }];
+          setMessagesByConversation((prev) => {
+            const existing = prev[chatId] ?? [];
+            return { ...prev, [chatId]: normalizeMessages([...existing, mockMessage]) };
           });
         }
       } catch (err) {
@@ -782,10 +861,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const getConversation = useCallback(
     (chatId: string) => {
-      const conversation = conversations.find((c) => c.chatId === chatId);
-      return conversation?.messages || [];
+      return normalizeMessages(messagesByConversation[chatId] ?? []);
     },
-    [conversations]
+    [messagesByConversation]
   );
 
   /**
@@ -982,6 +1060,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [fetchCampaigns, fetchApplications, fetchWallet, fetchTransactions, fetchNotifications, fetchConversations]);
 
   /**
+   * Reset app state on logout
+   */
+  const resetAppState = useCallback(async () => {
+    setUser(defaultUser);
+    setWallet(defaultWallet);
+    setCampaigns([]);
+    setApplications([]);
+    setDeliverables([]);
+    setTransactions([]);
+    setChats([]);
+    setConversations([]);
+    setMessagesByConversation({});
+    setSavedCampaigns([]);
+    setNotifications([]);
+    setActiveCampaigns([]);
+    setDarkMode(true);
+    setIsLoading(false);
+    setError(null);
+    setLoadingCampaigns(false);
+    setLoadingApplications(false);
+    setLoadingWallet(false);
+    setLoadingTransactions(false);
+    setLoadingNotifications(false);
+    setLoadingChats(false);
+    setCampaignsPage(0);
+    setCampaignsHasMore(true);
+    setCampaignsTotal(0);
+    setCampaignFilters({});
+
+    try {
+      await AsyncStorage.multiRemove(APP_OWNED_KEYS);
+      await clearApiCacheKeys();
+    } catch (error) {
+      console.error('Error clearing storage:', error);
+    }
+  }, []);
+
+  /**
    * Copy referral code
    */
   const copyReferralCode = useCallback(async () => {
@@ -1019,7 +1135,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const approveApplication = useCallback((campaignId: string) => {
     setApplications((prev) =>
       prev.map((a) =>
-        a.campaignId === campaignId ? { ...a, status: 'approved' as const } : a
+        a.campaignId === campaignId ? { ...a, status: 'SELECTED' } : a
       )
     );
   }, []);
@@ -1028,7 +1144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setApplications((prev) =>
       prev.map((a) =>
         a.campaignId === campaignId
-          ? { ...a, status: 'rejected' as const, brandFeedback: feedback }
+          ? { ...a, status: 'REJECTED', brandFeedback: feedback }
           : a
       )
     );
@@ -1054,6 +1170,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     transactions,
     chats,
     conversations,
+    messagesByConversation,
     savedCampaigns,
     notifications,
     unreadNotifications,
@@ -1097,6 +1214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     getConversation,
     markChatRead,
     fetchConversations,
+    loadMessages,
     submitDeliverable,
     approveDeliverable,
     requestDeliverableChanges,
@@ -1108,6 +1226,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     toggleDarkMode,
     refreshData,
     copyReferralCode,
+    resetAppState,
 
     // Legacy methods
     addDeliverable,

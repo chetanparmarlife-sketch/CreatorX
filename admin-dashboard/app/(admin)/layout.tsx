@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { adminSystemService } from '@/lib/api/admin/system'
 import { useAuthStore } from '@/lib/store/auth-store'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
 
@@ -29,6 +30,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     setHasToken(true)
   }, [router, user])
+
+  useEffect(() => {
+    if (!hasToken) {
+      return
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    const lastTracked = localStorage.getItem('admin_session_last')
+    if (lastTracked === today) {
+      return
+    }
+    adminSystemService.trackSession('SESSION_START', window.location.pathname).catch(() => null)
+    localStorage.setItem('admin_session_last', today)
+  }, [hasToken])
 
   if (hasToken === null) {
     return (

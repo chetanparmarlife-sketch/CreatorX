@@ -18,5 +18,16 @@ public interface DisputeRepository extends JpaRepository<Dispute, String>, JpaSp
     @Query("SELECT d FROM Dispute d WHERE d.status = :status ORDER BY d.createdAt DESC")
     Page<Dispute> findByStatus(@Param("status") DisputeStatus status, Pageable pageable);
 
+    @Query("SELECT COUNT(d) FROM Dispute d WHERE d.brand.id = :brandId AND d.status = :status")
+    long countByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") DisputeStatus status);
+
     long countByStatus(DisputeStatus status);
+
+    @Query(value = "SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600), 0) " +
+            "FROM disputes WHERE resolved_at IS NOT NULL", nativeQuery = true)
+    Double averageResolutionHours();
+
+    @Query(value = "SELECT COUNT(*) FROM disputes " +
+            "WHERE resolved_at IS NOT NULL AND resolved_at > created_at + INTERVAL '48 hours'", nativeQuery = true)
+    long countSlaBreaches();
 }

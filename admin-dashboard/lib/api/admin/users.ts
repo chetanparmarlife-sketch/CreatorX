@@ -6,6 +6,7 @@ export const adminUserService = {
     role?: UserRole
     status?: UserStatus
     search?: string
+    sortDir?: 'ASC' | 'DESC'
     page?: number
     size?: number
   }): Promise<Page<AdminUser>> {
@@ -16,7 +17,12 @@ export const adminUserService = {
     return apiClient.put<AdminUser>(`/admin/users/${userId}/status`, { status, reason })
   },
 
-  async listAppeals(params?: { status?: AppealStatus; page?: number; size?: number }): Promise<Page<AccountAppeal>> {
+  async listAppeals(params?: {
+    status?: AppealStatus
+    sortDir?: 'ASC' | 'DESC'
+    page?: number
+    size?: number
+  }): Promise<Page<AccountAppeal>> {
     return apiClient.get<Page<AccountAppeal>>('/admin/users/appeals', { params })
   },
 

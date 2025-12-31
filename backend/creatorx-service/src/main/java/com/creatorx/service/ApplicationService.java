@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -152,6 +153,19 @@ public class ApplicationService {
     public Page<ApplicationDTO> getApplicationsForBrand(String brandId, Pageable pageable) {
         // Get all applications for campaigns owned by this brand
         Page<Application> applications = applicationRepository.findAllApplicationsForBrand(brandId, pageable);
+        return applications.map(app -> {
+            ApplicationDTO dto = applicationMapper.toDTO(app);
+            dto.setCampaign(campaignMapper.toDTO(app.getCampaign()));
+            return dto;
+        });
+    }
+
+    /**
+     * Get applications for admin (optional filters).
+     */
+    @Transactional(readOnly = true)
+    public Page<ApplicationDTO> getApplicationsForAdmin(String brandId, String campaignId, ApplicationStatus status, Pageable pageable) {
+        Page<Application> applications = applicationRepository.findAdminApplications(brandId, campaignId, status, pageable);
         return applications.map(app -> {
             ApplicationDTO dto = applicationMapper.toDTO(app);
             dto.setCampaign(campaignMapper.toDTO(app.getCampaign()));

@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     
                     // Validate required claims exist
                     if (userId == null || role == null) {
-                        logger.debug("JWT token missing required claims: userId={}, role={}", userId, role);
+                        logger.debug("JWT token missing required claims: userId=" + userId + ", role=" + role);
                         filterChain.doFilter(request, response);
                         return;
                     }
@@ -77,4 +77,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return jwtService.extractUsername(token);
     }
 }
-

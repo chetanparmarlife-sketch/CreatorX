@@ -1,6 +1,6 @@
 package com.creatorx.service;
 
-import com.creatorx.api.dto.CampaignFilterRequest;
+import com.creatorx.common.dto.CampaignFilterRequest;
 import com.creatorx.common.enums.CampaignPlatform;
 import com.creatorx.common.enums.CampaignStatus;
 import com.creatorx.common.enums.UserRole;

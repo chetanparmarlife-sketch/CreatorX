@@ -197,6 +197,11 @@ class ApiClient {
     return response.data
   }
 
+  public async getBlob(url: string, config?: InternalAxiosRequestConfig): Promise<Blob> {
+    const response = await this.client.get(url, { ...config, responseType: 'blob' })
+    return response.data as Blob
+  }
+
   public async post<T>(url: string, data?: unknown, config?: InternalAxiosRequestConfig): Promise<T> {
     const response = await this.client.post<T>(url, data, config)
     return response.data
@@ -220,4 +225,3 @@ class ApiClient {
 
 // Export singleton instance
 export const apiClient = new ApiClient()
-

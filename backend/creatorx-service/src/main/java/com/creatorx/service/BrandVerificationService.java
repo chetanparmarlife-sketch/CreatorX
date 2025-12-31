@@ -3,22 +3,31 @@ package com.creatorx.service;
 import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.repository.BrandVerificationDocumentRepository;
+import com.creatorx.repository.CampaignFlagRepository;
+import com.creatorx.repository.DisputeRepository;
 import com.creatorx.repository.BrandProfileRepository;
 import com.creatorx.repository.UserRepository;
 import com.creatorx.repository.entity.BrandProfile;
 import com.creatorx.repository.entity.BrandVerificationDocument;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.admin.AdminAuditService;
+import com.creatorx.service.dto.BrandProfileSummaryDTO;
+import com.creatorx.service.dto.BrandVerificationDetailDTO;
+import com.creatorx.service.dto.BrandVerificationHistoryDTO;
+import com.creatorx.service.dto.BrandVerificationRiskDTO;
 import com.creatorx.service.dto.BrandVerificationStatusDTO;
 import com.creatorx.service.dto.FileUploadResponse;
 import com.creatorx.service.storage.SupabaseStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -31,6 +40,8 @@ public class BrandVerificationService {
     private final UserRepository userRepository;
     private final SupabaseStorageService storageService;
     private final AdminAuditService adminAuditService;
+    private final DisputeRepository disputeRepository;
+    private final CampaignFlagRepository campaignFlagRepository;
 
     @Transactional
     public BrandVerificationStatusDTO submitGstDocument(String brandId, String gstNumber, MultipartFile file) {
@@ -91,9 +102,8 @@ public class BrandVerificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<BrandVerificationStatusDTO> getPendingDocuments() {
-        return brandVerificationRepository.findByStatusOrderBySubmittedAtDesc("PENDING")
-                .stream()
+    public Page<BrandVerificationStatusDTO> getPendingDocuments(Pageable pageable) {
+        return brandVerificationRepository.findByStatus("PENDING", pageable)
                 .map((document) -> BrandVerificationStatusDTO.builder()
                         .documentId(document.getId())
                         .brandId(document.getBrand().getId())
@@ -103,8 +113,7 @@ public class BrandVerificationService {
                         .rejectionReason(document.getRejectionReason())
                         .submittedAt(document.getSubmittedAt())
                         .reviewedAt(document.getReviewedAt())
-                        .build())
-                .toList();
+                        .build());
     }
 
     @Transactional
@@ -157,5 +166,69 @@ public class BrandVerificationService {
         for (String documentId : documentIds) {
             reviewDocument(adminId, documentId, status, reason);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public BrandVerificationDetailDTO getAdminDetail(String documentId) {
+        BrandVerificationDocument document = brandVerificationRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("BrandVerificationDocument", documentId));
+        User brand = document.getBrand();
+
+        BrandProfile profile = brandProfileRepository.findById(brand.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("BrandProfile", brand.getId()));
+
+        List<BrandVerificationHistoryDTO> history = brandVerificationRepository
+                .findTop5ByBrandIdOrderBySubmittedAtDesc(brand.getId())
+                .stream()
+                .map(item -> BrandVerificationHistoryDTO.builder()
+                        .documentId(item.getId())
+                        .status(item.getStatus())
+                        .rejectionReason(item.getRejectionReason())
+                        .fileUrl(item.getFileUrl())
+                        .submittedAt(item.getSubmittedAt())
+                        .reviewedAt(item.getReviewedAt())
+                        .build())
+                .toList();
+
+        long priorRejections = brandVerificationRepository.countByBrandIdAndStatus(brand.getId(), "REJECTED");
+        long openDisputes = disputeRepository.countByBrandIdAndStatus(brand.getId(), com.creatorx.common.enums.DisputeStatus.OPEN)
+                + disputeRepository.countByBrandIdAndStatus(brand.getId(), com.creatorx.common.enums.DisputeStatus.IN_REVIEW);
+        long openFlags = campaignFlagRepository.countByBrandIdAndStatus(
+                brand.getId(),
+                com.creatorx.common.enums.CampaignFlagStatus.OPEN
+        );
+
+        BrandProfileSummaryDTO profileSummary = BrandProfileSummaryDTO.builder()
+                .brandId(brand.getId())
+                .brandEmail(brand.getEmail())
+                .companyName(profile.getCompanyName())
+                .industry(profile.getIndustry())
+                .website(profile.getWebsite())
+                .gstNumber(profile.getGstNumber())
+                .verified(profile.getVerified())
+                .companyLogoUrl(profile.getCompanyLogoUrl())
+                .userStatus(brand.getStatus() != null ? brand.getStatus().name() : null)
+                .build();
+
+        BrandVerificationRiskDTO risk = BrandVerificationRiskDTO.builder()
+                .priorRejections(priorRejections)
+                .openDisputes(openDisputes)
+                .openCampaignFlags(openFlags)
+                .userStatus(brand.getStatus() != null ? brand.getStatus().name() : null)
+                .build();
+
+        return BrandVerificationDetailDTO.builder()
+                .documentId(document.getId())
+                .brandId(brand.getId())
+                .brandEmail(brand.getEmail())
+                .status(document.getStatus())
+                .fileUrl(document.getFileUrl())
+                .rejectionReason(document.getRejectionReason())
+                .submittedAt(document.getSubmittedAt())
+                .reviewedAt(document.getReviewedAt())
+                .profile(profileSummary)
+                .risk(risk)
+                .history(history)
+                .build();
     }
 }

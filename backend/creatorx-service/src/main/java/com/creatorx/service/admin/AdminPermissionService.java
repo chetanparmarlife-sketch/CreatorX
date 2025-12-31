@@ -1,6 +1,7 @@
 package com.creatorx.service.admin;
 
 import com.creatorx.common.enums.UserRole;
+import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.repository.AdminPermissionRepository;
 import com.creatorx.repository.UserRepository;
@@ -28,6 +29,13 @@ public class AdminPermissionService {
             return true;
         }
         return adminPermissionRepository.existsByAdminIdAndPermission(admin.getId(), permission);
+    }
+
+    @Transactional(readOnly = true)
+    public void requirePermission(String adminId, String permission) {
+        if (!hasPermission(adminId, permission)) {
+            throw new BusinessException("Missing admin permission: " + permission);
+        }
     }
 
     @Transactional(readOnly = true)

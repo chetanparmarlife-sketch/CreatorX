@@ -50,7 +50,23 @@ public class Dispute extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private DisputeStatus status = DisputeStatus.OPEN;
-    
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_admin_id")
+    private User assignedAdmin;
+
+    @Column(name = "next_action")
+    private String nextAction;
+
+    @Column(name = "resolution_type")
+    private String resolutionType;
+
+    @Column(name = "sla_first_response_due_at")
+    private LocalDateTime slaFirstResponseDueAt;
+
+    @Column(name = "sla_resolution_due_at")
+    private LocalDateTime slaResolutionDueAt;
+
     @Column(columnDefinition = "TEXT")
     private String resolution;
     
@@ -61,4 +77,3 @@ public class Dispute extends BaseEntity {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 }
-

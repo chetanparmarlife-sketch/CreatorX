@@ -8,6 +8,7 @@ export default function AdminBrandVerificationPage() {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [bulkReason, setBulkReason] = useState('')
+  const [search, setSearch] = useState('')
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-brand-verifications'],
@@ -39,6 +40,16 @@ export default function AdminBrandVerificationPage() {
     [selected]
   )
 
+  const filteredData = useMemo(() => {
+    if (!search) return data
+    const value = search.toLowerCase()
+    return data.filter((doc) =>
+      [doc.brandEmail, doc.brandId, doc.documentId]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(value))
+    )
+  }, [data, search])
+
   return (
     <div className="space-y-6">
       <div>
@@ -53,6 +64,12 @@ export default function AdminBrandVerificationPage() {
             <p className="text-xl font-semibold text-slate-900">{data.length}</p>
           </div>
           <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <input
+              className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+              placeholder="Search brand or document ID"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
             <input
               className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
               placeholder="Bulk rejection reason"
@@ -106,14 +123,14 @@ export default function AdminBrandVerificationPage() {
                     Loading...
                   </td>
                 </tr>
-              ) : data.length === 0 ? (
+              ) : filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-6 text-center text-slate-500">
                     No pending brand verifications.
                   </td>
                 </tr>
               ) : (
-                data.map((doc) => (
+                filteredData.map((doc) => (
                   <tr key={doc.documentId} className="border-t border-slate-100">
                     <td className="py-3 pr-4">
                       <input

@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
-import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, ChevronRight, CheckCircle2, Sparkles } from 'lucide-react'
 import { useCreateCampaign } from '@/lib/hooks/use-campaigns'
 import { useTemplates } from '@/lib/hooks/use-templates'
 import { CampaignPlatform, CampaignStatus } from '@/lib/types'
@@ -65,6 +65,48 @@ const deliverableTypes = [
   { value: 'STORY', label: 'Story' },
   { value: 'REEL', label: 'Reel' },
 ] as const
+
+const budgetGuidanceByPlatform: Record<
+  CampaignPlatform,
+  { starter: string; growth: string; launch: string; note: string }
+> = {
+  [CampaignPlatform.INSTAGRAM]: {
+    starter: '₹10k–25k',
+    growth: '₹25k–75k',
+    launch: '₹75k+',
+    note: 'Strong for reels + stories with mid-tier creators.',
+  },
+  [CampaignPlatform.YOUTUBE]: {
+    starter: '₹20k–50k',
+    growth: '₹50k–150k',
+    launch: '₹150k+',
+    note: 'Allocate extra budget for long-form production time.',
+  },
+  [CampaignPlatform.TWITTER]: {
+    starter: '₹5k–15k',
+    growth: '₹15k–40k',
+    launch: '₹40k+',
+    note: 'Great for fast engagement and announcements.',
+  },
+  [CampaignPlatform.TIKTOK]: {
+    starter: '₹10k–30k',
+    growth: '₹30k–80k',
+    launch: '₹80k+',
+    note: 'Prioritize creators with high short-form velocity.',
+  },
+  [CampaignPlatform.FACEBOOK]: {
+    starter: '₹8k–20k',
+    growth: '₹20k–60k',
+    launch: '₹60k+',
+    note: 'Works best with community-driven deliverables.',
+  },
+  [CampaignPlatform.LINKEDIN]: {
+    starter: '₹15k–40k',
+    growth: '₹40k–100k',
+    launch: '₹100k+',
+    note: 'B2B creators typically require higher CPM.',
+  },
+}
 
 // Zod schema for deliverable
 const deliverableSchema = z.object({
@@ -162,6 +204,35 @@ export default function NewCampaignPage() {
 
   const watchStartDate = form.watch('startDate')
   const watchEndDate = form.watch('endDate')
+  const watchPlatform = form.watch('platform')
+  const watchTitle = form.watch('title')
+  const watchDescription = form.watch('description')
+  const watchBudget = form.watch('budget')
+  const watchDeliverables = form.watch('deliverables')
+  const watchRequirements = form.watch('requirements')
+  const budgetGuidance = watchPlatform ? budgetGuidanceByPlatform[watchPlatform] : null
+  const checklistItems = [
+    {
+      label: 'Title and description are clear',
+      complete: !!watchTitle && watchTitle.length >= 5 && !!watchDescription && watchDescription.length >= 20,
+    },
+    {
+      label: 'Budget and platform are set',
+      complete: !!watchBudget && watchBudget >= 1000 && !!watchPlatform,
+    },
+    {
+      label: 'Deliverables defined',
+      complete: Array.isArray(watchDeliverables) && watchDeliverables.length > 0,
+    },
+    {
+      label: 'Timeline dates selected',
+      complete: !!watchStartDate && !!watchEndDate,
+    },
+    {
+      label: 'Requirements or guidelines added',
+      complete: !!watchRequirements && watchRequirements.length >= 10,
+    },
+  ]
 
   // Validate current step before proceeding
   const validateStep = async (step: number): Promise<boolean> => {
@@ -548,6 +619,38 @@ export default function NewCampaignPage() {
                     </FormItem>
                   )}
                 />
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    Budget guidance {watchPlatform ? `for ${watchPlatform}` : ''}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Use a tiered budget to match creator reach and content volume.
+                  </p>
+                  {budgetGuidance ? (
+                    <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
+                      <div className="rounded-md border border-slate-200 bg-white p-2">
+                        <p className="font-semibold text-slate-900">Starter</p>
+                        <p>{budgetGuidance.starter}</p>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white p-2">
+                        <p className="font-semibold text-slate-900">Growth</p>
+                        <p>{budgetGuidance.growth}</p>
+                      </div>
+                      <div className="rounded-md border border-slate-200 bg-white p-2">
+                        <p className="font-semibold text-slate-900">Launch</p>
+                        <p>{budgetGuidance.launch}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Select a platform to see recommended budget ranges.
+                    </p>
+                  )}
+                  {budgetGuidance && (
+                    <p className="mt-2 text-xs text-slate-500">{budgetGuidance.note}</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -940,6 +1043,37 @@ export default function NewCampaignPage() {
                       </div>
                     </div>
                   )}
+                  <Alert>
+                    <AlertDescription>
+                      After submission, your campaign may appear as{' '}
+                      <span className="font-semibold text-slate-900">PENDING_REVIEW</span> until
+                      it is approved. We’ll notify you as soon as it’s live.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ready-to-launch checklist</CardTitle>
+                  <CardDescription>
+                    Confirm the essentials so approvals move fast.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {checklistItems.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between rounded-lg border bg-white p-3">
+                      <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <CheckCircle2
+                          className={`h-4 w-4 ${item.complete ? 'text-emerald-500' : 'text-slate-300'}`}
+                        />
+                        {item.label}
+                      </div>
+                      <Badge className={item.complete ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}>
+                        {item.complete ? 'Ready' : 'Needs input'}
+                      </Badge>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>

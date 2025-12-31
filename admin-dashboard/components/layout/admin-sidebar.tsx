@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils/cn'
 import { useAuthStore } from '@/lib/store/auth-store'
+import { adminSystemService } from '@/lib/api/admin/system'
 import {
   Shield,
   Users,
@@ -18,6 +20,7 @@ import {
   BadgeDollarSign,
   LogOut,
   ChevronUp,
+  KeyRound,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -31,6 +34,9 @@ interface NavItem {
   label: string
   icon: React.ComponentType<{ className?: string }>
   href: string
+  count?: number
+  slaBadge?: string
+  slaTone?: 'default' | 'warning' | 'danger'
 }
 
 interface NavSection {
@@ -38,17 +44,63 @@ interface NavSection {
   items: NavItem[]
 }
 
-const navSections: NavSection[] = [
+const getSlaTone = (breaches?: number): NavItem['slaTone'] => {
+  if (!breaches) return 'default'
+  if (breaches >= 5) return 'danger'
+  return 'warning'
+}
+
+const buildNavSections = (summary?: {
+  pendingKyc?: number
+  openCampaignFlags?: number
+  openDisputes?: number
+  pendingGdprRequests?: number
+  gdprSlaBreaches?: number
+  kycSlaBreaches?: number
+  disputeSlaBreaches?: number
+}) => [
   {
+    items: [{ label: 'Overview', icon: Shield, href: '/admin' }],
+  },
+  {
+    title: 'WORK QUEUE',
     items: [
-      { label: 'Overview', icon: Shield, href: '/admin' },
+      {
+        label: 'KYC Review',
+        icon: FileCheck,
+        href: '/admin/kyc',
+        count: summary?.pendingKyc,
+        slaBadge: summary ? `${summary.kycSlaBreaches ?? 0} SLA` : undefined,
+        slaTone: getSlaTone(summary?.kycSlaBreaches),
+      },
+      {
+        label: 'Campaign Flags',
+        icon: Flag,
+        href: '/admin/campaigns',
+        count: summary?.openCampaignFlags,
+      },
+      {
+        label: 'Disputes',
+        icon: Scale,
+        href: '/admin/disputes',
+        count: summary?.openDisputes,
+        slaBadge: summary ? `${summary.disputeSlaBreaches ?? 0} SLA` : undefined,
+        slaTone: getSlaTone(summary?.disputeSlaBreaches),
+      },
+      {
+        label: 'GDPR Requests',
+        icon: ClipboardList,
+        href: '/admin/compliance',
+        count: summary?.pendingGdprRequests,
+        slaBadge: summary ? `${summary.gdprSlaBreaches ?? 0} SLA` : undefined,
+        slaTone: getSlaTone(summary?.gdprSlaBreaches),
+      },
     ],
   },
   {
     title: 'USER MANAGEMENT',
     items: [
       { label: 'Users', icon: Users, href: '/admin/users' },
-      { label: 'KYC Review', icon: FileCheck, href: '/admin/kyc' },
       { label: 'Brand Verification', icon: Building2, href: '/admin/brands' },
       { label: 'Appeals', icon: AlertTriangle, href: '/admin/appeals' },
     ],
@@ -56,28 +108,41 @@ const navSections: NavSection[] = [
   {
     title: 'MODERATION',
     items: [
-      { label: 'Campaign Flags', icon: Flag, href: '/admin/campaigns' },
+      { label: 'Campaign Reviews', icon: ClipboardList, href: '/admin/campaign-reviews' },
       { label: 'Moderation Rules', icon: ClipboardList, href: '/admin/moderation' },
-      { label: 'Disputes', icon: Scale, href: '/admin/disputes' },
+    ],
+  },
+  {
+    title: 'CAMPAIGNS',
+    items: [
+      { label: 'Campaign Management', icon: ClipboardList, href: '/admin/campaign-management' },
+      { label: 'Applications', icon: ClipboardList, href: '/admin/applications' },
+      { label: 'Deliverables', icon: ClipboardList, href: '/admin/deliverables' },
+      { label: 'Messages', icon: ClipboardList, href: '/admin/messages' },
     ],
   },
   {
     title: 'COMPLIANCE',
     items: [
-      { label: 'GDPR Requests', icon: ClipboardList, href: '/admin/compliance' },
-      { label: 'Audit Log', icon: Activity, href: '/admin/audit' },
+      { label: 'Reports', icon: ClipboardList, href: '/admin/compliance/reports' },
     ],
   },
   {
     title: 'FINANCE',
+    items: [{ label: 'Reconciliation', icon: BadgeDollarSign, href: '/admin/finance' }],
+  },
+  {
+    title: 'MONITORING',
     items: [
-      { label: 'Reconciliation', icon: BadgeDollarSign, href: '/admin/finance' },
+      { label: 'Audit Log', icon: Activity, href: '/admin/audit' },
+      { label: 'Health', icon: Activity, href: '/admin/health' },
     ],
   },
   {
     title: 'SYSTEM',
     items: [
       { label: 'Settings', icon: Settings, href: '/admin/settings' },
+      { label: 'Permissions', icon: KeyRound, href: '/admin/permissions' },
     ],
   },
 ]
@@ -86,6 +151,11 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuthStore()
+  const { data: summary } = useQuery({
+    queryKey: ['admin-system-summary-nav'],
+    queryFn: () => adminSystemService.getSummary(),
+  })
+  const navSections = buildNavSections(summary)
 
   const handleLogout = async () => {
     await logout()
@@ -124,7 +194,24 @@ export function AdminSidebar() {
                     )}
                   >
                     <item.icon className="w-4 h-4" />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.count !== undefined && (
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-slate-100">
+                        {item.count}
+                      </span>
+                    )}
+                    {item.slaBadge && (
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide',
+                          item.slaTone === 'danger' && 'bg-red-500/20 text-red-200',
+                          item.slaTone === 'warning' && 'bg-amber-500/20 text-amber-200',
+                          item.slaTone === 'default' && 'bg-white/10 text-slate-200'
+                        )}
+                      >
+                        {item.slaBadge}
+                      </span>
+                    )}
                   </Link>
                 )
               })}

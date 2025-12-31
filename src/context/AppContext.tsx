@@ -115,7 +115,7 @@ const defaultCampaigns: Campaign[] = [
     platforms: ['instagram', 'facebook'],
     category: 'Fashion',
     applicants: 45,
-    status: 'open',
+    status: 'ACTIVE',
     description: 'Create stunning content featuring our new summer fashion line. Looking for creators with a keen eye for style.',
     image: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=200&h=200&fit=crop',
     tags: ['Fashion', 'Lifestyle'],
@@ -136,7 +136,7 @@ const defaultCampaigns: Campaign[] = [
     platforms: ['youtube', 'instagram'],
     category: 'Tech',
     applicants: 23,
-    status: 'open',
+    status: 'ACTIVE',
     description: 'In-depth review of our latest smartphone. Perfect for tech enthusiasts with engaged audiences.',
     image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop',
     tags: ['Tech Review', 'Unboxing'],
@@ -157,7 +157,7 @@ const defaultCampaigns: Campaign[] = [
     platforms: ['instagram'],
     category: 'Food',
     applicants: 67,
-    status: 'open',
+    status: 'ACTIVE',
     description: 'Showcase your favorite meals ordered through our app. Food lovers and lifestyle creators welcome!',
     image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop',
     tags: ['Food', 'Lifestyle'],
@@ -178,7 +178,7 @@ const defaultCampaigns: Campaign[] = [
     platforms: ['youtube', 'instagram'],
     category: 'Fitness',
     applicants: 34,
-    status: 'open',
+    status: 'ACTIVE',
     description: '30-day fitness challenge content series. Looking for fitness influencers to inspire their audience.',
     image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=200&fit=crop',
     tags: ['Fitness', 'Health'],
@@ -199,7 +199,7 @@ const defaultCampaigns: Campaign[] = [
     platforms: ['youtube'],
     category: 'Travel',
     applicants: 56,
-    status: 'open',
+    status: 'ACTIVE',
     description: 'Create travel vlogs showcasing hidden gems. Perfect for travel content creators.',
     image: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=200&h=200&fit=crop',
     tags: ['Travel', 'Adventure'],
@@ -220,7 +220,7 @@ const defaultCampaigns: Campaign[] = [
     platforms: ['instagram', 'facebook'],
     category: 'Beauty',
     applicants: 89,
-    status: 'open',
+    status: 'ACTIVE',
     description: 'Be part of our new skincare line launch. Beauty and wellness creators with authentic voice preferred.',
     image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop',
     tags: ['Beauty', 'Skincare'],
@@ -626,7 +626,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!campaign) return;
 
     const updatedCampaigns = campaigns.map((c) =>
-      c.id === campaignId ? { ...c, status: 'applied' as const, applicants: c.applicants + 1 } : c
+      c.id === campaignId ? { ...c, userState: 'APPLIED', applicants: c.applicants + 1 } : c
     );
     setCampaigns(updatedCampaigns);
     await saveToStorage(STORAGE_KEYS.CAMPAIGNS, updatedCampaigns);
@@ -638,7 +638,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pitch: applicationData.pitch,
       expectedTimeline: applicationData.expectedTimeline,
       extraDetails: applicationData.extraDetails,
-      status: 'pending_review',
+      status: 'APPLIED',
       submittedAt: new Date().toISOString(),
     };
     const updatedApplications = [...applications, newApplication];
@@ -665,14 +665,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const updatedApplications = applications.map((a) =>
       a.campaignId === campaignId
-        ? { ...a, status: 'approved' as const, reviewedAt: new Date().toISOString() }
+        ? { ...a, status: 'SELECTED', reviewedAt: new Date().toISOString() }
         : a
     );
     setApplications(updatedApplications);
     await saveToStorage(STORAGE_KEYS.APPLICATIONS, updatedApplications);
 
     const updatedCampaigns = campaigns.map((c) =>
-      c.id === campaignId ? { ...c, status: 'active' as const } : c
+      c.id === campaignId ? { ...c, userState: 'SELECTED' } : c
     );
     setCampaigns(updatedCampaigns);
     await saveToStorage(STORAGE_KEYS.CAMPAIGNS, updatedCampaigns);
@@ -732,14 +732,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const updatedApplications = applications.map((a) =>
       a.campaignId === campaignId
-        ? { ...a, status: 'rejected' as const, reviewedAt: new Date().toISOString(), brandFeedback: feedback }
+        ? { ...a, status: 'REJECTED', reviewedAt: new Date().toISOString(), brandFeedback: feedback }
         : a
     );
     setApplications(updatedApplications);
     await saveToStorage(STORAGE_KEYS.APPLICATIONS, updatedApplications);
 
     const updatedCampaigns = campaigns.map((c) =>
-      c.id === campaignId ? { ...c, status: 'rejected' as const } : c
+      c.id === campaignId ? { ...c, userState: 'REJECTED' } : c
     );
     setCampaigns(updatedCampaigns);
     await saveToStorage(STORAGE_KEYS.CAMPAIGNS, updatedCampaigns);

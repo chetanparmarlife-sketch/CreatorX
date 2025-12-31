@@ -12,6 +12,9 @@ Complete index of all CreatorX documentation.
 ### Project Overview
 - **[README](README.md)** - Main project README with quick start
 - **[Backend README](backend/README.md)** - Backend-specific documentation
+- **[Admin Dashboard](ADMIN_DASHBOARD.md)** - Admin workflows, permissions, and queues
+- **[Admin Dashboard App](admin-dashboard/README.md)** - Admin UI setup and patterns
+- **[Brand Dashboard App](brand-dashboard/README.md)** - Brand UI setup and workflows
 
 ---
 
@@ -201,4 +204,3 @@ Complete index of all CreatorX documentation.
 **Last Updated**: [Date]  
 **Version**: 1.0.0  
 **Maintained By**: CreatorX Team
-

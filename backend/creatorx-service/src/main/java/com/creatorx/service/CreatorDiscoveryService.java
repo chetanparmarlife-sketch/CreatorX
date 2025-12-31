@@ -1,6 +1,7 @@
 package com.creatorx.service;
 
 import com.creatorx.common.enums.UserRole;
+import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.repository.ApplicationRepository;
 import com.creatorx.repository.CreatorProfileRepository;
 import com.creatorx.repository.UserRepository;
@@ -179,4 +180,3 @@ public class CreatorDiscoveryService {
                 .build();
     }
 }
-

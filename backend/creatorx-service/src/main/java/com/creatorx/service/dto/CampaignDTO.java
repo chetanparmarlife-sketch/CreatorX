@@ -33,6 +33,9 @@ public class CampaignDTO {
     private Integer selectedCreatorsCount;
     private List<String> tags;
     private List<String> requirementTexts;
+    private String reviewReason;
+    private String reviewedBy;
+    private LocalDateTime reviewedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
@@ -60,4 +63,3 @@ public class CampaignDTO {
         private Boolean verified;
     }
 }
-

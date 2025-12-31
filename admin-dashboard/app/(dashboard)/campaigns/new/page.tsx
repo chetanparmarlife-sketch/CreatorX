@@ -605,7 +605,7 @@ export default function NewCampaignPage() {
                   {fields.length === 0 ? (
                     <div className="rounded-lg border border-dashed p-8 text-center">
                       <p className="text-sm text-slate-500">
-                        No deliverables added yet. Click "Add Deliverable" to get started.
+                        No deliverables added yet. Click &quot;Add Deliverable&quot; to get started.
                       </p>
                     </div>
                   ) : (

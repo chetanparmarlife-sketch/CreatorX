@@ -18,6 +18,7 @@ public class CampaignFlagDTO {
     private String campaignTitle;
     private String ruleId;
     private String ruleName;
+    private String ruleSeverity;
     private CampaignFlagStatus status;
     private String reason;
     private String flaggedBy;

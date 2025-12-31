@@ -33,6 +33,7 @@ export enum DocumentType {
 
 export enum CampaignStatus {
   DRAFT = 'DRAFT',
+  PENDING_REVIEW = 'PENDING_REVIEW',
   ACTIVE = 'ACTIVE',
   PAUSED = 'PAUSED',
   COMPLETED = 'COMPLETED',
@@ -62,6 +63,13 @@ export enum TransactionType {
   REFUND = 'REFUND',
   BONUS = 'BONUS',
   PENALTY = 'PENALTY',
+}
+
+export enum TransactionStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum AppealStatus {
@@ -99,6 +107,17 @@ export enum GDPRRequestStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   REJECTED = 'REJECTED',
+}
+
+export enum ComplianceReportType {
+  TAX_DOCUMENT = 'TAX_DOCUMENT',
+  REGULATORY_EXPORT = 'REGULATORY_EXPORT',
+}
+
+export enum ComplianceReportStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
 }
 
 export enum PlatformSettingType {
@@ -165,6 +184,9 @@ export interface Campaign {
   requirements?: string
   deliverableTypes?: string[]
   tags?: string[]
+  reviewReason?: string
+  reviewedBy?: string
+  reviewedAt?: string
   createdAt: string
   updatedAt: string
   brand?: BrandProfile
@@ -303,6 +325,10 @@ export interface Conversation {
   creatorId: string
   brandId: string
   campaignId?: string
+  creatorName?: string
+  brandName?: string
+  campaignTitle?: string
+  unreadCount?: number
   creatorUnreadCount: number
   brandUnreadCount: number
   lastMessageAt?: string
@@ -322,6 +348,8 @@ export interface Message {
   id: string
   conversationId: string
   senderId: string
+  senderName?: string
+  senderAvatar?: string
   content: string
   read: boolean
   createdAt: string
@@ -458,6 +486,48 @@ export interface BrandVerificationDocument {
   reviewedAt?: string
 }
 
+export interface BrandProfileSummary {
+  brandId: string
+  brandEmail: string
+  companyName?: string
+  industry?: string
+  website?: string
+  gstNumber?: string
+  verified?: boolean
+  companyLogoUrl?: string
+  userStatus?: string
+}
+
+export interface BrandVerificationHistoryEntry {
+  documentId: string
+  status: string
+  rejectionReason?: string
+  fileUrl?: string
+  submittedAt?: string
+  reviewedAt?: string
+}
+
+export interface BrandVerificationRisk {
+  priorRejections: number
+  openDisputes: number
+  openCampaignFlags: number
+  userStatus?: string
+}
+
+export interface BrandVerificationDetail {
+  documentId: string
+  brandId: string
+  brandEmail: string
+  status: string
+  fileUrl: string
+  rejectionReason?: string
+  submittedAt?: string
+  reviewedAt?: string
+  profile?: BrandProfileSummary
+  risk?: BrandVerificationRisk
+  history?: BrandVerificationHistoryEntry[]
+}
+
 export interface AdminUser {
   id: string
   email: string
@@ -491,6 +561,15 @@ export interface DisputeEvidence {
   submittedAt: string
 }
 
+export interface DisputeNote {
+  id: string
+  disputeId: string
+  adminId: string
+  adminEmail: string
+  note: string
+  createdAt: string
+}
+
 export interface DisputeTicket {
   id: string
   campaignId?: string
@@ -503,6 +582,11 @@ export interface DisputeTicket {
   status: string
   description: string
   resolution?: string
+  assignedAdminId?: string
+  nextAction?: string
+  resolutionType?: string
+  slaFirstResponseDueAt?: string
+  slaResolutionDueAt?: string
   resolvedBy?: string
   createdAt: string
   resolvedAt?: string
@@ -515,6 +599,7 @@ export interface CampaignFlag {
   campaignTitle: string
   ruleId?: string
   ruleName?: string
+  ruleSeverity?: string
   status: CampaignFlagStatus
   reason: string
   flaggedBy?: string
@@ -533,6 +618,16 @@ export interface ModerationRule {
   severity: ModerationRuleSeverity
   status: ModerationRuleStatus
   createdAt?: string
+  totalFlags?: number
+  openFlags?: number
+  lastTriggeredAt?: string
+}
+
+export interface ModerationRuleTestResult {
+  ruleId: string
+  testedCount: number
+  matchCount: number
+  matches: Array<{ campaignId: string; campaignTitle?: string }>
 }
 
 export interface GDPRRequest {
@@ -546,6 +641,21 @@ export interface GDPRRequest {
   resolvedBy?: string
   createdAt: string
   resolvedAt?: string
+}
+
+export interface ComplianceReport {
+  id: string
+  reportType: ComplianceReportType
+  status: ComplianceReportStatus
+  region: string
+  periodStart?: string
+  periodEnd?: string
+  fileUrl?: string
+  signedUrl?: string
+  details?: Record<string, unknown>
+  generatedBy?: string
+  generatedAt?: string
+  createdAt?: string
 }
 
 export interface PlatformSetting {
@@ -565,8 +675,33 @@ export interface FinanceSummary {
   totalTransactions: number
 }
 
+export type FinanceReportGroup = 'PERIOD' | 'USER' | 'CAMPAIGN'
+export type FinanceReportPeriod = 'DAY' | 'WEEK' | 'MONTH'
+
+export interface FinanceUserReportRow {
+  userId: string
+  userEmail?: string
+  transactionCount: number
+  totalAmount: number
+}
+
+export interface FinanceCampaignReportRow {
+  campaignId: string
+  campaignTitle?: string
+  transactionCount: number
+  totalAmount: number
+}
+
+export interface FinancePeriodReportRow {
+  periodStart: string
+  periodEnd?: string
+  transactionCount: number
+  totalAmount: number
+}
+
 export interface AdminSummary {
   totalUsers: number
+  totalBrands: number
   totalCampaigns: number
   pendingKyc: number
   pendingBrandVerifications: number
@@ -574,6 +709,21 @@ export interface AdminSummary {
   openCampaignFlags: number
   openAppeals: number
   pendingGdprRequests: number
+  gdprSlaBreaches: number
+  avgKycDecisionHours: number
+  avgDisputeResolutionHours: number
+  kycSlaBreaches: number
+  disputeSlaBreaches: number
+  adminDailyActiveUsers: number
+  adminCsatAverage: number
+  adminCsatResponses: number
+  userGrowthPercent: number
+}
+
+export interface SystemHealthSummary {
+  status: string
+  components: Record<string, string>
+  metrics: Record<string, number | null>
 }
 
 export interface AuditLogEntry {

@@ -63,6 +63,7 @@ export const CampaignCard = memo(function CampaignCard({ campaign, onApply, onVi
   const contentTypes = campaign.contentTypes || ['Post'];
   const tags = campaign.tags || [campaign.category];
   const daysRemaining = campaign.daysRemaining || 7;
+  const userState = campaign.userState;
 
   return (
     <TouchableOpacity
@@ -160,7 +161,7 @@ export const CampaignCard = memo(function CampaignCard({ campaign, onApply, onVi
           Ends in <Text style={[styles.deadlineBold, { color: textPrimary }]}>{daysRemaining} days</Text>
         </Text>
 
-        {campaign.status === 'open' && onApply && (
+        {campaign.status === 'ACTIVE' && onApply && (!userState || userState === 'SAVED') && (
           <TouchableOpacity
             style={[styles.applyBtn, { backgroundColor: applyBtnBg }]}
             onPress={() => onApply(campaign.id)}
@@ -170,32 +171,38 @@ export const CampaignCard = memo(function CampaignCard({ campaign, onApply, onVi
           </TouchableOpacity>
         )}
 
-        {campaign.status !== 'open' && (
+        {(userState || campaign.status !== 'ACTIVE') && (
           <View style={[
             styles.statusBadge, 
             { 
               backgroundColor: 
-                campaign.status === 'applied' ? '#FFF3E0' :
-                campaign.status === 'active' ? '#E8F5E9' :
-                campaign.status === 'rejected' ? '#FFEBEE' :
-                campaign.status === 'completed' ? '#E3F2FD' :
+                userState === 'APPLIED' || userState === 'SHORTLISTED' ? '#FFF3E0' :
+                userState === 'SELECTED' ? '#E8F5E9' :
+                userState === 'REJECTED' || userState === 'WITHDRAWN' ? '#FFEBEE' :
+                campaign.status === 'ACTIVE' ? '#E8F5E9' :
+                campaign.status === 'COMPLETED' ? '#E3F2FD' :
+                campaign.status === 'CANCELLED' ? '#FFEBEE' :
                 colors.primary + '20'
             }
           ]}>
             <Feather 
               name={
-                campaign.status === 'applied' ? 'clock' :
-                campaign.status === 'active' ? 'check-circle' :
-                campaign.status === 'rejected' ? 'x-circle' :
-                campaign.status === 'completed' ? 'award' :
+                userState === 'APPLIED' || userState === 'SHORTLISTED' ? 'clock' :
+                userState === 'SELECTED' ? 'check-circle' :
+                userState === 'REJECTED' || userState === 'WITHDRAWN' ? 'x-circle' :
+                campaign.status === 'ACTIVE' ? 'check-circle' :
+                campaign.status === 'COMPLETED' ? 'award' :
+                campaign.status === 'CANCELLED' ? 'x-circle' :
                 'info'
               } 
               size={14} 
               color={
-                campaign.status === 'applied' ? '#F57C00' :
-                campaign.status === 'active' ? '#388E3C' :
-                campaign.status === 'rejected' ? '#D32F2F' :
-                campaign.status === 'completed' ? '#1976D2' :
+                userState === 'APPLIED' || userState === 'SHORTLISTED' ? '#F57C00' :
+                userState === 'SELECTED' ? '#388E3C' :
+                userState === 'REJECTED' || userState === 'WITHDRAWN' ? '#D32F2F' :
+                campaign.status === 'ACTIVE' ? '#388E3C' :
+                campaign.status === 'COMPLETED' ? '#1976D2' :
+                campaign.status === 'CANCELLED' ? '#D32F2F' :
                 colors.primary
               } 
               style={{ marginRight: 4 }}
@@ -204,18 +211,22 @@ export const CampaignCard = memo(function CampaignCard({ campaign, onApply, onVi
               styles.statusText, 
               { 
                 color: 
-                  campaign.status === 'applied' ? '#F57C00' :
-                  campaign.status === 'active' ? '#388E3C' :
-                  campaign.status === 'rejected' ? '#D32F2F' :
-                  campaign.status === 'completed' ? '#1976D2' :
+                  userState === 'APPLIED' || userState === 'SHORTLISTED' ? '#F57C00' :
+                  userState === 'SELECTED' ? '#388E3C' :
+                  userState === 'REJECTED' || userState === 'WITHDRAWN' ? '#D32F2F' :
+                  campaign.status === 'ACTIVE' ? '#388E3C' :
+                  campaign.status === 'COMPLETED' ? '#1976D2' :
+                  campaign.status === 'CANCELLED' ? '#D32F2F' :
                   colors.primary
               }
             ]}>
-              {campaign.status === 'applied' ? 'Under Review' : 
-               campaign.status === 'active' ? 'Active' : 
-               campaign.status === 'rejected' ? 'Not Selected' :
-               campaign.status === 'completed' ? 'Completed' :
-               campaign.status === 'accepted' ? 'Accepted' : 
+              {userState === 'APPLIED' || userState === 'SHORTLISTED' ? 'Under Review' : 
+               userState === 'SELECTED' ? 'Accepted' : 
+               userState === 'REJECTED' ? 'Not Selected' :
+               userState === 'WITHDRAWN' ? 'Withdrawn' :
+               campaign.status === 'ACTIVE' ? 'Active' : 
+               campaign.status === 'COMPLETED' ? 'Completed' :
+               campaign.status === 'CANCELLED' ? 'Cancelled' :
                campaign.status}
             </Text>
           </View>

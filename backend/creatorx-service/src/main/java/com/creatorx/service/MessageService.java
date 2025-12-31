@@ -3,6 +3,7 @@ package com.creatorx.service;
 import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.common.exception.UnauthorizedException;
+import com.creatorx.common.enums.UserRole;
 import com.creatorx.repository.CampaignRepository;
 import com.creatorx.repository.ConversationRepository;
 import com.creatorx.repository.MessageRepository;
@@ -44,16 +45,18 @@ public class MessageService {
         // Load conversation
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation", conversationId));
-        
-        // Verify sender is a participant
-        if (!conversation.getCreator().getId().equals(senderId) && 
-            !conversation.getBrand().getId().equals(senderId)) {
-            throw new UnauthorizedException("You are not a participant in this conversation");
-        }
-        
+
         // Load sender
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", senderId));
+
+        // Verify sender is a participant (admins can send globally)
+        boolean isAdminSender = sender.getRole() == UserRole.ADMIN;
+        if (!isAdminSender &&
+                !conversation.getCreator().getId().equals(senderId) &&
+                !conversation.getBrand().getId().equals(senderId)) {
+            throw new UnauthorizedException("You are not a participant in this conversation");
+        }
         
         // Create message
         Message message = Message.builder()
@@ -69,11 +72,14 @@ public class MessageService {
         conversation.setLastMessageAt(LocalDateTime.now());
         conversationRepository.save(conversation);
         
-        // Update unread count for recipient
+        // Update unread count for recipients
         if (conversation.getCreator().getId().equals(senderId)) {
             conversationRepository.incrementBrandUnreadCount(conversationId);
-        } else {
+        } else if (conversation.getBrand().getId().equals(senderId)) {
             conversationRepository.incrementCreatorUnreadCount(conversationId);
+        } else if (isAdminSender) {
+            conversationRepository.incrementCreatorUnreadCount(conversationId);
+            conversationRepository.incrementBrandUnreadCount(conversationId);
         }
         
         // Convert to DTO
@@ -82,15 +88,28 @@ public class MessageService {
         // Broadcast to conversation topic
         messagingTemplate.convertAndSend("/topic/conversation/" + conversationId, messageDTO);
         
-        // Send to recipient's personal queue
-        String recipientId = conversation.getCreator().getId().equals(senderId) 
-                ? conversation.getBrand().getId() 
-                : conversation.getCreator().getId();
-        messagingTemplate.convertAndSendToUser(
-                recipientId,
-                "/queue/messages",
-                messageDTO
-        );
+        // Send to recipient queues
+        if (isAdminSender) {
+            messagingTemplate.convertAndSendToUser(
+                    conversation.getCreator().getId(),
+                    "/queue/messages",
+                    messageDTO
+            );
+            messagingTemplate.convertAndSendToUser(
+                    conversation.getBrand().getId(),
+                    "/queue/messages",
+                    messageDTO
+            );
+        } else {
+            String recipientId = conversation.getCreator().getId().equals(senderId)
+                    ? conversation.getBrand().getId()
+                    : conversation.getCreator().getId();
+            messagingTemplate.convertAndSendToUser(
+                    recipientId,
+                    "/queue/messages",
+                    messageDTO
+            );
+        }
         
         log.info("Message sent: {} in conversation: {}", saved.getId(), conversationId);
         
@@ -115,6 +134,32 @@ public class MessageService {
         Page<Message> messages = messageRepository.findByConversationId(conversationId, pageable);
         
         return messages.map(this::toDTO);
+    }
+
+    /**
+     * Get messages for conversation (admin access).
+     */
+    @Transactional(readOnly = true)
+    public Page<MessageDTO> getMessagesForAdmin(String conversationId, int page, int size) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation", conversationId));
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Message> messages = messageRepository.findByConversationId(conversationId, pageable);
+        return messages.map(this::toDTO);
+    }
+
+    /**
+     * Send message as admin to any conversation.
+     */
+    @Transactional
+    public MessageDTO sendAdminMessage(String conversationId, String adminId, String content) {
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", adminId));
+        if (admin.getRole() != UserRole.ADMIN) {
+            throw new UnauthorizedException("Only admins can send as Team CreatorX");
+        }
+        return sendMessage(conversationId, adminId, content);
     }
     
     /**
@@ -265,6 +310,9 @@ public class MessageService {
     }
     
     private String getSenderName(User user) {
+        if (user.getRole() == UserRole.ADMIN) {
+            return "Team CreatorX";
+        }
         if (user.getUserProfile() != null) {
             return user.getUserProfile().getFullName();
         }
@@ -303,4 +351,3 @@ public class MessageService {
         public LocalDateTime getReadAt() { return readAt; }
     }
 }
-

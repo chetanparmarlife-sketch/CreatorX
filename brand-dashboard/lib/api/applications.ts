@@ -36,4 +36,7 @@ export const applicationService = {
       reason,
     })
   },
+  async getBrandApplications(page: number = 0, size: number = 20) {
+    return apiClient.get(`/applications`, { params: { page, size } })
+  },
 }

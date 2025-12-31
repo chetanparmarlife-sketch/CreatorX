@@ -1,10 +1,11 @@
 package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.CampaignCreateRequest;
-import com.creatorx.api.dto.CampaignFilterRequest;
+import com.creatorx.common.dto.CampaignFilterRequest;
 import com.creatorx.api.dto.CampaignUpdateRequest;
 import com.creatorx.common.enums.CampaignPlatform;
 import com.creatorx.common.enums.CampaignStatus;
+import com.creatorx.common.enums.SubmissionStatus;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.ApplicationService;
@@ -257,48 +258,6 @@ public class CampaignController {
     }
     
     /**
-     * Get applications for a campaign (Brand only)
-     */
-    @GetMapping("/{id}/applications")
-    @PreAuthorize("hasRole('BRAND')")
-    @Operation(summary = "Get campaign applications", description = "Get applications for a campaign (Brand only, own campaigns)")
-    public ResponseEntity<List<ApplicationDTO>> getCampaignApplications(
-            @PathVariable String id,
-            @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "100") int size
-    ) {
-        User currentUser = getCurrentUser();
-        if (currentUser == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Authentication required");
-        }
-        
-        org.springframework.data.domain.Pageable pageable = 
-            org.springframework.data.domain.PageRequest.of(page, Math.min(size, 100));
-        org.springframework.data.domain.Page<ApplicationDTO> applications = 
-            applicationService.getApplicationsByCampaign(id, currentUser.getId(), pageable);
-        return ResponseEntity.ok(applications.getContent());
-    }
-    
-    /**
-     * Get deliverables for a campaign (Brand only)
-     */
-    @GetMapping("/{id}/deliverables")
-    @PreAuthorize("hasRole('BRAND')")
-    @Operation(summary = "Get campaign deliverables", description = "Get deliverables for a campaign (Brand only, own campaigns)")
-    public ResponseEntity<List<DeliverableDTO>> getCampaignDeliverables(
-            @PathVariable String id,
-            @RequestParam(required = false) com.creatorx.common.enums.SubmissionStatus status
-    ) {
-        User currentUser = getCurrentUser();
-        if (currentUser == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Authentication required");
-        }
-        
-        List<DeliverableDTO> deliverables = deliverableService.getDeliverablesByCampaign(id, currentUser.getId(), status);
-        return ResponseEntity.ok(deliverables);
-    }
-    
-    /**
      * Invite creator to campaign (Brand only)
      */
     @PostMapping("/{id}/invite")
@@ -417,4 +376,3 @@ public class CampaignController {
         };
     }
 }
-

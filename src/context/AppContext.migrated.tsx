@@ -362,7 +362,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         creatorId: user.id,
         pitch: applicationData.pitch,
         expectedTimeline: applicationData.expectedTimeline,
-        status: 'pending_review',
+        status: 'APPLIED',
         submittedAt: new Date().toISOString(),
       };
       setApplications((prev) => [...prev, newApplication]);
@@ -574,4 +574,3 @@ export function useApp() {
   }
   return context;
 }
-

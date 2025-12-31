@@ -68,6 +68,10 @@ export default function ProfilePage() {
     return Number((total / creators.length).toFixed(1))
   }, [creators])
 
+  const verificationAgeDays = verificationStatus?.submittedAt
+    ? Math.ceil((Date.now() - new Date(verificationStatus.submittedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : null
+
   const handleSave = () => {
     updateProfile.mutate({
       companyName,
@@ -216,10 +220,37 @@ export default function ProfilePage() {
                 {verificationStatus?.status || 'NOT_SUBMITTED'}
               </span>
             </div>
+            {verificationStatus?.submittedAt && (
+              <div className="flex items-center justify-between">
+                <span>Submitted</span>
+                <span className="font-medium text-gray-900">
+                  {new Date(verificationStatus.submittedAt).toLocaleDateString()}
+                  {verificationAgeDays !== null ? ` · ${verificationAgeDays}d ago` : ''}
+                </span>
+              </div>
+            )}
+            {verificationStatus?.reviewedAt && (
+              <div className="flex items-center justify-between">
+                <span>Reviewed</span>
+                <span className="font-medium text-gray-900">
+                  {new Date(verificationStatus.reviewedAt).toLocaleDateString()}
+                </span>
+              </div>
+            )}
             {verificationStatus?.rejectionReason && (
               <p className="text-xs text-red-600">
                 Rejection reason: {verificationStatus.rejectionReason}
               </p>
+            )}
+            {verificationStatus?.fileUrl && (
+              <a
+                href={verificationStatus.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-sky-600 hover:text-sky-700"
+              >
+                View last submitted document
+              </a>
             )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -238,6 +269,14 @@ export default function ProfilePage() {
               <p className="mt-2 text-xs text-gray-500">
                 GST number is required and stored on your profile.
               </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <p className="font-semibold text-slate-900">What happens next</p>
+              <ul className="mt-2 space-y-1 text-slate-600">
+                <li>We validate your GST document and business details.</li>
+                <li>If anything is missing, you’ll see a rejection reason here.</li>
+                <li>Once approved, you can launch campaigns without verification prompts.</li>
+              </ul>
             </div>
           </div>
         </div>

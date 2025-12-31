@@ -9,6 +9,7 @@ export default function AdminKycPage() {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [bulkReason, setBulkReason] = useState('')
+  const [search, setSearch] = useState('')
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-kyc-pending'],
@@ -45,6 +46,16 @@ export default function AdminKycPage() {
     [selected]
   )
 
+  const filteredData = useMemo(() => {
+    if (!search) return data
+    const value = search.toLowerCase()
+    return data.filter((doc) =>
+      [doc.userEmail, doc.userId, doc.documentType, doc.documentNumber]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(value))
+    )
+  }, [data, search])
+
   return (
     <div className="space-y-6">
       <div>
@@ -59,6 +70,12 @@ export default function AdminKycPage() {
             <p className="text-xl font-semibold text-slate-900">{data.length}</p>
           </div>
           <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <input
+              className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+              placeholder="Search creator or document"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
             <input
               className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
               placeholder="Bulk rejection reason"
@@ -112,14 +129,14 @@ export default function AdminKycPage() {
                     Loading...
                   </td>
                 </tr>
-              ) : data.length === 0 ? (
+              ) : filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-6 text-center text-slate-500">
                     No pending KYC submissions.
                   </td>
                 </tr>
               ) : (
-                data.map((doc) => (
+                filteredData.map((doc) => (
                   <tr key={doc.id} className="border-t border-slate-100">
                     <td className="py-3 pr-4">
                       <input

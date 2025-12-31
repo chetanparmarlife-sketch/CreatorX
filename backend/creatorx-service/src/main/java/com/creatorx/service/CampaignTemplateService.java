@@ -120,7 +120,7 @@ public class CampaignTemplateService {
                             .template(template)
                             .title(deliverable.getTitle())
                             .description(deliverable.getDescription())
-                            .type(deliverable.getType())
+                            .type(deliverable.getType() != null ? deliverable.getType().name() : null)
                             .dueDate(deliverable.getDueDate())
                             .isMandatory(deliverable.getIsMandatory())
                             .orderIndex(deliverable.getOrderIndex())

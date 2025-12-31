@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client'
-import { CampaignFlag, CampaignFlagStatus, ModerationRule, Page } from '@/lib/types'
+import { CampaignFlag, CampaignFlagStatus, ModerationRule, ModerationRuleTestResult, Page } from '@/lib/types'
 
 export const adminModerationService = {
   async listRules(): Promise<ModerationRule[]> {
@@ -18,7 +18,18 @@ export const adminModerationService = {
     await apiClient.delete(`/admin/moderation/rules/${ruleId}`)
   },
 
-  async listFlags(params?: { status?: CampaignFlagStatus; page?: number; size?: number }): Promise<Page<CampaignFlag>> {
+  async testRule(ruleId: string, sampleSize = 50): Promise<ModerationRuleTestResult> {
+    return apiClient.get<ModerationRuleTestResult>(`/admin/moderation/rules/${ruleId}/test`, {
+      params: { sampleSize },
+    })
+  },
+
+  async listFlags(params?: {
+    status?: CampaignFlagStatus
+    sortDir?: 'ASC' | 'DESC'
+    page?: number
+    size?: number
+  }): Promise<Page<CampaignFlag>> {
     return apiClient.get<Page<CampaignFlag>>('/admin/moderation/flags', { params })
   },
 

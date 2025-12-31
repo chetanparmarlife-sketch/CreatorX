@@ -149,6 +149,25 @@ public class DeliverableService {
                 })
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Get deliverables for admin (optionally filtered by brand or campaign).
+     */
+    @Transactional(readOnly = true)
+    public Page<DeliverableDTO> getDeliverablesForAdmin(String brandId, String campaignId, SubmissionStatus status, Pageable pageable) {
+        Page<DeliverableSubmission> submissions = deliverableRepository.findAdminDeliverables(
+                brandId,
+                campaignId,
+                status,
+                pageable
+        );
+
+        return submissions.map(submission -> {
+            DeliverableDTO dto = deliverableMapper.toDTO(submission);
+            enrichDeliverableDTO(dto, submission);
+            return dto;
+        });
+    }
     
     /**
      * Get deliverables for a specific application (brand only)

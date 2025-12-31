@@ -4,6 +4,7 @@ import com.creatorx.common.enums.TransactionStatus;
 import com.creatorx.common.enums.TransactionType;
 import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.ResourceNotFoundException;
+import com.creatorx.common.settings.PlatformSettingKeys;
 import com.creatorx.repository.CampaignRepository;
 import com.creatorx.repository.TransactionRepository;
 import com.creatorx.repository.UserRepository;
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -40,6 +43,7 @@ public class WalletService {
     private final CampaignRepository campaignRepository;
     private final TransactionMapper transactionMapper;
     private final CampaignMapper campaignMapper;
+    private final PlatformSettingsResolver platformSettingsResolver;
     
     /**
      * Get wallet for user
@@ -82,6 +86,12 @@ public class WalletService {
     @Transactional
     public TransactionDTO createTransaction(String userId, TransactionType type, BigDecimal amount, 
                                            String description, String campaignId) {
+        return createTransaction(userId, type, amount, description, campaignId, null);
+    }
+
+    @Transactional
+    public TransactionDTO createTransaction(String userId, TransactionType type, BigDecimal amount,
+                                            String description, String campaignId, Map<String, Object> metadata) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
         
@@ -102,6 +112,7 @@ public class WalletService {
                 .status(TransactionStatus.PENDING)
                 .description(description)
                 .campaign(campaign)
+                .metadata(metadata != null ? metadata : new HashMap<>())
                 .build();
         
         transaction = transactionRepository.save(transaction);
@@ -127,6 +138,18 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Credit amount must be greater than 0");
         }
+
+        BigDecimal commissionPercent = platformSettingsResolver.getDecimal(
+                PlatformSettingKeys.FEES_PLATFORM_COMMISSION_PERCENT,
+                BigDecimal.ZERO
+        );
+        BigDecimal feeAmount = amount.multiply(commissionPercent)
+                .divide(new BigDecimal("100"))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        BigDecimal netAmount = amount.subtract(feeAmount);
+        if (netAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Net credit amount must be greater than 0");
+        }
         
         // Lock wallet for update
         Wallet wallet = walletRepository.findByUserIdWithLock(userId)
@@ -144,14 +167,18 @@ public class WalletService {
                 });
         
         // Update balance atomically
-        wallet.setBalance(wallet.getBalance().add(amount));
-        wallet.setTotalEarned(wallet.getTotalEarned().add(amount));
+        wallet.setBalance(wallet.getBalance().add(netAmount));
+        wallet.setTotalEarned(wallet.getTotalEarned().add(netAmount));
         walletRepository.save(wallet);
         
         // Create transaction record
-        createTransaction(userId, TransactionType.EARNING, amount, reason, campaignId);
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("grossAmount", amount);
+        metadata.put("platformFeePercent", commissionPercent);
+        metadata.put("platformFeeAmount", feeAmount);
+        createTransaction(userId, TransactionType.EARNING, netAmount, reason, campaignId, metadata);
         
-        log.info("Wallet credited: user={}, amount={}, reason={}", userId, amount, reason);
+        log.info("Wallet credited: user={}, amount={}, fee={}, reason={}", userId, netAmount, feeAmount, reason);
     }
     
     /**
@@ -181,6 +208,74 @@ public class WalletService {
         createTransaction(userId, TransactionType.WITHDRAWAL, amount, reason, null);
         
         log.info("Wallet debited: user={}, amount={}, reason={}", userId, amount, reason);
+    }
+
+    /**
+     * Credit wallet with explicit transaction type (no fees applied).
+     */
+    @Transactional
+    public void creditWalletWithType(
+            String userId,
+            BigDecimal amount,
+            String reason,
+            String campaignId,
+            TransactionType transactionType,
+            Map<String, Object> metadata
+    ) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Credit amount must be greater than 0");
+        }
+
+        Wallet wallet = walletRepository.findByUserIdWithLock(userId)
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+                    return Wallet.builder()
+                            .user(user)
+                            .balance(BigDecimal.ZERO)
+                            .pendingBalance(BigDecimal.ZERO)
+                            .totalEarned(BigDecimal.ZERO)
+                            .totalWithdrawn(BigDecimal.ZERO)
+                            .build();
+                });
+
+        wallet.setBalance(wallet.getBalance().add(amount));
+        walletRepository.save(wallet);
+
+        createTransaction(userId, transactionType, amount, reason, campaignId, metadata);
+
+        log.info("Wallet credited: user={}, amount={}, type={}, reason={}", userId, amount, transactionType, reason);
+    }
+
+    /**
+     * Debit wallet with explicit transaction type (no withdrawal totals).
+     */
+    @Transactional
+    public void debitWalletWithType(
+            String userId,
+            BigDecimal amount,
+            String reason,
+            String campaignId,
+            TransactionType transactionType,
+            Map<String, Object> metadata
+    ) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("Debit amount must be greater than 0");
+        }
+
+        Wallet wallet = walletRepository.findByUserIdWithLock(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
+
+        if (wallet.getBalance().compareTo(amount) < 0) {
+            throw new BusinessException("Insufficient balance. Available: " + wallet.getBalance());
+        }
+
+        wallet.setBalance(wallet.getBalance().subtract(amount));
+        walletRepository.save(wallet);
+
+        createTransaction(userId, transactionType, amount, reason, campaignId, metadata);
+
+        log.info("Wallet debited: user={}, amount={}, type={}, reason={}", userId, amount, transactionType, reason);
     }
     
     /**
@@ -258,4 +353,3 @@ public class WalletService {
         log.info("Added to pending balance: user={}, amount={}", userId, amount);
     }
 }
-

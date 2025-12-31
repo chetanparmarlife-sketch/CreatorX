@@ -3,11 +3,14 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { Alert } from 'react-native';
 import { Session, User as SupabaseUser, AuthError } from '@supabase/supabase-js';
 import { getSupabaseClient, getSession, getCurrentUser, signOut } from '@/src/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/config/env';
 import { authService } from '@/src/api/services';
+import { deleteSecureItem, setSecureItem } from '@/src/lib/secureStore';
+import { useApp } from '@/src/context';
 
 interface AuthContextType {
   // State
@@ -18,7 +21,7 @@ interface AuthContextType {
   
   // Auth methods
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, role: 'CREATOR' | 'BRAND', name: string, phone?: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
@@ -31,11 +34,65 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const CREATOR_ONLY_MESSAGE = 'This app is for creators only. Please use the Brand Dashboard.';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { resetAppState } = useApp();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+
+  const handleSignOut = useCallback(async () => {
+    setLoading(true);
+    try {
+      await signOut();
+      setSession(null);
+      setUser(null);
+      await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+      await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
+      await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
+      await resetAppState();
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const enforceCreatorOnly = useCallback(async (supabaseUser: SupabaseUser | null) => {
+    if (!supabaseUser) return true;
+    const role = (supabaseUser.user_metadata?.role as string | undefined) ?? (supabaseUser.app_metadata?.role as string | undefined);
+    if (role && role !== 'CREATOR') {
+      Alert.alert('CreatorX', CREATOR_ONLY_MESSAGE);
+      await handleSignOut();
+      return false;
+    }
+    return true;
+  }, [handleSignOut]);
+
+  const initializeAuth = useCallback(async () => {
+    try {
+      const currentSession = await getSession();
+      if (currentSession?.user && !(await enforceCreatorOnly(currentSession.user))) {
+        return;
+      }
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.access_token) {
+        await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, currentSession.access_token);
+      }
+    } catch (error) {
+      console.error('Error initializing auth:', error);
+      setSession(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
+      setInitialized(true);
+    }
+  }, [enforceCreatorOnly]);
 
   // Initialize auth state
   useEffect(() => {
@@ -48,15 +105,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Auth state changed:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (!(await enforceCreatorOnly(session?.user ?? null))) {
+            setLoading(false);
+            setInitialized(true);
+            return;
+          }
           setSession(session);
           setUser(session?.user ?? null);
           
           // Store tokens
           if (session?.access_token) {
-            await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, session.access_token);
+            await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, session.access_token);
           }
           if (session?.refresh_token) {
-            await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, session.refresh_token);
+            await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, session.refresh_token);
           }
           
           // Link user to Spring Boot backend if needed
@@ -66,11 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
-          await AsyncStorage.multiRemove([
-            STORAGE_KEYS.ACCESS_TOKEN,
-            STORAGE_KEYS.REFRESH_TOKEN,
-            STORAGE_KEYS.USER,
-          ]);
+          await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
+          await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
+          await resetAppState();
         }
         
         setLoading(false);
@@ -81,26 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
-
-  const initializeAuth = useCallback(async () => {
-    try {
-      const currentSession = await getSession();
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.access_token) {
-        await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, currentSession.access_token);
-      }
-    } catch (error) {
-      console.error('Error initializing auth:', error);
-      setSession(null);
-      setUser(null);
-    } finally {
-      setLoading(false);
-      setInitialized(true);
-    }
-  }, []);
+  }, [enforceCreatorOnly, initializeAuth]);
 
   const linkUserToBackend = useCallback(async (supabaseUser: SupabaseUser) => {
     try {
@@ -148,12 +190,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('No session returned from sign in');
       }
 
+      if (!(await enforceCreatorOnly(data.user))) {
+        return;
+      }
+
       setSession(data.session);
       setUser(data.user);
 
       // Store tokens
-      await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
-      await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token);
+      await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
+      await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token);
 
       // Link to backend
       if (data.user) {
@@ -165,12 +211,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [linkUserToBackend]);
+  }, [enforceCreatorOnly, linkUserToBackend]);
 
   const signUp = useCallback(async (
     email: string,
     password: string,
-    role: 'CREATOR' | 'BRAND',
     name: string,
     phone?: string
   ) => {
@@ -185,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: {
           data: {
             full_name: name,
-            role: role,
+            role: 'CREATOR',
             phone: phone,
           },
         },
@@ -204,8 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session) {
         setSession(data.session);
         setUser(data.user);
-        await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
-        await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token);
+        await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
+        await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token);
       }
     } catch (error) {
       const authError = error as AuthError;
@@ -214,25 +259,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }, [linkUserToBackend]);
-
-  const handleSignOut = useCallback(async () => {
-    setLoading(true);
-    try {
-      await signOut();
-      setSession(null);
-      setUser(null);
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.ACCESS_TOKEN,
-        STORAGE_KEYS.REFRESH_TOKEN,
-        STORAGE_KEYS.USER,
-      ]);
-    } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     try {
@@ -269,7 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
-        await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
+        await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
       }
     } catch (error) {
       console.error('Error refreshing session:', error);
@@ -302,4 +328,3 @@ export function useAuth() {
   }
   return context;
 }
-

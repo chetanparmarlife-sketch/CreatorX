@@ -1,5 +1,10 @@
 # CreatorX React Native App - Launch Guide
 
+## Web Dashboards
+
+- Brand Dashboard: `brand-dashboard/SETUP.md`
+- Admin Dashboard: `admin-dashboard/SETUP.md`
+
 ## Quick Start
 
 ### Prerequisites

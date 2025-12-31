@@ -11,6 +11,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Repository
 public interface GDPRRequestRepository extends JpaRepository<GDPRRequest, String>, JpaSpecificationExecutor<GDPRRequest> {
     @Query("SELECT g FROM GDPRRequest g WHERE g.user.id = :userId ORDER BY g.createdAt DESC")
@@ -23,4 +26,13 @@ public interface GDPRRequestRepository extends JpaRepository<GDPRRequest, String
     Page<GDPRRequest> findByType(@Param("requestType") GDPRRequestType requestType, Pageable pageable);
 
     long countByStatus(GDPRRequestStatus status);
+
+    @Query("SELECT COUNT(g) FROM GDPRRequest g WHERE g.status IN ('PENDING', 'IN_PROGRESS') AND g.createdAt < :cutoff")
+    long countSlaBreaches(@Param("cutoff") LocalDateTime cutoff);
+
+    List<GDPRRequest> findByRequestTypeAndStatusAndResolvedAtBefore(
+            GDPRRequestType requestType,
+            GDPRRequestStatus status,
+            LocalDateTime resolvedAt
+    );
 }

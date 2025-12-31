@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { ArrowLeft, ArrowRight, GitCompare, Star } from 'lucide-react'
 import { useCreators } from '@/lib/hooks/use-creators'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -51,10 +52,16 @@ export default function CreatorsDiscoveryPage() {
   const [followerRange, setFollowerRange] = useState<[number, number]>([1000, 1000000])
   const [engagementRange, setEngagementRange] = useState<[number, number]>([1, 20])
   const [location, setLocation] = useState('')
-  const [page] = useState(0)
+  const [page, setPage] = useState(0)
+  const [sort, setSort] = useState<'RELEVANCE' | 'FOLLOWERS' | 'ENGAGEMENT'>('RELEVANCE')
+  const [showShortlistOnly, setShowShortlistOnly] = useState(false)
+  const [shortlistedIds, setShortlistedIds] = useState<string[]>([])
+  const [compareOpen, setCompareOpen] = useState(false)
   const [inviteCreatorId, setInviteCreatorId] = useState<string | number | null>(null)
   const [inviteMessage, setInviteMessage] = useState('')
   const [inviteCampaignId, setInviteCampaignId] = useState('')
+  const [defaultCampaignId, setDefaultCampaignId] = useState('')
+  const pageSize = 20
 
   const { data, isLoading, error } = useCreators({
     search: search || undefined,
@@ -63,13 +70,46 @@ export default function CreatorsDiscoveryPage() {
     minFollowers: followerRange[0],
     maxFollowers: followerRange[1],
     page,
-    size: 20,
+    size: pageSize,
   })
 
-  const creators: CreatorCard[] = data?.items ?? data ?? []
+  const creatorsResponse = data as { items?: CreatorCard[]; total?: number } | CreatorCard[] | undefined
+  const creators: CreatorCard[] = Array.isArray(creatorsResponse)
+    ? creatorsResponse
+    : creatorsResponse?.items ?? []
+  const totalCreators = Array.isArray(creatorsResponse)
+    ? creatorsResponse.length
+    : creatorsResponse?.total ?? creators.length
   const { data: campaignsData } = useCampaigns({}, 0)
   const inviteMutation = useInviteCreator()
   const campaigns = campaignsData?.items ?? []
+
+  useEffect(() => {
+    const storedShortlist = localStorage.getItem('brand_creator_shortlist')
+    if (storedShortlist) {
+      setShortlistedIds(JSON.parse(storedShortlist))
+    }
+    const storedCampaign = localStorage.getItem('brand_invite_campaign')
+    if (storedCampaign) {
+      setDefaultCampaignId(storedCampaign)
+      setInviteCampaignId(storedCampaign)
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('brand_creator_shortlist', JSON.stringify(shortlistedIds))
+  }, [shortlistedIds])
+
+  useEffect(() => {
+    if (inviteCampaignId) {
+      localStorage.setItem('brand_invite_campaign', inviteCampaignId)
+      setDefaultCampaignId(inviteCampaignId)
+    }
+  }, [inviteCampaignId])
+
+  useEffect(() => {
+    setPage(0)
+  }, [search, selectedCategories, selectedPlatforms, followerRange, engagementRange, location])
 
   const filteredCreators = useMemo(() => {
     return creators.filter((creator) => {
@@ -88,6 +128,29 @@ export default function CreatorsDiscoveryPage() {
       return matchesSearch && matchesEngagement && matchesLocation
     })
   }, [creators, engagementRange, location, search])
+
+  const sortedCreators = useMemo(() => {
+    const list = [...filteredCreators]
+    if (sort === 'FOLLOWERS') {
+      return list.sort((a, b) => (b.followers ?? 0) - (a.followers ?? 0))
+    }
+    if (sort === 'ENGAGEMENT') {
+      return list.sort((a, b) => (b.engagementRate ?? 0) - (a.engagementRate ?? 0))
+    }
+    return list
+  }, [filteredCreators, sort])
+
+  const visibleCreators = useMemo(() => {
+    if (!showShortlistOnly) return sortedCreators
+    return sortedCreators.filter((creator) => shortlistedIds.includes(String(creator.id)))
+  }, [shortlistedIds, showShortlistOnly, sortedCreators])
+
+  const shortlistedCreators = useMemo(
+    () => creators.filter((creator) => shortlistedIds.includes(String(creator.id))),
+    [creators, shortlistedIds]
+  )
+
+  const totalPages = Math.max(1, Math.ceil(totalCreators / pageSize))
 
   const toggleSelection = (value: string, list: string[], setList: (next: string[]) => void) => {
     if (list.includes(value)) {
@@ -184,12 +247,40 @@ export default function CreatorsDiscoveryPage() {
         </aside>
 
         <section className="flex-1 space-y-4">
-          <div className="rounded-lg border bg-white p-4">
+          <div className="rounded-lg border bg-white p-4 space-y-3">
             <Input
               placeholder="Search by name, bio, or category"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as typeof sort)}
+                className="h-10 rounded-lg border border-input bg-white px-3 text-sm text-slate-700 shadow-sm"
+              >
+                <option value="RELEVANCE">Sort: Best match</option>
+                <option value="FOLLOWERS">Sort: Followers</option>
+                <option value="ENGAGEMENT">Sort: Engagement</option>
+              </select>
+              <Button
+                variant={showShortlistOnly ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowShortlistOnly((prev) => !prev)}
+              >
+                <Star className="mr-2 h-4 w-4" />
+                Shortlist ({shortlistedIds.length})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCompareOpen(true)}
+                disabled={shortlistedIds.length < 2}
+              >
+                <GitCompare className="mr-2 h-4 w-4" />
+                Compare
+              </Button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -200,13 +291,13 @@ export default function CreatorsDiscoveryPage() {
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               Failed to load creators. Please try again.
             </div>
-          ) : filteredCreators.length === 0 ? (
+          ) : visibleCreators.length === 0 ? (
             <div className="rounded-lg border bg-white p-8 text-center text-sm text-slate-500">
               No creators found. Try adjusting your filters.
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredCreators.map((creator) => (
+              {visibleCreators.map((creator) => (
                 <Card key={creator.id} className="flex flex-col">
                   <CardHeader className="flex flex-row items-center gap-3">
                     <Avatar className="h-12 w-12">
@@ -223,11 +314,39 @@ export default function CreatorsDiscoveryPage() {
                         </Badge>
                       )}
                     </div>
+                    {shortlistedIds.includes(String(creator.id)) && (
+                      <Badge className="ml-auto bg-amber-100 text-amber-700">Shortlisted</Badge>
+                    )}
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm text-slate-600">
                       <span>{formatFollowers(creator.followers || 0)} followers</span>
                       <span>{creator.engagementRate || 0}% engagement</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                      {creator.location && <span>{creator.location}</span>}
+                      {(creator.platforms || []).slice(0, 2).map((platform) => (
+                        <Badge key={`${creator.id}-${platform}`} className="bg-slate-100 text-slate-600">
+                          {platform}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                      <p className="font-semibold text-slate-900">Decision signals</p>
+                      <div className="mt-2 grid gap-2">
+                        <div className="flex items-center justify-between">
+                          <span>Brand fit score</span>
+                          <Badge className="bg-slate-100 text-slate-500">Coming soon</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Rate card range</span>
+                          <Badge className="bg-slate-100 text-slate-500">Coming soon</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Past collabs</span>
+                          <Badge className="bg-slate-100 text-slate-500">Coming soon</Badge>
+                        </div>
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {(creator.portfolio || []).slice(0, 3).map((image, index) => (
@@ -250,17 +369,60 @@ export default function CreatorsDiscoveryPage() {
                         onClick={() => {
                           setInviteCreatorId(creator.id)
                           setInviteMessage('')
-                          setInviteCampaignId('')
+                          setInviteCampaignId(defaultCampaignId || '')
                         }}
                       >
                         Invite
                       </Button>
                     </div>
                   </CardFooter>
+                  <div className="px-6 pb-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-center text-slate-600"
+                      onClick={() => {
+                        const id = String(creator.id)
+                        setShortlistedIds((prev) =>
+                          prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+                        )
+                      }}
+                    >
+                      <Star className="mr-2 h-4 w-4" />
+                      {shortlistedIds.includes(String(creator.id)) ? 'Remove from shortlist' : 'Add to shortlist'}
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>
           )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm text-slate-600">
+            <div>
+              Showing {visibleCreators.length} of {totalCreators} creators
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                disabled={page === 0}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Prev
+              </Button>
+              <span className="text-xs text-slate-500">Page {page + 1} of {totalPages}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                disabled={page + 1 >= totalPages}
+              >
+                Next
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -271,6 +433,14 @@ export default function CreatorsDiscoveryPage() {
             <DialogDescription>Select a campaign and add a note.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {inviteCampaignId && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold text-slate-900">Selected campaign</p>
+                <p>
+                  {campaigns.find((campaign) => String(campaign.id) === String(inviteCampaignId))?.title || '—'}
+                </p>
+              </div>
+            )}
             <select
               value={inviteCampaignId}
               onChange={(event) => setInviteCampaignId(event.target.value)}
@@ -308,6 +478,32 @@ export default function CreatorsDiscoveryPage() {
               {inviteMutation.isPending ? 'Inviting...' : 'Send Invite'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={compareOpen} onOpenChange={(open) => setCompareOpen(open)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Compare shortlisted creators</DialogTitle>
+            <DialogDescription>Review signals side-by-side before inviting.</DialogDescription>
+          </DialogHeader>
+          {shortlistedCreators.length === 0 ? (
+            <div className="text-sm text-slate-500">Add creators to your shortlist to compare.</div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {shortlistedCreators.slice(0, 4).map((creator) => (
+                <div key={`compare-${creator.id}`} className="rounded-lg border bg-white p-4">
+                  <p className="text-sm font-semibold text-slate-900">{creator.name}</p>
+                  <p className="text-xs text-slate-500">{creator.category}</p>
+                  <div className="mt-3 text-xs text-slate-600 space-y-1">
+                    <p>Followers: {formatFollowers(creator.followers || 0)}</p>
+                    <p>Engagement: {creator.engagementRate || 0}%</p>
+                    {creator.location && <p>Location: {creator.location}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

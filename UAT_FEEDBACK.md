@@ -1,5 +1,8 @@
 # CreatorX User Acceptance Testing Feedback
 
+## Current Status Update
+Brand and Admin dashboards now include lifecycle tabs, queue tooling, SLA indicators, and compliance workflows. Use this template to capture updated feedback for those experiences.
+
 ## Test Overview
 
 **Test Period**: [Start Date] - [End Date]  
@@ -243,5 +246,4 @@
 
 **Report Generated**: [Date/Time]  
 **Next Review**: [Date/Time]
-
 

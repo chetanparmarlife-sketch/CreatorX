@@ -3,6 +3,9 @@
 ## Summary
 Fixed 6 critical bugs identified during end-to-end testing of the brand-creator flow.
 
+### Current Status Update
+Brand dashboard UX has been expanded with lifecycle tabs, inline preview queues, and deliverables SLA tooling. This document captures the original bug fixes; newer UI improvements are documented in `brand-dashboard/README.md` and `brand-dashboard/PROJECT_SUMMARY.md`.
+
 ---
 
 ## BUG-001: Brand Profile Not Created on Registration ✅ FIXED
@@ -194,4 +197,3 @@ Brands need to invite creators directly to campaigns.
 3. Verify brand profile is created and accessible
 4. Test application and deliverable listing for brands
 5. Verify analytics calculations with test data
-

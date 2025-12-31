@@ -1,13 +1,15 @@
-import { Stack } from 'expo-router';
+import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
-import { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
 import { AppProvider } from '@/src/context';
+import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SplashScreen, CreatorAuthScreen } from '@/src/components';
+import { SplashScreen } from '@/src/components';
 import { useTheme } from '@/src/hooks';
+import { useBootstrap } from '@/src/bootstrap/useBootstrap';
 
-type AppState = 'splash' | 'auth' | 'main';
+const DEFAULT_APP_ROUTE = '/(app)/(tabs)/explore';
 
 function ThemedStatusBar() {
   const { isDark } = useTheme();
@@ -24,70 +26,54 @@ function ThemedContainer({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MainNavigator() {
+function BootstrapGate() {
+  const { ready, error, retry } = useBootstrap();
+  const { initialized, isAuthenticated } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
   const { colors } = useTheme();
-  
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-        animation: 'slide_from_right',
-      }}
-    >
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="profile" />
-      <Stack.Screen name="notifications" />
-      <Stack.Screen name="conversation" />
-      <Stack.Screen name="new-message" />
-      <Stack.Screen name="saved" />
-      <Stack.Screen name="edit-profile" />
-      <Stack.Screen name="documents" />
-      <Stack.Screen name="privacy" />
-      <Stack.Screen name="help" />
-      <Stack.Screen name="kyc" />
-      <Stack.Screen name="transaction-detail" />
-    </Stack>
-  );
-}
 
-function AppContent() {
-  const [appState, setAppState] = useState<AppState>('splash');
+  useEffect(() => {
+    if (!ready || !initialized) return;
+    if (segments.length === 0) return;
+    const inAuthGroup = segments[0] === '(auth)';
 
-  const handleSplashFinish = useCallback(() => {
-    setAppState('auth');
-  }, []);
+    if (!isAuthenticated && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    }
 
-  const handleAuthenticate = useCallback(() => {
-    setAppState('main');
-  }, []);
+    if (isAuthenticated && inAuthGroup) {
+      router.replace(DEFAULT_APP_ROUTE);
+    }
+  }, [ready, initialized, isAuthenticated, segments, router]);
 
-  const handleSkip = useCallback(() => {
-    setAppState('main');
-  }, []);
-
-  if (appState === 'splash') {
+  if (!ready || !initialized) {
     return (
       <ThemedContainer>
-        <SplashScreen onFinish={handleSplashFinish} />
-      </ThemedContainer>
-    );
-  }
-
-  if (appState === 'auth') {
-    return (
-      <ThemedContainer>
-        <CreatorAuthScreen
-          onAuthenticate={() => handleAuthenticate()}
-          onSkip={handleSkip}
-        />
+        <SplashScreen onFinish={() => {}} />
+        {error ? (
+          <View style={styles.errorOverlay}>
+            <Text style={[styles.errorTitle, { color: colors.text }]}>
+              Something went wrong
+            </Text>
+            <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
+              {error.message || 'Bootstrap failed. Please try again.'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: colors.primary }]}
+              onPress={retry}
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </ThemedContainer>
     );
   }
 
   return (
     <ThemedContainer>
-      <MainNavigator />
+      <Slot />
     </ThemedContainer>
   );
 }
@@ -96,8 +82,42 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProvider>
-        <AppContent />
+        <AuthProvider>
+          <BootstrapGate />
+        </AuthProvider>
       </AppProvider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  errorOverlay: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 80,
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});

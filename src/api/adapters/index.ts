@@ -17,6 +17,7 @@ import {
 } from '../types';
 import {
   Campaign,
+  CampaignUserState,
   CampaignApplication,
   Transaction,
   WalletData,
@@ -61,8 +62,11 @@ export function adaptCampaign(apiCampaign: ApiCampaign): Campaign {
     platform: mapPlatform(apiCampaign.platform),
     platforms: [mapPlatform(apiCampaign.platform)],
     category: apiCampaign.category,
-    applicants: apiCampaign.selectedCreatorsCount,
+    applicants: apiCampaign.applicationsCount ?? 0,
     status: mapCampaignStatus(apiCampaign.status),
+    userState: deriveCampaignUserState({
+      applicationStatus: apiCampaign.userApplicationStatus,
+    }),
     description: apiCampaign.description,
     tags: apiCampaign.tags || [],
     contentTypes: apiCampaign.deliverableTypes || [],
@@ -79,7 +83,7 @@ export function adaptApplication(apiApplication: ApiApplication): CampaignApplic
     campaignId: apiApplication.campaignId,
     creatorId: apiApplication.creatorId,
     pitch: apiApplication.pitchText,
-    expectedTimeline: apiApplication.expectedTimeline || '',
+    expectedTimeline: apiApplication.expectedTimeline,
     extraDetails: apiApplication.feedback?.feedbackText,
     status: mapApplicationStatus(apiApplication.status),
     submittedAt: apiApplication.appliedAt,
@@ -129,6 +133,8 @@ export function adaptNotification(apiNotification: ApiNotification): Notificatio
     description: apiNotification.body,
     time: formatTimeAgo(apiNotification.createdAt),
     read: apiNotification.read,
+    createdAt: apiNotification.createdAt,
+    readAt: apiNotification.readAt,
     action: dataJson.actionPath
       ? {
           label: (dataJson.actionLabel as string) || 'View',
@@ -176,7 +182,9 @@ export function adaptMessage(apiMessage: ApiMessage, currentUserId: string): Mes
     sender: apiMessage.senderId === currentUserId ? 'user' : 'other',
     time: formatMessageTime(apiMessage.createdAt),
     status: apiMessage.read ? 'read' : 'sent',
+    conversationId: apiMessage.conversationId,
     chatId: apiMessage.conversationId,
+    createdAt: apiMessage.createdAt,
   };
 }
 
@@ -198,22 +206,22 @@ export function adaptConversation(
  * Transform API deliverable submission to app Deliverable
  */
 export function adaptDeliverable(
-  apiDeliverable: ApiDeliverableSubmission,
-  campaignInfo?: { title: string; brand: string; dueDate: string }
+  apiDeliverable: ApiDeliverableSubmission
 ): Deliverable {
   return {
     id: apiDeliverable.id,
-    campaignId: '', // Will be populated from active campaign
-    campaignTitle: campaignInfo?.title || '',
-    brand: campaignInfo?.brand || '',
-    dueDate: campaignInfo?.dueDate || '',
+    campaignId: apiDeliverable.campaignId,
+    campaignTitle: apiDeliverable.campaignTitle,
+    brand: apiDeliverable.brandName,
+    dueDate: apiDeliverable.dueDate,
     status: mapDeliverableStatus(apiDeliverable.status),
-    type: 'content_draft',
+    type: apiDeliverable.type,
     title: apiDeliverable.description || 'Deliverable',
     description: apiDeliverable.description,
     submittedFile: {
       name: extractFileName(apiDeliverable.fileUrl),
       type: inferFileType(apiDeliverable.fileUrl),
+      uri: apiDeliverable.fileUrl,
     },
     submittedAt: apiDeliverable.submittedAt,
   };
@@ -223,24 +231,45 @@ export function adaptDeliverable(
 
 function mapCampaignStatus(status: ApiCampaign['status']): Campaign['status'] {
   const statusMap: Record<ApiCampaign['status'], Campaign['status']> = {
-    DRAFT: 'open',
-    ACTIVE: 'active',
-    PAUSED: 'open',
-    COMPLETED: 'completed',
-    CANCELLED: 'rejected',
+    DRAFT: 'DRAFT',
+    PENDING_REVIEW: 'PENDING_REVIEW',
+    ACTIVE: 'ACTIVE',
+    PAUSED: 'PAUSED',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
   };
-  return statusMap[status] || 'open';
+  return statusMap[status] || 'DRAFT';
 }
 
 function mapApplicationStatus(status: ApiApplication['status']): CampaignApplication['status'] {
   const statusMap: Record<ApiApplication['status'], CampaignApplication['status']> = {
-    APPLIED: 'pending_review',
-    SHORTLISTED: 'pending_review',
-    SELECTED: 'approved',
-    REJECTED: 'rejected',
-    WITHDRAWN: 'rejected',
+    APPLIED: 'APPLIED',
+    SHORTLISTED: 'SHORTLISTED',
+    SELECTED: 'SELECTED',
+    REJECTED: 'REJECTED',
+    WITHDRAWN: 'WITHDRAWN',
   };
-  return statusMap[status] || 'pending_review';
+  return statusMap[status] || 'APPLIED';
+}
+
+export function deriveCampaignUserState({
+  isSaved,
+  applicationStatus,
+}: {
+  isSaved?: boolean;
+  applicationStatus?: ApiApplication['status'];
+}): CampaignUserState | undefined {
+  if (isSaved) return 'SAVED';
+  if (!applicationStatus) return undefined;
+
+  const statusMap: Record<ApiApplication['status'], CampaignUserState> = {
+    APPLIED: 'APPLIED',
+    SHORTLISTED: 'SHORTLISTED',
+    SELECTED: 'SELECTED',
+    REJECTED: 'REJECTED',
+    WITHDRAWN: 'WITHDRAWN',
+  };
+  return statusMap[applicationStatus];
 }
 
 function mapTransactionType(type: ApiTransaction['type']): Transaction['type'] {
@@ -385,4 +414,3 @@ function inferFileType(url: string): 'video' | 'image' | 'document' {
   }
   return 'document';
 }
-

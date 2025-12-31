@@ -1,17 +1,22 @@
 package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.DisputeCreateRequest;
+import com.creatorx.api.dto.DisputeAssignRequest;
 import com.creatorx.api.dto.DisputeEvidenceRequest;
+import com.creatorx.api.dto.DisputeNoteRequest;
 import com.creatorx.api.dto.DisputeResolveRequest;
 import com.creatorx.common.enums.DisputeStatus;
 import com.creatorx.common.enums.DisputeType;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.exception.BusinessException;
+import com.creatorx.common.permissions.AdminPermissions;
 import com.creatorx.repository.UserRepository;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.DisputeService;
+import com.creatorx.service.admin.AdminPermissionService;
 import com.creatorx.service.dto.DisputeDTO;
 import com.creatorx.service.dto.DisputeEvidenceDTO;
+import com.creatorx.service.dto.DisputeNoteDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +39,7 @@ import java.util.List;
 public class DisputeController {
     private final DisputeService disputeService;
     private final UserRepository userRepository;
+    private final AdminPermissionService adminPermissionService;
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
@@ -87,11 +93,26 @@ public class DisputeController {
     public Page<DisputeDTO> listDisputesForAdmin(
             @RequestParam(required = false) DisputeStatus status,
             @RequestParam(required = false) DisputeType type,
+            @RequestParam(defaultValue = "DESC") String sortDir,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_DISPUTE_MANAGE);
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "createdAt"));
         return disputeService.getDisputesForAdmin(status, type, pageable);
+    }
+
+    @GetMapping("/admin/{disputeId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get dispute (admin)", description = "Get dispute details (Admin only)")
+    public DisputeDTO getDisputeForAdmin(
+            @PathVariable String disputeId,
+            Authentication authentication
+    ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_DISPUTE_MANAGE);
+        return disputeService.getDisputeForAdmin(disputeId);
     }
 
     @PutMapping("/{disputeId}/resolve")
@@ -102,7 +123,32 @@ public class DisputeController {
             @RequestBody DisputeResolveRequest request,
             Authentication authentication
     ) {
-        return disputeService.resolveDispute(authentication.getName(), disputeId, request.getStatus(), request.getResolution());
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_DISPUTE_MANAGE);
+        return disputeService.resolveDispute(
+                authentication.getName(),
+                disputeId,
+                request.getStatus(),
+                request.getResolution(),
+                request.getResolutionType(),
+                request.getActionAmount()
+        );
+    }
+
+    @PutMapping("/{disputeId}/assign")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Assign dispute", description = "Assign dispute to an admin (Admin only)")
+    public DisputeDTO assignDispute(
+            @PathVariable String disputeId,
+            @RequestBody DisputeAssignRequest request,
+            Authentication authentication
+    ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_DISPUTE_MANAGE);
+        return disputeService.assignDispute(
+                authentication.getName(),
+                disputeId,
+                request.getAdminId(),
+                request.getNextAction()
+        );
     }
 
     @PostMapping("/{disputeId}/evidence")
@@ -121,5 +167,39 @@ public class DisputeController {
     @Operation(summary = "List evidence", description = "List evidence for a dispute")
     public List<DisputeEvidenceDTO> listEvidence(@PathVariable String disputeId) {
         return disputeService.getEvidence(disputeId);
+    }
+
+    @GetMapping("/{disputeId}/evidence/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "List evidence (admin)", description = "List evidence for a dispute (Admin only)")
+    public List<DisputeEvidenceDTO> listEvidenceForAdmin(
+            @PathVariable String disputeId,
+            Authentication authentication
+    ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_DISPUTE_MANAGE);
+        return disputeService.getEvidence(disputeId);
+    }
+
+    @PostMapping("/{disputeId}/notes")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Add internal note", description = "Add an internal admin note to a dispute")
+    public DisputeNoteDTO addInternalNote(
+            @PathVariable String disputeId,
+            @RequestBody DisputeNoteRequest request,
+            Authentication authentication
+    ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_DISPUTE_MANAGE);
+        return disputeService.addInternalNote(authentication.getName(), disputeId, request.getNote());
+    }
+
+    @GetMapping("/{disputeId}/notes")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "List internal notes", description = "List internal admin notes for a dispute")
+    public List<DisputeNoteDTO> listInternalNotes(
+            @PathVariable String disputeId,
+            Authentication authentication
+    ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_DISPUTE_MANAGE);
+        return disputeService.getInternalNotes(disputeId);
     }
 }

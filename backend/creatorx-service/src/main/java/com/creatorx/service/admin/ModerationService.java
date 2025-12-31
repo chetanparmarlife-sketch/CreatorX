@@ -16,6 +16,7 @@ import com.creatorx.repository.entity.ModerationRule;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.CampaignFlagDTO;
 import com.creatorx.service.dto.ModerationRuleDTO;
+import com.creatorx.service.dto.ModerationRuleTestResultDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -40,7 +42,7 @@ public class ModerationService {
     @Transactional(readOnly = true)
     public List<ModerationRuleDTO> getRules() {
         return moderationRuleRepository.findAll().stream()
-                .map(this::toRuleDTO)
+                .map(this::enrichRuleDTO)
                 .toList();
     }
 
@@ -60,7 +62,7 @@ public class ModerationService {
                 .severity(request.getSeverity())
                 .status(request.getStatus() != null ? request.getStatus() : ModerationRuleStatus.ACTIVE)
                 .build();
-        return toRuleDTO(moderationRuleRepository.save(rule));
+        return enrichRuleDTO(moderationRuleRepository.save(rule));
     }
 
     @Transactional
@@ -75,7 +77,7 @@ public class ModerationService {
         if (request.getSeverity() != null) rule.setSeverity(request.getSeverity());
         if (request.getStatus() != null) rule.setStatus(request.getStatus());
 
-        return toRuleDTO(moderationRuleRepository.save(rule));
+        return enrichRuleDTO(moderationRuleRepository.save(rule));
     }
 
     @Transactional
@@ -212,7 +214,85 @@ public class ModerationService {
         }
     }
 
-    private ModerationRuleDTO toRuleDTO(ModerationRule rule) {
+    private CampaignFlagDTO toFlagDTO(CampaignFlag flag) {
+        return CampaignFlagDTO.builder()
+                .id(flag.getId())
+                .campaignId(flag.getCampaign().getId())
+                .campaignTitle(flag.getCampaign().getTitle())
+                .ruleId(flag.getRule() != null ? flag.getRule().getId() : null)
+                .ruleName(flag.getRule() != null ? flag.getRule().getName() : null)
+                .ruleSeverity(flag.getRule() != null && flag.getRule().getSeverity() != null
+                        ? flag.getRule().getSeverity().name()
+                        : null)
+                .status(flag.getStatus())
+                .reason(flag.getReason())
+                .flaggedBy(flag.getFlaggedBy() != null ? flag.getFlaggedBy().getId() : null)
+                .flaggedAt(flag.getCreatedAt())
+                .resolvedBy(flag.getResolvedBy() != null ? flag.getResolvedBy().getId() : null)
+                .resolvedAt(flag.getResolvedAt())
+                .resolutionNotes(flag.getResolutionNotes())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ModerationRuleTestResultDTO testRule(String ruleId, int sampleSize) {
+        ModerationRule rule = moderationRuleRepository.findById(ruleId)
+                .orElseThrow(() -> new ResourceNotFoundException("ModerationRule", ruleId));
+        if (sampleSize < 1) {
+            throw new BusinessException("Sample size must be greater than 0");
+        }
+
+        List<Campaign> campaigns = campaignRepository.findAll(
+                org.springframework.data.domain.PageRequest.of(
+                        0,
+                        Math.min(sampleSize, 200),
+                        org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+                )
+        ).getContent();
+
+        String pattern = rule.getPattern();
+        if (pattern == null || pattern.isBlank()) {
+            throw new BusinessException("Rule pattern is required");
+        }
+
+        List<ModerationRuleTestResultDTO.MatchedCampaign> matches = new ArrayList<>();
+        int tested = 0;
+        for (Campaign campaign : campaigns) {
+            tested += 1;
+            StringBuilder content = new StringBuilder();
+            if (campaign.getTitle() != null) content.append(campaign.getTitle()).append(' ');
+            if (campaign.getDescription() != null) content.append(campaign.getDescription()).append(' ');
+            if (campaign.getRequirements() != null) content.append(campaign.getRequirements()).append(' ');
+            if (campaign.getTags() != null) content.append(String.join(" ", campaign.getTags()));
+            String text = content.toString();
+
+            boolean matched;
+            try {
+                matched = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE)
+                        .matcher(text)
+                        .find();
+            } catch (PatternSyntaxException ignored) {
+                matched = text.toLowerCase().contains(pattern.toLowerCase());
+            }
+
+            if (matched) {
+                matches.add(ModerationRuleTestResultDTO.MatchedCampaign.builder()
+                        .campaignId(campaign.getId())
+                        .campaignTitle(campaign.getTitle())
+                        .build());
+            }
+        }
+
+        return ModerationRuleTestResultDTO.builder()
+                .ruleId(ruleId)
+                .testedCount(tested)
+                .matchCount(matches.size())
+                .matches(matches)
+                .build();
+    }
+
+    private ModerationRuleDTO enrichRuleDTO(ModerationRule rule) {
+        CampaignFlag lastFlag = campaignFlagRepository.findTopByRuleIdOrderByCreatedAtDesc(rule.getId());
         return ModerationRuleDTO.builder()
                 .id(rule.getId())
                 .name(rule.getName())
@@ -222,23 +302,9 @@ public class ModerationService {
                 .severity(rule.getSeverity())
                 .status(rule.getStatus())
                 .createdAt(rule.getCreatedAt())
-                .build();
-    }
-
-    private CampaignFlagDTO toFlagDTO(CampaignFlag flag) {
-        return CampaignFlagDTO.builder()
-                .id(flag.getId())
-                .campaignId(flag.getCampaign().getId())
-                .campaignTitle(flag.getCampaign().getTitle())
-                .ruleId(flag.getRule() != null ? flag.getRule().getId() : null)
-                .ruleName(flag.getRule() != null ? flag.getRule().getName() : null)
-                .status(flag.getStatus())
-                .reason(flag.getReason())
-                .flaggedBy(flag.getFlaggedBy() != null ? flag.getFlaggedBy().getId() : null)
-                .flaggedAt(flag.getCreatedAt())
-                .resolvedBy(flag.getResolvedBy() != null ? flag.getResolvedBy().getId() : null)
-                .resolvedAt(flag.getResolvedAt())
-                .resolutionNotes(flag.getResolutionNotes())
+                .totalFlags(campaignFlagRepository.countByRuleId(rule.getId()))
+                .openFlags(campaignFlagRepository.countByRuleIdAndStatus(rule.getId(), CampaignFlagStatus.OPEN))
+                .lastTriggeredAt(lastFlag != null ? lastFlag.getCreatedAt() : null)
                 .build();
     }
 }

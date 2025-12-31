@@ -1,24 +1,26 @@
-# CreatorX Brand Dashboard
+# CreatorX Admin Dashboard
 
-Next.js 14 brand dashboard for managing influencer campaigns on CreatorX.
+Next.js 14 admin console for platform governance, compliance, and operations on CreatorX.
 
 ## Features
 
-- ✅ Next.js 14 with App Router
-- ✅ TypeScript
-- ✅ Tailwind CSS
-- ✅ shadcn/ui components
-- ✅ React Query for data fetching
-- ✅ Zustand for state management
-- ✅ JWT authentication with auto-refresh
-- ✅ Responsive design
+- ✅ Work Queue with counts + SLA badges (KYC, flags, disputes, GDPR)
+- ✅ Moderation tools (campaign reviews, moderation rules)
+- ✅ Admin-as-brand campaign management (create/edit/pause, applications, deliverables)
+- ✅ Dispute management with evidence + resolution actions
+- ✅ Compliance workflows (GDPR export/anonymize, audit log, reports)
+- ✅ Finance reconciliation + CSV exports
+- ✅ System monitoring (health/metrics)
+- ✅ RBAC permission enforcement
+- ✅ Shared UI system (status chips, action bars, empty states)
+- ✅ Admin messaging (view all conversations, reply as Team CreatorX)
 
 ## Tech Stack
 
 - **Framework**: Next.js 14
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
+- **UI Components**: shadcn/ui + shared patterns
 - **State Management**: Zustand
 - **Data Fetching**: TanStack React Query
 - **HTTP Client**: Axios
@@ -42,7 +44,8 @@ npm install
 cp .env.local.example .env.local
 
 # Edit .env.local with your configuration
-# API_BASE_URL=http://localhost:8080/api/v1
+# NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
+# NEXT_PUBLIC_BRAND_DASHBOARD_URL=http://localhost:3000
 ```
 
 ### Development
@@ -51,7 +54,7 @@ cp .env.local.example .env.local
 # Start development server
 npm run dev
 
-# Open http://localhost:3000
+# Open http://localhost:3002
 ```
 
 ### Build
@@ -67,20 +70,17 @@ npm start
 ## Project Structure
 
 ```
-brand-dashboard/
+admin-dashboard/
 ├── app/
-│   ├── (auth)/              # Authentication routes
-│   │   ├── login/
-│   │   └── register/
-│   ├── (dashboard)/          # Dashboard routes
-│   │   ├── campaigns/
-│   │   ├── creators/
-│   │   └── messages/
+│   ├── (auth)/               # Authentication routes
+│   ├── (admin)/              # Admin routes
+│   │   └── admin/            # Admin pages
 │   ├── layout.tsx            # Root layout
 │   └── providers.tsx         # React Query provider
 ├── components/
 │   ├── ui/                   # shadcn/ui components
-│   └── layout/               # Layout components
+│   ├── layout/               # Layout components
+│   └── shared/               # Shared UI patterns (status chip, action bar, etc.)
 ├── lib/
 │   ├── api/                  # API client and services
 │   ├── store/                # Zustand stores
@@ -89,78 +89,32 @@ brand-dashboard/
 └── package.json
 ```
 
-## Architecture
+## UI System (Shared Patterns)
 
-### API Client
-
-The API client (`lib/api/client.ts`) matches the React Native app architecture:
-
-- JWT token management
-- Automatic token refresh
-- Request/response interceptors
-- Error handling
-- Token storage (localStorage)
-
-### Authentication
-
-Authentication uses Supabase (matching React Native app):
-
-- Login/Register via Supabase
-- Link user to backend
-- JWT token storage
-- Auto-refresh on token expiry
-
-### State Management
-
-- **Zustand**: Global auth state
-- **React Query**: Server state and caching
+- **StatusChip**: approved/needs-action/blocked/pending states
+- **ActionBar / QueueToolbar**: bulk actions + SLA summary
+- **ContextPanel**: compact info blocks for detail pages
+- **EmptyState**: consistent empty guidance
+- **Density classes**: `table-compact`, `table-comfortable`, `surface-card`
 
 ## Environment Variables
 
 ```env
-API_BASE_URL=http://localhost:8080/api/v1
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
+NEXT_PUBLIC_BRAND_DASHBOARD_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ## API Integration
 
-The dashboard integrates with the same Spring Boot backend as the React Native app:
+The dashboard integrates with the same Spring Boot backend as the mobile app:
 
 - Same API endpoints
 - Same authentication flow
 - Same data types
 - Consistent error handling
 
-## Components
-
-### shadcn/ui Components
-
-- Button
-- Card
-- Input
-- Label
-- Badge
-- Alert
-- (More can be added as needed)
-
-## Development
-
-### Adding New Pages
-
-1. Create page in `app/(dashboard)/`
-2. Add route to sidebar navigation
-3. Create API service if needed
-4. Add React Query hooks
-
-### Adding API Services
-
-1. Create service in `lib/api/`
-2. Use `apiClient` from `lib/api/client.ts`
-3. Define types in `lib/types/index.ts`
-4. Create React Query hooks
-
 ## License
 
 Proprietary - All rights reserved
-

@@ -39,6 +39,18 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Find all applications for brand (campaigns owned by brand) - all statuses
     @Query("SELECT a FROM Application a WHERE a.campaign.brand.id = :brandId ORDER BY a.appliedAt DESC")
     Page<Application> findAllApplicationsForBrand(@Param("brandId") String brandId, Pageable pageable);
+
+    @Query("SELECT a FROM Application a WHERE " +
+           "(:brandId IS NULL OR a.campaign.brand.id = :brandId) AND " +
+           "(:campaignId IS NULL OR a.campaign.id = :campaignId) AND " +
+           "(:status IS NULL OR a.status = :status) " +
+           "ORDER BY a.appliedAt DESC")
+    Page<Application> findAdminApplications(
+        @Param("brandId") String brandId,
+        @Param("campaignId") String campaignId,
+        @Param("status") ApplicationStatus status,
+        Pageable pageable
+    );
     
     // Count applications by campaign and status
     @Query("SELECT COUNT(a) FROM Application a WHERE a.campaign.id = :campaignId AND a.status = :status")
@@ -59,4 +71,3 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     @Query("SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId AND a.status NOT IN ('WITHDRAWN', 'REJECTED')")
     long countActiveApplicationsByCreatorId(@Param("creatorId") String creatorId);
 }
-

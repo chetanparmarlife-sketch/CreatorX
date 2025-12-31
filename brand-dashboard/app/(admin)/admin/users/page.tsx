@@ -1,13 +1,18 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminUserService } from '@/lib/api/admin/users'
-import { UserStatus } from '@/lib/types'
+import { UserRole, UserStatus } from '@/lib/types'
 
 const statusOptions = Object.values(UserStatus)
+const roleOptions = Object.values(UserRole)
 
 export default function AdminUsersPage() {
   const queryClient = useQueryClient()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<UserStatus | 'ALL'>('ALL')
+  const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>('ALL')
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -15,6 +20,20 @@ export default function AdminUsersPage() {
   })
 
   const items = (data as any)?.items ?? (data as any)?.content ?? []
+
+  const filteredItems = useMemo(() => {
+    return items.filter((user: any) => {
+      const matchesSearch =
+        !search ||
+        user.email?.toLowerCase().includes(search.toLowerCase()) ||
+        user.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+        user.companyName?.toLowerCase().includes(search.toLowerCase()) ||
+        user.creatorUsername?.toLowerCase().includes(search.toLowerCase())
+      const matchesStatus = statusFilter === 'ALL' || user.status === statusFilter
+      const matchesRole = roleFilter === 'ALL' || user.role === roleFilter
+      return matchesSearch && matchesStatus && matchesRole
+    })
+  }, [items, roleFilter, search, statusFilter])
 
   const statusMutation = useMutation({
     mutationFn: ({ userId, status }: { userId: string; status: UserStatus }) =>
@@ -30,6 +49,44 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm text-slate-500">Total users</p>
+            <p className="text-xl font-semibold text-slate-900">{items.length}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+              placeholder="Search email or name"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <select
+              className="h-10 rounded-lg border border-slate-200 px-2 text-sm"
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value as UserRole | 'ALL')}
+            >
+              <option value="ALL">All Roles</option>
+              {roleOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-lg border border-slate-200 px-2 text-sm"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as UserStatus | 'ALL')}
+            >
+              <option value="ALL">All Status</option>
+              {statusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase text-slate-500">
@@ -47,8 +104,8 @@ export default function AdminUsersPage() {
                     Loading...
                   </td>
                 </tr>
-              ) : items.length ? (
-                items.map((user: any) => (
+              ) : filteredItems.length ? (
+                filteredItems.map((user: any) => (
                   <tr key={user.id} className="border-t border-slate-100">
                     <td className="py-3 pr-4">
                       <p className="font-medium text-slate-900">{user.email}</p>

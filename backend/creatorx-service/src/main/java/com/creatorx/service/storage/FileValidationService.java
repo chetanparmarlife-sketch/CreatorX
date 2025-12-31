@@ -141,6 +141,7 @@ public class FileValidationService {
             case KYC_DOCUMENT -> "Images (JPG, PNG) or PDF";
             case DELIVERABLE -> "Images (JPG, PNG) or Videos (MP4, MOV)";
             case PORTFOLIO -> "Images (JPG, PNG) or Videos (MP4, MOV)";
+            case BRAND_VERIFICATION -> "Images (JPG, PNG) or PDF";
         };
     }
     

@@ -9,18 +9,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import java.security.interfaces.RSAPublicKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.SecretKey;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 import java.util.Date;
@@ -53,7 +49,7 @@ public class SupabaseJwtService {
     public Claims validateToken(String token) {
         try {
             // Get Supabase public key (cached)
-            PublicKey key = getSupabasePublicKey();
+            RSAPublicKey key = getSupabasePublicKey();
             
             // Parse and validate token with RS256
             Claims claims = Jwts.parser()
@@ -165,7 +161,6 @@ public class SupabaseJwtService {
             // Fallback: If Supabase JWT secret is provided, use HS256
             if (supabaseJwtSecret != null && !supabaseJwtSecret.isEmpty()) {
                 log.warn("Using HS256 fallback for JWT validation");
-                SecretKey secretKey = Keys.hmacShaKeyFor(supabaseJwtSecret.getBytes(StandardCharsets.UTF_8));
                 // This is a fallback - ideally use RS256
                 throw new RuntimeException("HS256 fallback not fully implemented. Please configure Supabase URL.");
             }
@@ -186,4 +181,3 @@ public class SupabaseJwtService {
         }
     }
 }
-

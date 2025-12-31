@@ -4,6 +4,11 @@
 
 CreatorX is a creator-brand collaboration platform built with React Native and Expo. The app provides a seamless experience for creators to discover campaigns, apply, submit deliverables, manage earnings, and communicate with brands.
 
+## Dashboard Previews (Web)
+
+- **Brand Dashboard**: Lifecycle tabs, queue tooling, deliverables SLA, payments filters. See `brand-dashboard/README.md`.
+- **Admin Dashboard**: Work Queue with SLA badges, compliance workflows, dispute resolution. See `ADMIN_DASHBOARD.md`.
+
 ---
 
 ## Screen Previews
@@ -376,4 +381,3 @@ Save screenshots in `test-results/screenshots/` for documentation.
 2. **Test Features**: Follow INTEGRATION_CHECKLIST.md
 3. **Document Results**: Update TEST_RESULTS.md
 4. **Report Bugs**: Add to BUGS.md
-

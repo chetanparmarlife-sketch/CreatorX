@@ -1,6 +1,6 @@
 package com.creatorx.service;
 
-import com.creatorx.api.dto.CampaignFilterRequest;
+import com.creatorx.common.dto.CampaignFilterRequest;
 import com.creatorx.common.enums.CampaignPlatform;
 import com.creatorx.common.enums.CampaignStatus;
 import com.creatorx.common.enums.UserRole;
@@ -8,6 +8,7 @@ import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.CampaignNotFoundException;
 import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.common.exception.UnauthorizedException;
+import com.creatorx.common.settings.PlatformSettingKeys;
 import com.creatorx.repository.ApplicationRepository;
 import com.creatorx.repository.CampaignRepository;
 import com.creatorx.repository.SavedCampaignRepository;
@@ -48,6 +49,7 @@ public class CampaignService {
     private final CampaignMapper campaignMapper;
     private final SearchQuerySanitizer searchQuerySanitizer;
     private final ModerationService moderationService;
+    private final PlatformSettingsResolver platformSettingsResolver;
     
     /**
      * Get campaigns with filters and pagination using CampaignFilterRequest.
@@ -314,7 +316,22 @@ public class CampaignService {
         if (campaignDTO.getMaxApplicants() != null) campaign.setMaxApplicants(campaignDTO.getMaxApplicants());
         if (campaignDTO.getTags() != null) campaign.setTags(campaignDTO.getTags());
         if (campaignDTO.getStatus() != null && campaign.getStatus() != CampaignStatus.COMPLETED) {
-            campaign.setStatus(campaignDTO.getStatus());
+            if (campaignDTO.getStatus() == CampaignStatus.ACTIVE && campaign.getStatus() != CampaignStatus.ACTIVE) {
+                boolean requiresApproval = platformSettingsResolver.isFeatureEnabled(
+                        PlatformSettingKeys.FEATURE_CAMPAIGN_PREAPPROVAL,
+                        true
+                );
+                if (requiresApproval) {
+                    campaign.setStatus(CampaignStatus.PENDING_REVIEW);
+                    campaign.setReviewReason(null);
+                    campaign.setReviewedBy(null);
+                    campaign.setReviewedAt(null);
+                } else {
+                    campaign.setStatus(CampaignStatus.ACTIVE);
+                }
+            } else if (campaignDTO.getStatus() != CampaignStatus.PENDING_REVIEW) {
+                campaign.setStatus(campaignDTO.getStatus());
+            }
         }
         
         // Update deliverables if provided
@@ -624,6 +641,10 @@ public class CampaignService {
             if (dto.getCategory() == null || dto.getCategory().trim().isEmpty()) {
                 throw new BusinessException("Category is required");
             }
+        }
+
+        if (dto.getCategory() != null && !platformSettingsResolver.isCategoryAllowed(dto.getCategory())) {
+            throw new BusinessException("Category is not allowed");
         }
     }
 }

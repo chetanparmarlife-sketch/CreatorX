@@ -5,6 +5,8 @@ import com.creatorx.api.dto.AppealResolveRequest;
 import com.creatorx.common.enums.AppealStatus;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.enums.UserStatus;
+import com.creatorx.common.permissions.AdminPermissions;
+import com.creatorx.service.admin.AdminPermissionService;
 import com.creatorx.service.admin.AdminUserService;
 import com.creatorx.service.dto.AccountAppealDTO;
 import com.creatorx.service.dto.AdminUserDTO;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminUserController {
     private final AdminUserService adminUserService;
+    private final AdminPermissionService adminPermissionService;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -35,10 +38,14 @@ public class AdminUserController {
             @RequestParam(required = false) UserRole role,
             @RequestParam(required = false) UserStatus status,
             @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "DESC") String sortDir,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_USERS_READ);
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "createdAt"));
         return adminUserService.getUsers(role, status, search, pageable);
     }
 
@@ -50,6 +57,7 @@ public class AdminUserController {
             @RequestBody AdminUserStatusRequest request,
             Authentication authentication
     ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_USERS_WRITE);
         return adminUserService.updateStatus(authentication.getName(), userId, request.getStatus(), request.getReason());
     }
 
@@ -58,10 +66,14 @@ public class AdminUserController {
     @Operation(summary = "List appeals", description = "List account appeals")
     public Page<AccountAppealDTO> listAppeals(
             @RequestParam(required = false) AppealStatus status,
+            @RequestParam(defaultValue = "DESC") String sortDir,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_USERS_READ);
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "createdAt"));
         return adminUserService.getAppeals(status, pageable);
     }
 
@@ -73,6 +85,7 @@ public class AdminUserController {
             @RequestBody AppealResolveRequest request,
             Authentication authentication
     ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_USERS_WRITE);
         return adminUserService.resolveAppeal(authentication.getName(), appealId, request.getStatus(), request.getResolution());
     }
 }

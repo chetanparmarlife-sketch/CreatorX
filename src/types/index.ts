@@ -1,10 +1,12 @@
-export type CampaignStatus = 'open' | 'applied' | 'pending_review' | 'accepted' | 'rejected' | 'active' | 'completed';
+export type CampaignStatus = 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
-export type ApplicationStatus = 'pending_review' | 'approved' | 'rejected' | 'more_info_requested';
+export type ApplicationStatus = 'APPLIED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN';
 
 export type DeliverableStatus = 'pending' | 'submitted' | 'revision' | 'approved' | 'rejected' | 'draft_submitted' | 'brand_reviewing' | 'changes_requested' | 'posted';
 
 export type PaymentStatus = 'pending' | 'processing' | 'paid';
+
+export type CampaignUserState = 'SAVED' | 'APPLIED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN';
 
 export interface Campaign {
   id: string;
@@ -19,6 +21,7 @@ export interface Campaign {
   category: string;
   applicants: number;
   status: CampaignStatus;
+  userState?: CampaignUserState;
   description?: string;
   brief?: string;
   requirements?: string[];
@@ -47,7 +50,7 @@ export interface CampaignApplication {
   campaignId: string;
   creatorId: string;
   pitch: string;
-  expectedTimeline: string;
+  expectedTimeline?: string;
   extraDetails?: string;
   status: ApplicationStatus;
   submittedAt: string;
@@ -82,7 +85,9 @@ export interface Message {
   sender: 'user' | 'other';
   time: string;
   status: 'sending' | 'sent' | 'delivered' | 'read';
+  conversationId?: string;
   chatId?: string;
+  createdAt?: string;
 }
 
 export interface Conversation {
@@ -144,6 +149,8 @@ export interface Notification {
   description: string;
   time: string;
   read: boolean;
+  createdAt?: string;
+  readAt?: string;
   action?: {
     label: string;
     path: string;

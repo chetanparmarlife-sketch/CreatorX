@@ -59,6 +59,7 @@ const navSections: NavSection[] = [
     title: 'CAMPAIGN MANAGEMENT',
     items: [
       { label: 'Campaigns', icon: Calendar, href: '/campaigns' },
+      { label: 'Applications', icon: ClipboardCheck, href: '/applications' },
       { label: 'Deliverables', icon: ClipboardCheck, href: '/deliverables' },
       { label: 'Messages', icon: MessageSquare, href: '/messages' },
       { label: 'Influencer Lists', icon: List, href: '/lists' },

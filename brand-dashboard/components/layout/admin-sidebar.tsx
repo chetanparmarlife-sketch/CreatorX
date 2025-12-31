@@ -86,6 +86,7 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuthStore()
+  const brandDashboardUrl = process.env.NEXT_PUBLIC_BRAND_DASHBOARD_URL || '/dashboard'
 
   const handleLogout = async () => {
     await logout()
@@ -151,7 +152,7 @@ export function AdminSidebar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="gap-2">
-              <Link href="/dashboard">
+              <Link href={brandDashboardUrl}>
                 <Shield className="w-4 h-4" />
                 Switch to Brand
               </Link>

@@ -11,7 +11,7 @@ import { useCampaigns, useUpdateCampaign } from '@/lib/hooks/use-campaigns'
 import { useCreateTemplateFromCampaign } from '@/lib/hooks/use-templates'
 import { Campaign, CampaignStatus, CampaignPlatform } from '@/lib/types'
 
-const statusOptions = ['All', 'ACTIVE', 'PAUSED', 'COMPLETED', 'DRAFT'] as const
+const statusOptions = ['All', 'ACTIVE', 'PAUSED', 'COMPLETED', 'DRAFT', 'PENDING_REVIEW'] as const
 const platformOptions = ['All', ...Object.values(CampaignPlatform)] as const
 
 const formatCurrency = (value: number) =>
@@ -27,6 +27,7 @@ function StatusBadge({ status }: { status: CampaignStatus }) {
     PAUSED: 'bg-amber-100 text-amber-700',
     COMPLETED: 'bg-gray-100 text-gray-700',
     CANCELLED: 'bg-red-100 text-red-700',
+    PENDING_REVIEW: 'bg-blue-100 text-blue-700',
     DRAFT: 'bg-slate-100 text-slate-600',
   }
 
@@ -183,8 +184,11 @@ export default function CampaignsPage() {
                           })
                         }}
                       >
-                        Publish
+                        Submit for review
                       </Button>
+                    )}
+                    {campaign.status === CampaignStatus.PENDING_REVIEW && (
+                      <span className="text-xs font-medium text-slate-500">Awaiting approval</span>
                     )}
                     {campaign.status !== CampaignStatus.DRAFT && (
                       <Button

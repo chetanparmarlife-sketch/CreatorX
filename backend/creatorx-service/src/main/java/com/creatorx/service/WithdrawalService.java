@@ -1,5 +1,6 @@
 package com.creatorx.service;
 
+import com.creatorx.common.enums.AdminActionType;
 import com.creatorx.common.enums.TransactionStatus;
 import com.creatorx.common.enums.TransactionType;
 import com.creatorx.common.enums.WithdrawalStatus;
@@ -17,6 +18,8 @@ import com.creatorx.repository.entity.WithdrawalRequest;
 import com.creatorx.service.dto.BankAccountDTO;
 import com.creatorx.service.dto.WithdrawalDTO;
 import com.creatorx.service.mapper.BankAccountMapper;
+import com.creatorx.service.admin.AdminAuditService;
+import com.creatorx.service.PlatformSettingsResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,12 +46,17 @@ public class WithdrawalService {
     private final TransactionRepository transactionRepository;
     private final WalletService walletService;
     private final BankAccountMapper bankAccountMapper;
+    private final AdminAuditService adminAuditService;
+    private final PlatformSettingsResolver platformSettingsResolver;
     
     /**
      * Request withdrawal
      */
     @Transactional
     public WithdrawalDTO requestWithdrawal(String userId, BigDecimal amount, String bankAccountId) {
+        if (!platformSettingsResolver.isPayoutWindowOpen(LocalDateTime.now())) {
+            throw new BusinessException("Withdrawals are not available during the current payout window");
+        }
         // Validate amount
         if (amount.compareTo(MIN_WITHDRAWAL_AMOUNT) < 0) {
             throw new BusinessException("Minimum withdrawal amount is ₹" + MIN_WITHDRAWAL_AMOUNT);
@@ -180,6 +189,20 @@ public class WithdrawalService {
         updateTransactionStatus(withdrawalRequest, TransactionStatus.COMPLETED);
         
         // TODO: Trigger Razorpay payout (Phase 4)
+        HashMap<String, Object> details = new HashMap<>();
+        details.put("status", WithdrawalStatus.PROCESSING.name());
+        details.put("amount", withdrawalRequest.getAmount());
+
+        adminAuditService.logAction(
+                adminId,
+                AdminActionType.PAYMENT_PROCESSED,
+                "WITHDRAWAL",
+                withdrawalRequest.getId(),
+                details,
+                null,
+                null
+        );
+
         log.info("Withdrawal approved: {} by admin: {}", withdrawalId, adminId);
     }
     
@@ -214,7 +237,22 @@ public class WithdrawalService {
         
         // Update transaction status
         updateTransactionStatus(withdrawalRequest, TransactionStatus.FAILED);
-        
+
+        HashMap<String, Object> details = new HashMap<>();
+        details.put("status", WithdrawalStatus.REJECTED.name());
+        details.put("amount", withdrawalRequest.getAmount());
+        details.put("reason", reason);
+
+        adminAuditService.logAction(
+                adminId,
+                AdminActionType.PAYMENT_PROCESSED,
+                "WITHDRAWAL",
+                withdrawalRequest.getId(),
+                details,
+                null,
+                null
+        );
+
         log.info("Withdrawal rejected: {} by admin: {} reason: {}", withdrawalId, adminId, reason);
     }
     
@@ -250,4 +288,3 @@ public class WithdrawalService {
         });
     }
 }
-

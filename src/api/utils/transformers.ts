@@ -59,13 +59,14 @@ export function transformCampaign(apiCampaign: ApiCampaign): Campaign {
  */
 function mapCampaignStatus(status: ApiCampaign['status']): Campaign['status'] {
   const statusMap: Record<ApiCampaign['status'], Campaign['status']> = {
-    DRAFT: 'open',
-    ACTIVE: 'active',
-    PAUSED: 'open',
-    COMPLETED: 'completed',
-    CANCELLED: 'rejected',
+    DRAFT: 'DRAFT',
+    PENDING_REVIEW: 'PENDING_REVIEW',
+    ACTIVE: 'ACTIVE',
+    PAUSED: 'PAUSED',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
   };
-  return statusMap[status] || 'open';
+  return statusMap[status] || 'DRAFT';
 }
 
 /**
@@ -91,13 +92,13 @@ export function transformApplication(apiApplication: ApiApplication): CampaignAp
  */
 function mapApplicationStatus(status: ApiApplication['status']): CampaignApplication['status'] {
   const statusMap: Record<ApiApplication['status'], CampaignApplication['status']> = {
-    APPLIED: 'pending_review',
-    SHORTLISTED: 'pending_review',
-    SELECTED: 'approved',
-    REJECTED: 'rejected',
-    WITHDRAWN: 'rejected',
+    APPLIED: 'APPLIED',
+    SHORTLISTED: 'SHORTLISTED',
+    SELECTED: 'SELECTED',
+    REJECTED: 'REJECTED',
+    WITHDRAWN: 'WITHDRAWN',
   };
-  return statusMap[status] || 'pending_review';
+  return statusMap[status] || 'APPLIED';
 }
 
 /**
@@ -258,6 +259,7 @@ export function transformMessage(apiMessage: ApiMessage, userId: string): Messag
     }),
     status: apiMessage.read ? 'read' : 'sent',
     chatId: apiMessage.conversationId,
+    createdAt: apiMessage.createdAt,
   };
 }
 
@@ -331,4 +333,3 @@ function formatTimeAgo(timestamp: string): string {
     day: 'numeric',
   });
 }
-

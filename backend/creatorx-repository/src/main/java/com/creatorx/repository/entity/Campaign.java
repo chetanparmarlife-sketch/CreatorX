@@ -79,6 +79,16 @@ public class Campaign extends BaseEntity {
     @Column(name = "selected_creators_count")
     @Builder.Default
     private Integer selectedCreatorsCount = 0;
+
+    @Column(name = "review_reason", columnDefinition = "TEXT")
+    private String reviewReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private java.time.LocalDateTime reviewedAt;
     
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CampaignDeliverable> campaignDeliverables = new ArrayList<>();
@@ -100,7 +110,6 @@ public class Campaign extends BaseEntity {
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ActiveCampaign> activeCampaigns = new ArrayList<>();
 }
-
 
 
 

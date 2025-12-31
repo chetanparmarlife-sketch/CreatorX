@@ -2,8 +2,10 @@ package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.KYCSubmitRequest;
 import com.creatorx.common.enums.DocumentType;
+import com.creatorx.common.permissions.AdminPermissions;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.KYCService;
+import com.creatorx.service.admin.AdminPermissionService;
 import com.creatorx.service.dto.KYCDocumentDTO;
 import com.creatorx.service.dto.KYCStatusDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +37,7 @@ import java.util.List;
 public class KYCController {
     
     private final KYCService kycService;
+    private final AdminPermissionService adminPermissionService;
     
     /**
      * Submit KYC document
@@ -99,8 +106,17 @@ public class KYCController {
     @GetMapping("/pending")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "List pending KYC documents", description = "List KYC documents awaiting review (Admin only)")
-    public ResponseEntity<List<KYCDocumentDTO>> getPendingDocuments() {
-        return ResponseEntity.ok(kycService.getPendingDocuments());
+    public ResponseEntity<Page<KYCDocumentDTO>> getPendingDocuments(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "DESC") String sortDir,
+            @RequestParam(defaultValue = "createdAt") String sortBy
+    ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        return ResponseEntity.ok(kycService.getPendingDocuments(pageable));
     }
 
     /**
@@ -113,6 +129,7 @@ public class KYCController {
             @RequestBody com.creatorx.api.dto.KycBulkReviewRequest request,
             Authentication authentication
     ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
         kycService.bulkReview(authentication.getName(), request.getDocumentIds(), request.getStatus(), request.getReason());
         return ResponseEntity.noContent().build();
     }
@@ -127,6 +144,7 @@ public class KYCController {
             @PathVariable String documentId,
             Authentication authentication
     ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
         String adminId = authentication.getName();
         kycService.approveKYC(adminId, documentId);
         return ResponseEntity.noContent().build();
@@ -143,6 +161,7 @@ public class KYCController {
             @RequestParam String reason,
             Authentication authentication
     ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
         String adminId = authentication.getName();
         kycService.rejectKYC(adminId, documentId, reason);
         return ResponseEntity.noContent().build();

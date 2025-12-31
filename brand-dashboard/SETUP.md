@@ -35,17 +35,20 @@ Open [http://localhost:3000](http://localhost:3000)
 brand-dashboard/
 ├── app/
 │   ├── (auth)/              # Authentication routes
-│   │   ├── login/
-│   │   └── register/
 │   ├── (dashboard)/         # Protected dashboard routes
-│   │   ├── campaigns/
-│   │   ├── creators/
-│   │   └── messages/
-│   ├── layout.tsx          # Root layout
+│   │   ├── dashboard/        # KPIs + workflows
+│   │   ├── campaigns/        # Lifecycle + details
+│   │   ├── creators/         # Creator discovery
+│   │   ├── deliverables/     # SLA queue
+│   │   ├── payments/         # Filters + balance
+│   │   ├── profile/          # Brand profile + verification
+│   │   └── settings/         # Settings
+│   ├── layout.tsx           # Root layout
 │   └── providers.tsx        # React Query provider
 ├── components/
 │   ├── ui/                  # shadcn/ui components
-│   └── layout/              # Layout components
+│   ├── layout/              # Layout components
+│   └── shared/              # Shared UI patterns
 ├── lib/
 │   ├── api/                 # API client and services
 │   ├── store/               # Zustand stores
@@ -54,40 +57,14 @@ brand-dashboard/
 └── package.json
 ```
 
-## Architecture
-
-### API Client
-
-The API client (`lib/api/client.ts`) matches the React Native app:
-
-- JWT token management
-- Automatic token refresh
-- Request/response interceptors
-- Error handling
-
-### Authentication
-
-- Uses Supabase Auth (same as React Native app)
-- Links user to backend
-- JWT token storage in localStorage
-- Auto-refresh on expiry
-
-### State Management
-
-- **Zustand**: Global auth state
-- **React Query**: Server state and caching
-
 ## Available Scripts
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
-- `npm start` - Start production server
+- `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 
-## Next Steps
+## Notes
 
-1. Complete campaign management pages
-2. Add application management
-3. Implement messaging interface
-4. Add analytics dashboard
-
+- Campaigns default to `DRAFT` and move to `PENDING_REVIEW` when submitted.
+- Deliverables queue supports bulk review with SLA signals.

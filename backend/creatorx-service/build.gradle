@@ -2,12 +2,19 @@ dependencies {
     // Repository module
     implementation project(':creatorx-repository')
     implementation project(':creatorx-common')
+
+    // JPA and validation (needed in service layer)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     
     // Cache
     implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Actuator (system health metrics)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
@@ -16,6 +23,9 @@ dependencies {
     
     // Web client for Supabase JWKS
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // WebSocket messaging
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
     
     // MapStruct for DTO mapping
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
@@ -23,4 +33,7 @@ dependencies {
     
     // HTTP Client for Supabase Storage
     implementation 'org.springframework.boot:spring-boot-starter-webflux' // For WebClient
+
+    // Firebase Admin SDK
+    implementation 'com.google.firebase:firebase-admin:9.2.0'
 }

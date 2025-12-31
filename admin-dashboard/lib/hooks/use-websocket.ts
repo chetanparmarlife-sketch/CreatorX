@@ -4,13 +4,13 @@
  * Manages WebSocket connection lifecycle and provides message handlers.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { websocketService, MessageHandler, TypingHandler, ConnectionChangeHandler } from '@/lib/services/websocket-service'
 
 export function useWebSocket(token: string | null) {
   const [isConnected, setIsConnected] = useState(false)
-  const messageHandlerRef = useRef<MessageHandler | null>(null)
-  const typingHandlerRef = useRef<TypingHandler | null>(null)
+  const [messageHandler, setMessageHandler] = useState<MessageHandler | null>(null)
+  const [typingHandler, setTypingHandler] = useState<TypingHandler | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -38,30 +38,22 @@ export function useWebSocket(token: string | null) {
     // Cleanup on unmount
     return () => {
       unsubscribeConnection()
-      if (messageHandlerRef.current) {
-        // Handler cleanup is handled by the service
-      }
       websocketService.disconnect()
     }
   }, [token])
 
-  // Register message handler
-  const onMessage = (handler: MessageHandler) => {
-    useEffect(() => {
-      messageHandlerRef.current = handler
-      const unsubscribe = websocketService.onMessage(handler)
-      return unsubscribe
-    }, [handler])
-  }
+  useEffect(() => {
+    if (!messageHandler) return
+    return websocketService.onMessage(messageHandler)
+  }, [messageHandler])
 
-  // Register typing handler
-  const onTyping = (handler: TypingHandler) => {
-    useEffect(() => {
-      typingHandlerRef.current = handler
-      const unsubscribe = websocketService.onTyping(handler)
-      return unsubscribe
-    }, [handler])
-  }
+  useEffect(() => {
+    if (!typingHandler) return
+    return websocketService.onTyping(typingHandler)
+  }, [typingHandler])
+
+  const onMessage = useMemo(() => (handler: MessageHandler) => setMessageHandler(() => handler), [])
+  const onTyping = useMemo(() => (handler: TypingHandler) => setTypingHandler(() => handler), [])
 
   return {
     isConnected,
@@ -71,4 +63,3 @@ export function useWebSocket(token: string | null) {
     onTyping,
   }
 }
-

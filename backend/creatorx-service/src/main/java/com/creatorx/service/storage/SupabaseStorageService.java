@@ -40,6 +40,9 @@ public class SupabaseStorageService {
 
     @Value("${supabase.storage.bucket.brand-verification:brand-verification-docs}")
     private String brandVerificationBucket;
+
+    @Value("${supabase.storage.bucket.exports:gdpr-exports}")
+    private String exportsBucket;
     
     private final FileValidationService fileValidationService;
     private final SupabaseStorageClient storageClient;
@@ -131,6 +134,41 @@ public class SupabaseStorageService {
     public FileUploadResponse uploadBrandVerificationDocument(String brandId, MultipartFile file) {
         String folder = "brands/" + brandId + "/gst";
         return uploadFile(file, brandVerificationBucket, folder, FileValidationService.FileCategory.BRAND_VERIFICATION);
+    }
+
+    /**
+     * Upload generated export file (GDPR data export)
+     */
+    public FileUploadResponse uploadExport(String fileName, byte[] content, String contentType) {
+        if (content == null || content.length == 0) {
+            throw new BusinessException("Export content is required");
+        }
+        try {
+            String folder = "exports";
+            String path = folder + "/" + fileName;
+            String fileUrl = storageClient.uploadFile(
+                    new java.io.ByteArrayInputStream(content),
+                    exportsBucket,
+                    path,
+                    contentType,
+                    content.length
+            ).block();
+
+            if (fileUrl == null) {
+                throw new BusinessException("Failed to upload export file");
+            }
+
+            return FileUploadResponse.builder()
+                    .fileUrl(fileUrl)
+                    .fileName(fileName)
+                    .fileType(contentType)
+                    .fileSize(content.length)
+                    .bucket(exportsBucket)
+                    .path(path)
+                    .build();
+        } catch (Exception e) {
+            throw new BusinessException("Failed to upload export file: " + e.getMessage());
+        }
     }
     
     /**

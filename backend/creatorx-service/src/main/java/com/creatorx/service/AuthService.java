@@ -8,7 +8,9 @@ import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.enums.UserStatus;
 import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.ResourceNotFoundException;
+import com.creatorx.repository.BrandProfileRepository;
 import com.creatorx.repository.UserRepository;
+import com.creatorx.repository.entity.BrandProfile;
 import com.creatorx.repository.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -211,4 +213,3 @@ public class AuthService {
         return getUserBySupabaseId(supabaseUserId);
     }
 }
-

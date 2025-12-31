@@ -20,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -134,10 +136,9 @@ public class KYCService {
      * Get pending KYC documents for admin review
      */
     @Transactional(readOnly = true)
-    public List<KYCDocumentDTO> getPendingDocuments() {
-        return kycDocumentRepository.findPendingDocuments().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public Page<KYCDocumentDTO> getPendingDocuments(Pageable pageable) {
+        return kycDocumentRepository.findByStatus(DocumentStatus.PENDING, pageable)
+                .map(this::toDTO);
     }
 
     /**

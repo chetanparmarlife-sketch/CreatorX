@@ -4,9 +4,9 @@
  */
 
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/config/env';
 import { API_BASE_URL } from '@/src/config/env';
+import { getSecureItem } from '@/src/lib/secureStore';
 
 let stompClient: Client | null = null;
 let subscriptions: Map<string, StompSubscription> = new Map();
@@ -32,7 +32,7 @@ export async function connectWebSocket(
   }
 
   try {
-    const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const token = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
     if (!token) {
       throw new Error('No access token available');
     }
@@ -80,7 +80,7 @@ export async function connectWebSocket(
       },
       beforeConnect: async () => {
         // Refresh token if needed
-        const currentToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        const currentToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
         if (currentToken && stompClient) {
           stompClient.configure({
             connectHeaders: {
@@ -228,4 +228,3 @@ export function isConnected(): boolean {
 export function getClient(): Client | null {
   return stompClient;
 }
-

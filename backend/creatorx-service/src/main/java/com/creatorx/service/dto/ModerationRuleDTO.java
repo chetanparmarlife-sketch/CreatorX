@@ -22,4 +22,7 @@ public class ModerationRuleDTO {
     private ModerationRuleSeverity severity;
     private ModerationRuleStatus status;
     private LocalDateTime createdAt;
+    private Long totalFlags;
+    private Long openFlags;
+    private LocalDateTime lastTriggeredAt;
 }

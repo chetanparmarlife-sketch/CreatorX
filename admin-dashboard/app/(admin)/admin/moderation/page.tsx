@@ -4,6 +4,14 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminModerationService } from '@/lib/api/admin/moderation'
 import { ModerationRuleSeverity, ModerationRuleStatus } from '@/lib/types'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 export default function AdminModerationRulesPage() {
   const queryClient = useQueryClient()
@@ -15,10 +23,18 @@ export default function AdminModerationRulesPage() {
     status: ModerationRuleStatus.ACTIVE,
     action: 'FLAG',
   })
+  const [testingRule, setTestingRule] = useState<string | null>(null)
+  const [sampleSize, setSampleSize] = useState(50)
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-moderation-rules'],
     queryFn: adminModerationService.listRules,
+  })
+
+  const { data: testResult, isLoading: testLoading } = useQuery({
+    queryKey: ['admin-moderation-test', testingRule, sampleSize],
+    queryFn: () => adminModerationService.testRule(testingRule, sampleSize),
+    enabled: !!testingRule,
   })
 
   const createMutation = useMutation({
@@ -115,13 +131,15 @@ export default function AdminModerationRulesPage() {
                 <th className="py-2 pr-4">Pattern</th>
                 <th className="py-2 pr-4">Severity</th>
                 <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Flags</th>
+                <th className="py-2 pr-4">Last Triggered</th>
                 <th className="py-2 pr-4">Actions</th>
               </tr>
             </thead>
             <tbody className="text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
+                  <td colSpan={7} className="py-6 text-center text-slate-500">
                     Loading...
                   </td>
                 </tr>
@@ -136,18 +154,33 @@ export default function AdminModerationRulesPage() {
                     <td className="py-3 pr-4">{rule.severity}</td>
                     <td className="py-3 pr-4">{rule.status}</td>
                     <td className="py-3 pr-4">
-                      <button
-                        className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600"
-                        onClick={() => deleteMutation.mutate(rule.id)}
-                      >
-                        Delete
-                      </button>
+                      <p className="text-sm text-slate-700">{rule.totalFlags ?? 0}</p>
+                      <p className="text-xs text-slate-500">{rule.openFlags ?? 0} open</p>
+                    </td>
+                    <td className="py-3 pr-4">
+                      {rule.lastTriggeredAt ? new Date(rule.lastTriggeredAt).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                          onClick={() => setTestingRule(rule.id)}
+                        >
+                          Test rule
+                        </button>
+                        <button
+                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600"
+                          onClick={() => deleteMutation.mutate(rule.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
+                  <td colSpan={7} className="py-6 text-center text-slate-500">
                     No moderation rules configured.
                   </td>
                 </tr>
@@ -156,6 +189,76 @@ export default function AdminModerationRulesPage() {
           </table>
         </div>
       </div>
+
+      <Dialog
+        open={!!testingRule}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTestingRule(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Test moderation rule</DialogTitle>
+            <DialogDescription>Run this rule against recent campaigns to estimate impact.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-slate-600">
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-semibold text-slate-500">Sample size</label>
+              <input
+                className="h-9 w-24 rounded-lg border border-slate-200 px-2 text-sm"
+                type="number"
+                min="10"
+                max="200"
+                value={sampleSize}
+                onChange={(event) => setSampleSize(Number(event.target.value))}
+              />
+            </div>
+            {testLoading ? (
+              <p className="text-sm text-slate-500">Running test...</p>
+            ) : testResult ? (
+              <>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                    <p className="text-[10px] uppercase text-slate-400">Tested</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">{testResult.testedCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                    <p className="text-[10px] uppercase text-slate-400">Matches</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">{testResult.matchCount}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-900">Matched campaigns</p>
+                  {testResult.matches?.length ? (
+                    <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+                      {testResult.matches.map((match) => (
+                        <div key={match.campaignId} className="px-3 py-2 text-xs text-slate-600">
+                          <p className="font-semibold text-slate-900">{match.campaignTitle || 'Untitled campaign'}</p>
+                          <p className="text-slate-500">ID: {match.campaignId}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">No matches in the sampled campaigns.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-slate-500">No test data yet.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <button
+              className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700"
+              onClick={() => setTestingRule(null)}
+            >
+              Close
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

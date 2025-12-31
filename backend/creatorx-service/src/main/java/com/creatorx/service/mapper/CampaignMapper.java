@@ -5,6 +5,7 @@ import com.creatorx.repository.entity.CampaignDeliverable;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.CampaignDTO;
 import com.creatorx.service.dto.CampaignDeliverableDTO;
+import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -12,13 +13,18 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(
+        componentModel = "spring",
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+        builder = @Builder(disableBuilder = true)
+)
 public interface CampaignMapper {
     
     @Mapping(target = "brand", expression = "java(mapBrandInfo(campaign.getBrand()))")
     @Mapping(target = "deliverables", expression = "java(mapDeliverables(campaign.getCampaignDeliverables()))")
     @Mapping(target = "applicationCount", ignore = true)
     @Mapping(target = "isSaved", ignore = true)
+    @Mapping(target = "reviewedBy", expression = "java(mapReviewedBy(campaign.getReviewedBy()))")
     CampaignDTO toDTO(Campaign campaign);
     
     List<CampaignDTO> toDTOList(List<Campaign> campaigns);
@@ -32,6 +38,9 @@ public interface CampaignMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "selectedCreatorsCount", ignore = true)
+    @Mapping(target = "reviewReason", ignore = true)
+    @Mapping(target = "reviewedBy", ignore = true)
+    @Mapping(target = "reviewedAt", ignore = true)
     Campaign toEntity(CampaignDTO dto);
     
     @Mapping(target = "id", ignore = true)
@@ -42,6 +51,9 @@ public interface CampaignMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "reviewReason", ignore = true)
+    @Mapping(target = "reviewedBy", ignore = true)
+    @Mapping(target = "reviewedAt", ignore = true)
     void updateEntityFromDTO(CampaignDTO dto, @MappingTarget Campaign entity);
     
     default CampaignDTO.BrandInfo mapBrandInfo(User brand) {
@@ -96,5 +108,8 @@ public interface CampaignMapper {
         }
         return CampaignDeliverableDTO.CampaignDeliverableType.valueOf(type.name());
     }
-}
 
+    default String mapReviewedBy(User reviewedBy) {
+        return reviewedBy != null ? reviewedBy.getId() : null;
+    }
+}

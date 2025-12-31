@@ -60,6 +60,18 @@ public interface DeliverableRepository extends JpaRepository<DeliverableSubmissi
         @Param("applicationId") String applicationId,
         @Param("campaignDeliverableId") String campaignDeliverableId
     );
+
+    @Query("SELECT ds FROM DeliverableSubmission ds WHERE " +
+           "(:brandId IS NULL OR ds.application.campaign.brand.id = :brandId) AND " +
+           "(:campaignId IS NULL OR ds.application.campaign.id = :campaignId) AND " +
+           "(:status IS NULL OR ds.status = :status) " +
+           "ORDER BY ds.submittedAt DESC")
+    Page<DeliverableSubmission> findAdminDeliverables(
+        @Param("brandId") String brandId,
+        @Param("campaignId") String campaignId,
+        @Param("status") SubmissionStatus status,
+        Pageable pageable
+    );
     
     // Find latest deliverable submission for application and campaign deliverable
     @Query("SELECT ds FROM DeliverableSubmission ds WHERE " +
@@ -79,4 +91,3 @@ public interface DeliverableRepository extends JpaRepository<DeliverableSubmissi
         @Param("campaignDeliverableId") String campaignDeliverableId
     );
 }
-

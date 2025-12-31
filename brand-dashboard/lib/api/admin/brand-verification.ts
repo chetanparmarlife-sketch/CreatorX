@@ -1,9 +1,14 @@
 import { apiClient } from '@/lib/api/client'
-import { BrandVerificationDocument } from '@/lib/types'
+import { BrandVerificationDocument, Page } from '@/lib/types'
 
 export const adminBrandVerificationService = {
-  async listPending(): Promise<BrandVerificationDocument[]> {
-    return apiClient.get<BrandVerificationDocument[]>('/brand-verification/pending')
+  async listPending(params?: {
+    page?: number
+    size?: number
+    sortDir?: 'ASC' | 'DESC'
+    sortBy?: string
+  }): Promise<Page<BrandVerificationDocument>> {
+    return apiClient.get<Page<BrandVerificationDocument>>('/brand-verification/pending', { params })
   },
 
   async review(documentId: string, status: string, reason?: string): Promise<BrandVerificationDocument> {

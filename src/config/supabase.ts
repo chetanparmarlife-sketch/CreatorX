@@ -6,11 +6,19 @@
  * - EXPO_PUBLIC_SUPABASE_ANON_KEY
  */
 
+const isValidHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value);
+
 const getSupabaseUrl = (): string => {
   // Try multiple ways to access environment variables
   // @ts-ignore - Expo environment variables
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  if (url && url !== 'your-supabase-url' && url !== 'https://your-project.supabase.co') {
+  const rawUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const url = rawUrl?.trim();
+  if (
+    url &&
+    url !== 'your-supabase-url' &&
+    url !== 'https://your-project.supabase.co' &&
+    isValidHttpUrl(url)
+  ) {
     return url;
   }
   
@@ -51,4 +59,3 @@ if (__DEV__) {
     console.log(`   URL: ${SUPABASE_CONFIG.url}`);
   }
 }
-

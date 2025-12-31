@@ -33,6 +33,7 @@ export enum DocumentType {
 
 export enum CampaignStatus {
   DRAFT = 'DRAFT',
+  PENDING_REVIEW = 'PENDING_REVIEW',
   ACTIVE = 'ACTIVE',
   PAUSED = 'PAUSED',
   COMPLETED = 'COMPLETED',
@@ -165,6 +166,9 @@ export interface Campaign {
   requirements?: string
   deliverableTypes?: string[]
   tags?: string[]
+  reviewReason?: string
+  reviewedBy?: string
+  reviewedAt?: string
   createdAt: string
   updatedAt: string
   brand?: BrandProfile

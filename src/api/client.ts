@@ -6,6 +6,7 @@ import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, InternalAxiosRequ
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_TIMEOUT, STORAGE_KEYS } from '@/src/config/env';
 import { ApiError } from './types';
+import { deleteSecureItem, getSecureItem, setSecureItem } from '@/src/lib/secureStore';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -40,7 +41,7 @@ class ApiClient {
         }
 
         try {
-          const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+          const token = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
           if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
           }
@@ -105,7 +106,7 @@ class ApiClient {
 
           try {
             // Get refresh token from storage
-            const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+            const refreshToken = await getSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
             
             if (!refreshToken) {
               throw new Error('No refresh token available');
@@ -125,9 +126,9 @@ class ApiClient {
             const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
 
             // Store new tokens
-            await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+            await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
             if (newRefreshToken) {
-              await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
+              await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
             }
 
             // Update authorization header
@@ -191,11 +192,9 @@ class ApiClient {
 
   private async clearAuth() {
     try {
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.ACCESS_TOKEN,
-        STORAGE_KEYS.REFRESH_TOKEN,
-        STORAGE_KEYS.USER,
-      ]);
+      await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+      await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
+      await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
     } catch (error) {
       console.error('Error clearing auth:', error);
     }
@@ -242,4 +241,3 @@ class ApiClient {
 
 // Export singleton instance
 export const apiClient = new ApiClient();
-

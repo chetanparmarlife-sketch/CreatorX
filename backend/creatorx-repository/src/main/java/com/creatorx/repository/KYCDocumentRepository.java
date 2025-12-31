@@ -3,6 +3,8 @@ package com.creatorx.repository;
 import com.creatorx.common.enums.DocumentStatus;
 import com.creatorx.common.enums.DocumentType;
 import com.creatorx.repository.entity.KYCDocument;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,5 +34,16 @@ public interface KYCDocumentRepository extends JpaRepository<KYCDocument, String
     @Query("SELECT k FROM KYCDocument k WHERE k.user.id = :userId AND k.documentType = :documentType AND k.status = 'PENDING'")
     Optional<KYCDocument> findPendingByUserIdAndDocumentType(@Param("userId") String userId, @Param("documentType") DocumentType documentType);
 
+    @Query("SELECT k FROM KYCDocument k WHERE k.status = :status")
+    Page<KYCDocument> findByStatus(@Param("status") DocumentStatus status, Pageable pageable);
+
     long countByStatus(DocumentStatus status);
+
+    @Query(value = "SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (verified_at - created_at)) / 3600), 0) " +
+            "FROM kyc_documents WHERE verified_at IS NOT NULL", nativeQuery = true)
+    Double averageDecisionHours();
+
+    @Query(value = "SELECT COUNT(*) FROM kyc_documents " +
+            "WHERE verified_at IS NOT NULL AND verified_at > created_at + INTERVAL '6 hours'", nativeQuery = true)
+    long countSlaBreaches();
 }

@@ -32,6 +32,8 @@ Complete documentation for CreatorX backend API.
 - [Supabase Auth Setup](./SUPABASE_AUTH_SETUP.md) - Authentication integration
 - [File Upload Implementation](./FILE_UPLOAD_IMPLEMENTATION.md) - Storage integration
 - [WebSocket Messaging](./WEBSOCKET_MESSAGING_IMPLEMENTATION.md) - Real-time messaging
+- [Admin Dashboard](../ADMIN_DASHBOARD.md) - Admin workflows and endpoints
+- [Brand Dashboard](../brand-dashboard/README.md) - Brand UI workflows
 
 ### Postman
 - [Postman Collection](./postman/CreatorX-API.postman_collection.json) - Complete API collection
@@ -107,4 +109,3 @@ When adding new features:
 - **Email**: api@creatorx.com
 - **Documentation**: https://docs.creatorx.com
 - **GitHub Issues**: https://github.com/creatorx/backend/issues
-

@@ -111,21 +111,22 @@ components/
 10. **Saved Campaigns**: Bookmark campaigns for later
 
 ### Brand Dashboard
-1. **Dashboard**: Stats overview, recent activity, quick actions
-2. **Influencer Discovery**: Search Instagram/Facebook/YouTube influencers
-3. **Campaigns**: Create and manage influencer campaigns
-4. **Messages**: Real-time chat with creators
-5. **Influencer Lists**: Organize creators into custom lists
-6. **Payments**: Manage payment methods and transactions
-7. **Settings**: Profile, team, notifications, security
+1. **Dashboard**: Lifecycle progress, spend/budget health, deliverables status, quick actions
+2. **Influencer Discovery**: Search + shortlist + compare creators
+3. **Campaigns**: Lifecycle tabs (Draft → Open → In Review → Active → Completed) with inline previews
+4. **Deliverables**: SLA-aware queue with bulk review actions
+5. **Messages**: Real-time chat with creators
+6. **Payments**: Balance summary + filterable transaction history
+7. **Settings**: Profile, verification, notifications
 
 ### Admin Dashboard
-1. **Overview**: Platform-wide stats (users, campaigns, KYC, disputes)
-2. **User Management**: Users, KYC Review, Brand Verification, Appeals
-3. **Moderation**: Campaign Flags, Moderation Rules, Disputes
-4. **Compliance**: GDPR Requests, Audit Log
-5. **Finance**: Reconciliation dashboard
-6. **Settings**: System configuration
+1. **Overview**: Platform-wide stats + Work Queue summary
+2. **Work Queue**: KYC, flags, disputes, GDPR with SLA badges
+3. **Moderation**: Campaign Flags, Moderation Rules, Campaign Reviews
+4. **Compliance**: GDPR Requests, Audit Log, Data Export
+5. **Finance**: Reconciliation dashboard + export by last applied filters
+6. **Monitoring**: Health metrics + audit visibility
+7. **Settings**: System configuration + feature flags
 
 ## Running the Project
 
