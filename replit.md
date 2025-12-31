@@ -4,6 +4,7 @@
 CreatorX is a comprehensive React Native/Expo mobile application for content creators to discover brand collaboration campaigns, manage deliverables, track earnings, and communicate with brands. The app features a premium dark mode design aesthetic inspired by Linear and Stripe.
 
 ## Recent Changes
+- **December 2024**: Rebuilt mobile app auth/onboarding flow with social connect, eligibility gates, and OTP login
 - **December 2024**: Brand Dashboard UI overhaul to match new Figma design (light theme, sky blue primary)
 - **December 2024**: New sidebar navigation with Influencer Discovery section (Instagram/Facebook/YouTube)
 - **December 2024**: New Dashboard home page with stats cards and activity feed
@@ -100,15 +101,18 @@ components/
 
 ### Mobile App
 1. **Splash Screen**: Animated logo with premium branding on app open
-2. **Auth Screen**: Login/signup with social options and skip functionality
-3. **Home Dashboard**: Earnings overview, quick stats, active campaigns, quick actions
-4. **Explore**: Browse and filter available brand campaigns
-5. **Upload**: Submit content deliverables for campaigns
-6. **Chat**: Real-time messaging with brands
-7. **Wallet**: Track earnings, pending payments, withdrawal history
-8. **Profile**: User settings, referral system, KYC verification
-9. **Analytics**: Performance metrics, earnings charts, insights
-10. **Saved Campaigns**: Bookmark campaigns for later
+2. **Social Connect Screen**: Connect Instagram/YouTube/LinkedIn to verify eligibility (1,000+ followers)
+3. **Eligibility Screen**: Shows eligible/not eligible status based on follower count
+4. **Phone OTP Login**: For existing users - phone number + OTP verification
+5. **Onboarding Form**: Collect creator profile details after social connect
+6. **Home Dashboard**: Earnings overview, quick stats, active campaigns, quick actions
+7. **Explore**: Browse and filter available brand campaigns
+8. **Upload**: Submit content deliverables for campaigns
+9. **Chat**: Real-time messaging with brands
+10. **Wallet**: Track earnings, pending payments, withdrawal history
+11. **Profile**: User settings, referral system, KYC verification
+12. **Analytics**: Performance metrics, earnings charts, insights
+13. **Saved Campaigns**: Bookmark campaigns for later
 
 ### Brand Dashboard
 1. **Dashboard**: Lifecycle progress, spend/budget health, deliverables status, quick actions
