@@ -1,0 +1,248 @@
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { colors } from '@/src/theme';
+import { connectSocialPlatform, SocialPlatform } from '@/src/services/socialConnectMock';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEYS = {
+  CONNECTED_PLATFORM: '@connected_platform',
+  FOLLOWER_COUNT: '@follower_count',
+  SOCIAL_HANDLE: '@social_handle',
+};
+
+export default function ConnectScreen() {
+  const router = useRouter();
+  const [loading, setLoading] = useState<SocialPlatform | null>(null);
+
+  const handleConnect = async (platform: SocialPlatform) => {
+    setLoading(platform);
+    try {
+      const result = await connectSocialPlatform(platform);
+      await AsyncStorage.setItem(STORAGE_KEYS.CONNECTED_PLATFORM, result.platform);
+      await AsyncStorage.setItem(STORAGE_KEYS.FOLLOWER_COUNT, result.followerCount.toString());
+      await AsyncStorage.setItem(STORAGE_KEYS.SOCIAL_HANDLE, result.handle);
+      router.push({
+        pathname: '/(auth)/eligibility',
+        params: {
+          platform: result.platform,
+          followerCount: result.followerCount.toString(),
+          handle: result.handle,
+        },
+      });
+    } catch (error) {
+      console.error('Error connecting:', error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleSkip = () => {
+    router.push('/(auth)/login-otp');
+  };
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#0a0a0a', '#1a1a2e', '#0a0a0a']}
+        style={styles.background}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+
+      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        <Text style={styles.skipText}>Skip</Text>
+        <Feather name="arrow-right" size={16} color={colors.text} />
+      </TouchableOpacity>
+
+      <View style={styles.content}>
+        <View style={styles.logoContainer}>
+          <LinearGradient
+            colors={[colors.primary, colors.violet]}
+            style={styles.logoGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Feather name="zap" size={28} color={colors.text} />
+          </LinearGradient>
+        </View>
+
+        <Text style={styles.title}>Join CreatorX</Text>
+        <Text style={styles.subtitle}>Connect your social account to get started</Text>
+
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => handleConnect('instagram')}
+            disabled={loading !== null}
+          >
+            <LinearGradient
+              colors={['#F58529', '#DD2A7B', '#8134AF', '#515BD4']}
+              style={styles.instagramGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              {loading === 'instagram' ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <>
+                  <FontAwesome5 name="instagram" size={20} color={colors.text} />
+                  <Text style={styles.buttonText}>Instagram</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => handleConnect('youtube')}
+            disabled={loading !== null}
+          >
+            <View style={styles.youtubeButton}>
+              {loading === 'youtube' ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <>
+                  <FontAwesome5 name="youtube" size={20} color={colors.text} />
+                  <Text style={styles.buttonText}>YouTube</Text>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => handleConnect('linkedin')}
+            disabled={loading !== null}
+          >
+            <View style={styles.linkedinButton}>
+              {loading === 'linkedin' ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <>
+                  <FontAwesome5 name="linkedin" size={20} color={colors.text} />
+                  <Text style={styles.buttonText}>LinkedIn</Text>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.infoContainer}>
+          <Feather name="info" size={14} color={colors.textSecondary} />
+          <Text style={styles.infoText}>Minimum 1,000 followers required to join</Text>
+        </View>
+
+        <Text style={styles.footerText}>Choose a platform to connect</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    zIndex: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  skipText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  logoContainer: {
+    marginBottom: 32,
+  },
+  logoGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  buttonsContainer: {
+    width: '100%',
+    gap: 12,
+  },
+  socialButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  instagramGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  youtubeButton: {
+    backgroundColor: '#FF0000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  linkedinButton: {
+    backgroundColor: '#0A66C2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  buttonText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 32,
+  },
+  infoText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  footerText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    marginTop: 16,
+  },
+});

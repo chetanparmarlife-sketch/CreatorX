@@ -1,0 +1,118 @@
+Rebuild the CreatorX mobile app auth/onboarding flow to match the attached screenshots and these product rules.
+
+Tech constraints:
+- Expo + React Native + Expo Router
+- Keep existing Phase 0 architecture:
+  - Route groups (auth) and (app)
+  - Deterministic boot gate (useBootstrap with {ready,error,retry})
+  - SecureStore for tokens (web-safe lazy import)
+  - Creator-only app (no brand/admin roles in mobile)
+
+UX goal (must match screenshots):
+1) Splash Screen (branding)
+   - Screen exactly like screenshot 1:
+     - dark gradient background
+     - centered purple rounded-square logo icon
+     - “CreatorX”
+     - tagline “Earn with Your Influence”
+   - Duration: ~1.5–2.0 seconds OR until bootstrap finishes (whichever is later).
+   - If bootstrap fails show Retry overlay, but keep splash UI.
+
+2) After Splash → Social Connect Screen
+   - Screen exactly like screenshot 2:
+     - logo small at top center
+     - Title: “Join CreatorX”
+     - Subtitle: “Connect your social account to get started”
+     - Buttons: Instagram, YouTube, LinkedIn (with same colors and icons)
+     - “Skip →” top right (but skip should go to Login via OTP, not into app)
+     - Text: “Minimum 1,000 followers required to join”
+     - Footer text: “Choose a platform to connect”
+
+Product behavior:
+A) No traditional signup.
+   - User must connect at least one social account first.
+   - If user taps Skip -> go to Phone OTP login screen (existing users).
+
+B) Social connect flow (mock first, API later)
+   - When user taps a platform button:
+     - simulate OAuth connect and fetch followerCount (mock value for now with ability to easily replace by API)
+     - Show an “Eligibility Result” screen:
+
+Eligibility rules:
+- If followerCount < 1000:
+  - Show NOT ELIGIBLE screen:
+    - “Not eligible yet”
+    - “You need at least 1,000 followers to join CreatorX.”
+    - Display their followerCount
+    - CTA: “Try another platform”
+    - CTA: “Login with phone (if you already have an account)”
+  - Do NOT allow onboarding.
+
+- If followerCount >= 1000:
+  - Show ELIGIBLE screen:
+    - “You’re eligible 🎉”
+    - Display platform and followerCount
+    - CTA: “Continue”
+  - Continue -> Onboarding form
+
+C) Onboarding form (only after eligible)
+   - Create `/(auth)/onboarding-form`
+   - Collect:
+     - fullName
+     - phoneNumber
+     - city (optional)
+     - category/niche
+     - primaryPlatform (prefilled from connected platform)
+     - socialHandle (prefilled if available)
+   - Submit creates a “pending creator profile” locally (mock) and then routes to OTP verification OR app home depending on auth approach.
+
+D) Login for existing users: Phone + OTP only
+   - Create `/(auth)/login-otp`
+   - Flow:
+     1) enter phone number -> send OTP (mock)
+     2) enter OTP -> verify (mock)
+   - After successful OTP login:
+     - if user already onboarded -> go to DEFAULT_APP_ROUTE "/(app)/(tabs)/explore"
+     - if not onboarded -> route to onboarding-form (but still enforce eligibility: they must have a connected platform with >=1000; if missing, take them to social connect first)
+
+State + persistence:
+- Store onboarding completion flag: @onboarding_complete_creator = "1"
+- Store connected platform + followerCount locally:
+  - @connected_platform
+  - @follower_count
+- Do NOT clear onboarding completion on logout.
+- Keep existing resetAppState clearing only app-owned keys and api cache prefix.
+
+Routing:
+- app/_layout.tsx should route deterministically:
+  - While !ready || !initialized => show Splash
+  - If authenticated => DEFAULT_APP_ROUTE
+  - If not authenticated:
+    - if onboarding_complete_creator != "1":
+      - go to /(auth)/connect (social connect screen)
+    - else:
+      - go to /(auth)/login-otp
+
+Files to create (minimum):
+- app/(auth)/connect.tsx (social connect screen like screenshot 2)
+- app/(auth)/eligibility.tsx (eligible / not eligible result UI)
+- app/(auth)/login-otp.tsx (phone + OTP)
+- app/(auth)/onboarding-form.tsx (creator onboarding)
+- src/services/socialConnectMock.ts (returns follower counts)
+- src/services/otpMock.ts (send/verify OTP mock)
+- Update SplashScreen component to match screenshot 1 if needed
+
+Output required:
+1) List all new/modified files
+2) Full code for each new screen file
+3) Any changes to app/_layout.tsx routing logic
+4) Ensure UI matches screenshots (layout and wording)
+
+Important constraints:
+- Do NOT add Brand/Admin choice anywhere.
+- Do NOT redesign colors/typography (keep existing CreatorX dark/glass/violet style).
+- Do NOT bypass eligibility gate.
+- Use mocks for social OAuth + follower counts + OTP initially, but structure code so replacing with real APIs is easy.
+
+before execute this read file some file have already
+
