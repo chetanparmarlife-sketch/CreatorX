@@ -67,11 +67,10 @@ export default function OnboardingFormScreen() {
       };
 
       await AsyncStorage.setItem(STORAGE_KEYS.CREATOR_PROFILE, JSON.stringify(creatorProfile));
-      await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, '1');
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      router.replace('/(app)/(tabs)/explore');
+      router.push('/(auth)/marketing-profile');
     } catch (err) {
       setError('Failed to save profile. Please try again.');
     } finally {
