@@ -1,10 +1,41 @@
-import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '@/src/theme';
 
 const { width, height } = Dimensions.get('window');
+const useNativeDriver = Platform.OS !== 'web';
+const SPLASH_DURATION = 1500;
+const SPLASH_SESSION_TIMEOUT = 30000;
+
+const getSplashState = () => {
+  if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+    const completedAt = sessionStorage.getItem('splashCompletedAt');
+    if (completedAt) {
+      const elapsed = Date.now() - parseInt(completedAt, 10);
+      if (elapsed < SPLASH_SESSION_TIMEOUT) {
+        return { completed: true };
+      }
+      sessionStorage.removeItem('splashCompletedAt');
+    }
+    const startTime = sessionStorage.getItem('splashStartTime');
+    if (startTime) {
+      return { completed: false, startTime: parseInt(startTime, 10) };
+    }
+    const now = Date.now();
+    sessionStorage.setItem('splashStartTime', now.toString());
+    return { completed: false, startTime: now };
+  }
+  return { completed: false, startTime: Date.now() };
+};
+
+const markSplashComplete = () => {
+  if (Platform.OS === 'web' && typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('splashCompletedAt', Date.now().toString());
+    sessionStorage.removeItem('splashStartTime');
+  }
+};
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -19,14 +50,32 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   const taglineOpacity = useRef(new Animated.Value(0)).current;
   const glowOpacity = useRef(new Animated.Value(0)).current;
   const pulseScale = useRef(new Animated.Value(1)).current;
-  const hasFinished = useRef(false);
+  const onFinishRef = useRef(onFinish);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  onFinishRef.current = onFinish;
 
-  const handleFinish = useCallback(() => {
-    if (!hasFinished.current) {
-      hasFinished.current = true;
-      onFinish();
+  useEffect(() => {
+    const state = getSplashState();
+    
+    if (state.completed) {
+      onFinishRef.current();
+      return;
     }
-  }, [onFinish]);
+
+    const elapsed = Date.now() - state.startTime;
+    const remaining = Math.max(0, SPLASH_DURATION - elapsed);
+
+    if (remaining <= 0) {
+      markSplashComplete();
+      onFinishRef.current();
+      return;
+    }
+
+    timerRef.current = setTimeout(() => {
+      markSplashComplete();
+      onFinishRef.current();
+    }, remaining);
+  }, []);
 
   useEffect(() => {
     const pulseAnimation = Animated.loop(
@@ -35,13 +84,13 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           toValue: 1.05,
           duration: 1000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver,
         }),
         Animated.timing(pulseScale, {
           toValue: 1,
           duration: 1000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver,
         }),
       ])
     );
@@ -53,19 +102,19 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           toValue: 1,
           duration: 500,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver,
         }),
         Animated.spring(logoScale, {
           toValue: 1,
           friction: 6,
           tension: 50,
-          useNativeDriver: true,
+          useNativeDriver,
         }),
         Animated.timing(logoRotation, {
           toValue: 1,
           duration: 800,
           easing: Easing.out(Easing.back(1.5)),
-          useNativeDriver: true,
+          useNativeDriver,
         }),
       ]),
       Animated.delay(200),
@@ -74,13 +123,13 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           toValue: 1,
           duration: 500,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver,
         }),
         Animated.spring(textTranslate, {
           toValue: 0,
           friction: 8,
           tension: 40,
-          useNativeDriver: true,
+          useNativeDriver,
         }),
       ]),
       Animated.delay(150),
@@ -89,28 +138,24 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           toValue: 1,
           duration: 400,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver,
         }),
         Animated.timing(glowOpacity, {
           toValue: 1,
           duration: 600,
-          useNativeDriver: true,
+          useNativeDriver,
         }),
       ]),
-      Animated.delay(1000),
     ]);
 
     pulseAnimation.start();
-    mainAnimation.start(() => {
-      pulseAnimation.stop();
-      handleFinish();
-    });
+    mainAnimation.start();
 
     return () => {
       mainAnimation.stop();
       pulseAnimation.stop();
     };
-  }, [handleFinish]);
+  }, []);
 
   const rotateInterpolate = logoRotation.interpolate({
     inputRange: [0, 1],

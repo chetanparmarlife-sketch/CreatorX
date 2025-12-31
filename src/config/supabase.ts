@@ -42,13 +42,12 @@ export const SUPABASE_CONFIG = {
   anonKey: getSupabaseAnonKey(),
 };
 
-// Validation for local development
+export const isSupabaseConfigured = 
+  SUPABASE_CONFIG.url !== 'https://your-project.supabase.co' &&
+  SUPABASE_CONFIG.anonKey !== 'your-anon-key';
+
 if (__DEV__) {
-  const isConfigured = 
-    SUPABASE_CONFIG.url !== 'https://your-project.supabase.co' &&
-    SUPABASE_CONFIG.anonKey !== 'your-anon-key';
-  
-  if (!isConfigured) {
+  if (!isSupabaseConfigured) {
     console.warn('⚠️  Supabase not configured!');
     console.warn('   Create .env.local file with:');
     console.warn('   EXPO_PUBLIC_SUPABASE_URL=your-project-url');

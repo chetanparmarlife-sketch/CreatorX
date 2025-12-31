@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { Alert } from 'react-native';
 import { Session, User as SupabaseUser, AuthError } from '@supabase/supabase-js';
 import { getSupabaseClient, getSession, getCurrentUser, signOut } from '@/src/lib/supabase';
+import { isSupabaseConfigured } from '@/src/config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/config/env';
 import { authService } from '@/src/api/services';
@@ -73,6 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleSignOut]);
 
   const initializeAuth = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      console.log('Supabase not configured, skipping auth initialization');
+      setSession(null);
+      setUser(null);
+      setLoading(false);
+      setInitialized(true);
+      return;
+    }
+
     try {
       const currentSession = await getSession();
       if (currentSession?.user && !(await enforceCreatorOnly(currentSession.user))) {
@@ -88,10 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error initializing auth:', error);
       setSession(null);
       setUser(null);
-    } finally {
-      setLoading(false);
-      setInitialized(true);
     }
+    setLoading(false);
+    setInitialized(true);
   }, [enforceCreatorOnly]);
 
   // Initialize auth state

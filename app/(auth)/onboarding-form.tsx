@@ -79,7 +79,7 @@ export default function OnboardingFormScreen() {
   };
 
   const handleBack = () => {
-    router.back();
+    router.replace('/(auth)/eligibility');
   };
 
   return (

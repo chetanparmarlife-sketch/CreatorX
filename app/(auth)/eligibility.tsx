@@ -28,7 +28,7 @@ export default function EligibilityScreen() {
   };
 
   const handleTryAnother = () => {
-    router.replace('/(auth)/connect');
+    router.push('/(auth)/connect');
   };
 
   const handleLoginWithPhone = () => {

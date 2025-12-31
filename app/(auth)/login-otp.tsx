@@ -80,7 +80,7 @@ export default function LoginOTPScreen() {
       setOtp('');
       setError('');
     } else {
-      router.back();
+      router.replace('/(auth)/connect');
     }
   };
 

@@ -104,7 +104,7 @@ export default function MarketingProfileScreen() {
     if (step === 'engagement') {
       setStep('rates');
     } else {
-      router.back();
+      router.replace('/(auth)/onboarding-form');
     }
   };
 
