@@ -12,7 +12,7 @@ interface DraftSubmissionModalProps {
   visible: boolean;
   onClose: () => void;
   deliverable: Deliverable | null;
-  onSubmit: (deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => void;
+  onSubmit: (deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => Promise<void>;
 }
 
 export const DraftSubmissionModal = memo(function DraftSubmissionModal({
@@ -63,10 +63,14 @@ export const DraftSubmissionModal = memo(function DraftSubmissionModal({
     }
 
     setIsUploading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    onSubmit(deliverable.id, selectedFile);
-    setSelectedFile(null);
-    setIsUploading(false);
+    try {
+      await onSubmit(deliverable.id, selectedFile);
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Deliverable submission failed:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleClose = () => {

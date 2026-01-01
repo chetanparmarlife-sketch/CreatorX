@@ -32,7 +32,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   USE_API_AUTH: false, // Start with mock
   USE_API_CAMPAIGNS: true,
   USE_API_APPLICATIONS: true,
-  USE_API_DELIVERABLES: false,
+  USE_API_DELIVERABLES: true,
   USE_API_WALLET: false,
   USE_API_MESSAGING: false,
   USE_API_NOTIFICATIONS: false,

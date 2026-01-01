@@ -24,6 +24,12 @@
 - Added logging for base URL, full request URL, and auth header presence.
 - Non-dev builds refuse insecure HTTP base URLs.
 
+## Creator App: Deliverable Submission (Real)
+- Enabled API deliverables feature flag.
+- Draft submissions now upload via `/api/v1/storage/upload/deliverable` and submit to `/api/v1/deliverables`.
+- Active Campaigns uses real submit flow, shows success/error alerts, and refreshes data.
+- DraftSubmissionModal now awaits async submit instead of using UI-only delay.
+
 ## Backend: CORS Preview Support
 - Added configurable CORS origin patterns via env override without breaking production defaults.
 
@@ -61,6 +67,8 @@
 - `brand-dashboard/app/(dashboard)/dashboard/page.tsx`
 - `app/(app)/(tabs)/chat.tsx`
 - `app/(app)/(tabs)/wallet.tsx`
+- `app/(app)/(tabs)/active-campaigns.tsx`
+- `src/components/DraftSubmissionModal.tsx`
 
 ## Verification Checklist (Manual)
 - Creator app:
@@ -71,4 +79,6 @@
 - Admin dashboard:
   - `/admin/applications` refresh shows new application.
   - `/admin/campaign-management/<campaignId>/applications` refresh shows new application.
-
+- Deliverables:
+  - Creator submits draft, backend record is created.
+  - Brand and Admin deliverables lists show new submission after refresh.

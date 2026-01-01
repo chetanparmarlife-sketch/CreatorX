@@ -49,6 +49,7 @@ import { CampaignFilters } from '@/src/api/services/campaignService';
 import { ApplicationRequest } from '@/src/api/services/applicationService';
 import { getSession } from '@/src/lib/supabase';
 import { getSecureItem } from '@/src/lib/secureStore';
+import { storageService } from '@/src/api/services/storageService';
 
 interface ApplicationFormData {
   pitch: string;
@@ -911,31 +912,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ) => {
       try {
         if (featureFlags.isEnabled('USE_API_DELIVERABLES')) {
-          // Find application ID from active campaign
           const activeCampaign = activeCampaigns.find((ac) => ac.id === activeCampaignId);
           if (!activeCampaign) throw new Error('Active campaign not found');
 
-          // Use campaignId as applicationId for now (can be enhanced later)
-          await deliverableService.submitDeliverable(
-            activeCampaign.campaignId || '',
-            deliverableId,
-            {
-              file: {
-                uri: file.uri,
-                type: file.type === 'video' ? 'video/mp4' : 'image/jpeg',
-                name: file.name,
-              },
-            }
-          );
+          const explicitApplicationId = (activeCampaign as any)?.applicationId as string | undefined;
+          const selectedApplication =
+            applications.find(
+              (application) =>
+                application.campaignId === activeCampaign.campaignId &&
+                application.status === 'SELECTED'
+            ) ||
+            applications.find(
+              (application) => application.campaignId === activeCampaign.campaignId
+            );
+          const applicationId = explicitApplicationId || selectedApplication?.id;
 
-          // Update deliverable status
+          if (!applicationId) {
+            throw new Error('Unable to resolve application for this campaign.');
+          }
+
+          await storageService.uploadDeliverable(file.uri, deliverableId);
+
+          await deliverableService.submitDeliverable(applicationId, deliverableId, {
+            file: {
+              uri: file.uri,
+              type: file.type === 'video' ? 'video/mp4' : 'image/jpeg',
+              name: file.name,
+            },
+          });
+
           setDeliverables((prev) =>
             prev.map((d) =>
               d.id === deliverableId ? { ...d, status: 'submitted' as const } : d
             )
           );
         } else {
-          // Mock submit
           setDeliverables((prev) =>
             prev.map((d) =>
               d.id === deliverableId ? { ...d, status: 'submitted' as const } : d
@@ -948,7 +959,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         throw apiError;
       }
     },
-    [activeCampaigns]
+    [activeCampaigns, applications]
   );
 
   /**

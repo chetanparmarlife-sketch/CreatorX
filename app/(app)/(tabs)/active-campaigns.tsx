@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, memo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { colors, spacing, borderRadius, typography } from '@/src/theme';
 import { Badge, Button, EmptyState, Modal } from '@/src/components';
 import { ActiveCampaign, Deliverable, PaymentStatus } from '@/src/types';
 import { useApp } from '@/src/context';
+import { handleAPIError } from '@/src/api/errors';
 import { useRefresh } from '@/src/hooks';
 import { DraftSubmissionModal } from '@/src/components/DraftSubmissionModal';
 import { RatingModal } from '@/src/components/RatingModal';
@@ -165,7 +166,13 @@ const ActiveCampaignCard = memo(function ActiveCampaignCard({
 
 export default function ActiveCampaignsScreen() {
   const router = useRouter();
-  const { activeCampaigns, updateActiveCampaign, refreshData, markDeliverablePosted } = useApp();
+  const {
+    activeCampaigns,
+    updateActiveCampaign,
+    refreshData,
+    markDeliverablePosted,
+    submitDeliverable,
+  } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<ActiveCampaign | null>(null);
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
@@ -197,8 +204,11 @@ export default function ActiveCampaignsScreen() {
     setShowDetailsModal(false);
   }, []);
 
-  const handleDraftSubmit = useCallback((deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => {
-    if (selectedCampaign) {
+  const handleDraftSubmit = useCallback(async (deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => {
+    if (!selectedCampaign) return;
+    try {
+      await submitDeliverable(selectedCampaign.id, deliverableId, file);
+
       const updatedDeliverables = selectedCampaign.deliverables.map(d =>
         d.id === deliverableId ? {
           ...d,
@@ -208,10 +218,16 @@ export default function ActiveCampaignsScreen() {
         } : d
       );
       updateActiveCampaign(selectedCampaign.id, { deliverables: updatedDeliverables });
+      Alert.alert('Submitted', 'Your deliverable has been sent for review.');
+      await refreshData();
+    } catch (err) {
+      const apiError = handleAPIError(err);
+      Alert.alert('Submission Failed', apiError.message || 'Unable to submit deliverable.');
+    } finally {
+      setShowDraftModal(false);
+      setSelectedDeliverable(null);
     }
-    setShowDraftModal(false);
-    setSelectedDeliverable(null);
-  }, [selectedCampaign, updateActiveCampaign]);
+  }, [selectedCampaign, submitDeliverable, updateActiveCampaign, refreshData]);
 
   const handleRatingSubmit = useCallback((score: number, comment?: string) => {
     if (selectedCampaign) {
