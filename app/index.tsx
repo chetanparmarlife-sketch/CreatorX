@@ -1,88 +1,82 @@
-import { useEffect, useState, useRef } from 'react';
-import { View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SplashScreen } from '@/src/components';
 import { useAuth } from '@/src/context/AuthContext';
-import { useTheme } from '@/src/hooks';
+import { colors } from '@/src/theme';
 
 const DEFAULT_APP_ROUTE = '/(app)/(tabs)/explore';
-const CURRENT_STORAGE_VERSION = '2';
-const STORAGE_KEYS = {
-  STORAGE_VERSION: '@storage_version',
-  ONBOARDING_COMPLETE: '@onboarding_complete_creator',
-};
-
-const clearOnboardingData = async () => {
-  try {
-    await AsyncStorage.multiRemove([
-      STORAGE_KEYS.ONBOARDING_COMPLETE,
-    ]);
-  } catch (e) {
-    console.error('Failed to clear onboarding data:', e);
-  }
-};
-
-const checkAndMigrateStorage = async (): Promise<boolean> => {
-  try {
-    const storedVersion = await AsyncStorage.getItem(STORAGE_KEYS.STORAGE_VERSION);
-    if (storedVersion !== CURRENT_STORAGE_VERSION) {
-      console.log(`Storage version changed (${storedVersion} -> ${CURRENT_STORAGE_VERSION}), clearing onboarding data`);
-      await clearOnboardingData();
-      await AsyncStorage.setItem(STORAGE_KEYS.STORAGE_VERSION, CURRENT_STORAGE_VERSION);
-      return false;
-    }
-    const value = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE);
-    return value === '1';
-  } catch {
-    return false;
-  }
-};
+const SPLASH_DURATION = 2000;
 
 export default function Index() {
   const router = useRouter();
   const { initialized, isAuthenticated } = useAuth();
-  const { colors } = useTheme();
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
-  const [splashComplete, setSplashComplete] = useState(false);
   const hasNavigated = useRef(false);
-  const isMountedRef = useRef(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
-      isMountedRef.current = false;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, []);
 
   useEffect(() => {
-    checkAndMigrateStorage().then((value) => {
-      if (isMountedRef.current) {
-        setOnboardingComplete(value);
+    if (!initialized || hasNavigated.current) return;
+
+    timerRef.current = setTimeout(() => {
+      if (hasNavigated.current) return;
+      hasNavigated.current = true;
+
+      if (isAuthenticated) {
+        router.replace(DEFAULT_APP_ROUTE);
+      } else {
+        router.replace('/(auth)/welcome');
       }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!initialized || onboardingComplete === null || !splashComplete || hasNavigated.current) {
-      return;
-    }
-
-    hasNavigated.current = true;
-
-    if (isAuthenticated) {
-      router.replace(DEFAULT_APP_ROUTE);
-    } else {
-      router.replace('/(auth)/login-otp');
-    }
-  }, [initialized, isAuthenticated, onboardingComplete, splashComplete, router]);
-
-  const handleSplashFinish = () => {
-    setSplashComplete(true);
-  };
+    }, SPLASH_DURATION);
+  }, [initialized, isAuthenticated, router]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <SplashScreen onFinish={handleSplashFinish} />
-    </View>
+    <LinearGradient
+      colors={[colors.primary, colors.violet]}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <View style={styles.logoContainer}>
+        <View style={styles.logoIcon}>
+          <Feather name="zap" size={48} color={colors.primary} />
+        </View>
+        <Text style={styles.logoText}>CreatorX</Text>
+      </View>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logoIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 28,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoText: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+});
