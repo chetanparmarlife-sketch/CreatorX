@@ -4,6 +4,8 @@
 CreatorX is a comprehensive React Native/Expo mobile application for content creators to discover brand collaboration campaigns, manage deliverables, track earnings, and communicate with brands. The app features a premium dark mode design aesthetic inspired by Linear and Stripe.
 
 ## Recent Changes
+- **December 2024**: Added dev preview mode with "Skip for Dev Preview" button on auth screens
+- **December 2024**: Added demo OTP credentials display (Phone: Any 10 digits, OTP: 123456)
 - **December 2024**: Fixed splash screen timer persistence for development environment using sessionStorage
 - **December 2024**: Updated expo-secure-store to version 14.0.1 for Expo compatibility
 - **December 2024**: Added marketing profile screen with rate cards and engagement metrics for influencer onboarding

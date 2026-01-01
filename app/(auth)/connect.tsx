@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { colors } from '@/src/theme';
 import { connectSocialPlatform, SocialPlatform } from '@/src/services/socialConnectMock';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/src/context/AuthContext';
 
 const STORAGE_KEYS = {
   CONNECTED_PLATFORM: '@connected_platform',
@@ -15,6 +16,7 @@ const STORAGE_KEYS = {
 
 export default function ConnectScreen() {
   const router = useRouter();
+  const { devLogin } = useAuth();
   const [loading, setLoading] = useState<SocialPlatform | null>(null);
 
   const handleConnect = async (platform: SocialPlatform) => {
@@ -44,7 +46,7 @@ export default function ConnectScreen() {
   };
 
   const handleSkipDev = () => {
-    router.replace('/(app)/(tabs)/explore');
+    devLogin();
   };
 
   return (

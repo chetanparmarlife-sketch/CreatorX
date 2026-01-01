@@ -27,6 +27,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   refreshSession: () => Promise<void>;
+  devLogin: () => void;
   
   // User info
   isAuthenticated: boolean;
@@ -312,6 +313,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const devLogin = useCallback(() => {
+    const mockUser = {
+      id: 'dev-user-123',
+      email: 'dev@creatorx.app',
+      email_confirmed_at: new Date().toISOString(),
+      user_metadata: { name: 'Dev User', role: 'CREATOR' },
+      app_metadata: { role: 'CREATOR' },
+    } as unknown as SupabaseUser;
+    
+    const mockSession = {
+      access_token: 'dev-token',
+      refresh_token: 'dev-refresh',
+      user: mockUser,
+    } as unknown as Session;
+    
+    setUser(mockUser);
+    setSession(mockSession);
+    console.log('Dev login activated');
+  }, []);
+
   const value: AuthContextType = {
     user,
     session,
@@ -323,6 +344,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resetPassword,
     updatePassword,
     refreshSession,
+    devLogin,
     isAuthenticated: !!session && !!user,
     isEmailVerified: user?.email_confirmed_at !== null && user?.email_confirmed_at !== undefined,
   };

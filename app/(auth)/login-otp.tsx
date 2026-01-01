@@ -7,6 +7,7 @@ import { colors } from '@/src/theme';
 import { sendOTP, verifyOTP, formatPhoneNumber } from '@/src/services/otpMock';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isEligible } from '@/src/services/socialConnectMock';
+import { useAuth } from '@/src/context/AuthContext';
 
 const STORAGE_KEYS = {
   ONBOARDING_COMPLETE: '@onboarding_complete_creator',
@@ -16,12 +17,17 @@ const STORAGE_KEYS = {
 
 export default function LoginOTPScreen() {
   const router = useRouter();
+  const { devLogin } = useAuth();
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  const handleSkipDev = () => {
+    devLogin();
+  };
 
   const handleSendOTP = async () => {
     setLoading(true);
@@ -152,6 +158,16 @@ export default function LoginOTPScreen() {
                   <Text style={styles.submitText}>Send OTP</Text>
                 )}
               </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.demoInfo}>
+              <Text style={styles.demoTitle}>Demo Credentials</Text>
+              <Text style={styles.demoText}>Phone: Any 10 digits</Text>
+              <Text style={styles.demoText}>OTP: 123456</Text>
+            </View>
+
+            <TouchableOpacity style={styles.skipButton} onPress={handleSkipDev}>
+              <Text style={styles.skipText}>Skip for Dev Preview</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -336,6 +352,40 @@ const styles = StyleSheet.create({
   resendText: {
     color: colors.primary,
     fontSize: 14,
+    fontWeight: '500',
+  },
+  demoInfo: {
+    marginTop: 32,
+    padding: 16,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    alignItems: 'center',
+  },
+  demoTitle: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  demoText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  skipButton: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderStyle: 'dashed',
+  },
+  skipText: {
+    color: colors.textSecondary,
+    fontSize: 13,
     fontWeight: '500',
   },
 });
