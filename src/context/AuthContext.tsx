@@ -2,7 +2,7 @@
  * Authentication context for Supabase Auth
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { Alert } from 'react-native';
 import { Session, User as SupabaseUser, AuthError } from '@supabase/supabase-js';
 import { getSupabaseClient, getSession, getCurrentUser, signOut } from '@/src/lib/supabase';
@@ -44,6 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     setLoading(true);
@@ -77,10 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initializeAuth = useCallback(async () => {
     if (!isSupabaseConfigured) {
       console.log('Supabase not configured, skipping auth initialization');
-      setSession(null);
-      setUser(null);
-      setLoading(false);
-      setInitialized(true);
+      if (isMountedRef.current) {
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        setInitialized(true);
+      }
       return;
     }
 
@@ -89,19 +98,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentSession?.user && !(await enforceCreatorOnly(currentSession.user))) {
         return;
       }
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      if (isMountedRef.current) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      }
       
       if (currentSession?.access_token) {
         await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, currentSession.access_token);
       }
     } catch (error) {
       console.error('Error initializing auth:', error);
-      setSession(null);
-      setUser(null);
+      if (isMountedRef.current) {
+        setSession(null);
+        setUser(null);
+      }
     }
-    setLoading(false);
-    setInitialized(true);
+    if (isMountedRef.current) {
+      setLoading(false);
+      setInitialized(true);
+    }
   }, [enforceCreatorOnly]);
 
   // Initialize auth state
@@ -116,12 +131,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (!(await enforceCreatorOnly(session?.user ?? null))) {
-            setLoading(false);
-            setInitialized(true);
+            if (isMountedRef.current) {
+              setLoading(false);
+              setInitialized(true);
+            }
             return;
           }
-          setSession(session);
-          setUser(session?.user ?? null);
+          if (isMountedRef.current) {
+            setSession(session);
+            setUser(session?.user ?? null);
+          }
           
           // Store tokens
           if (session?.access_token) {
@@ -136,16 +155,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await linkUserToBackend(session.user);
           }
         } else if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
+          if (isMountedRef.current) {
+            setSession(null);
+            setUser(null);
+          }
           await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
           await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
           await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
           await resetAppState();
         }
         
-        setLoading(false);
-        setInitialized(true);
+        if (isMountedRef.current) {
+          setLoading(false);
+          setInitialized(true);
+        }
       }
     );
 

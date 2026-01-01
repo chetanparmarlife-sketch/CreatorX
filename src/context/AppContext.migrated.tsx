@@ -375,7 +375,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
       try {
-        await notificationService.markAsRead(id);
+        await notificationService.markNotificationRead(id);
       } catch (err) {
         // Rollback on error
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: false } : n)));

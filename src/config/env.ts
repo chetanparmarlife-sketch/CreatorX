@@ -40,9 +40,9 @@ const appendApiVersion = (url: string): string => {
   return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
 };
 
-const getEnvBaseURL = (): string | null => {
+const getEnvBaseURL = (): string | undefined => {
   // @ts-ignore - Expo environment variables
-  if (typeof process === 'undefined') return null;
+  if (typeof process === 'undefined') return undefined;
   // @ts-ignore
   const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (explicit && explicit !== 'your-api-url') {
@@ -53,22 +53,15 @@ const getEnvBaseURL = (): string | null => {
   if (backendUrl && backendUrl !== 'your-api-url') {
     return appendApiVersion(backendUrl);
   }
-  return null;
+  return undefined;
 };
 
-const getBaseURL = (env: Environment): string => {
-  const envUrl = getEnvBaseURL();
-  if (envUrl) {
-    return envUrl;
-  }
-  
-  // Default URLs based on environment
+const getDefaultApiUrl = (env: Environment): string => {
   const defaultURLs: Record<Environment, string> = {
     dev: 'http://localhost:8080/api/v1',
     staging: 'https://api-staging.creatorx.com/api/v1',
     prod: 'https://api.creatorx.com/api/v1',
   };
-  
   return defaultURLs[env];
 };
 
@@ -84,7 +77,7 @@ const getWebSocketURL = (env: Environment): string => {
   }
   
   // Auto-generate WebSocket URL from API URL if not explicitly set
-  const apiUrl = getBaseURL(env);
+  const apiUrl = API_BASE_URL || getDefaultApiUrl(env);
   if (apiUrl && apiUrl.startsWith('http://localhost')) {
     return 'ws://localhost:8080/ws';
   } else if (apiUrl && apiUrl.startsWith('https://')) {
@@ -107,44 +100,24 @@ const getWebSocketURL = (env: Environment): string => {
   return defaultURLs[env];
 };
 
-const API_CONFIG = {
-  dev: {
-    baseURL: getBaseURL('dev'),
-    timeout: 30000,
-  },
-  staging: {
-    baseURL: getBaseURL('staging'),
-    timeout: 30000,
-  },
-  prod: {
-    baseURL: getBaseURL('prod'),
-    timeout: 30000,
-  },
-};
+const explicitApiBaseUrl = getEnvBaseURL();
 
-export const API_BASE_URL = API_CONFIG[ENV].baseURL;
-export const API_TIMEOUT = API_CONFIG[ENV].timeout;
+export const API_BASE_URL = explicitApiBaseUrl || getDefaultApiUrl(ENV);
+export const API_TIMEOUT = 30000;
 export const WS_BASE_URL = getWebSocketURL(ENV);
 export const CURRENT_ENV = ENV;
 
-const hasExplicitApiUrl = !!getEnvBaseURL();
 const isLocalhostBaseUrl =
   API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1');
 const isHttpBaseUrl = API_BASE_URL.startsWith('http://');
 
-// Validation and warnings for local development
 if (__DEV__) {
-  if (!hasExplicitApiUrl) {
+  if (!explicitApiBaseUrl) {
     console.warn(
       '⚠️  EXPO_PUBLIC_API_BASE_URL not set. Set EXPO_PUBLIC_API_BASE_URL=https://<host>/api/v1 for device testing.'
     );
   }
-  if (isHttpBaseUrl && !isLocalhostBaseUrl) {
-    console.warn(
-      `⚠️  API_BASE_URL is not HTTPS (${API_BASE_URL}). Use HTTPS for device builds.`
-    );
-  }
-  if (ENV === 'dev' && isLocalhostBaseUrl) {
+  if (isLocalhostBaseUrl) {
     console.log('📍 Local Development Mode');
     console.log(`   API: ${API_BASE_URL}`);
     console.log(`   WebSocket: ${WS_BASE_URL}`);

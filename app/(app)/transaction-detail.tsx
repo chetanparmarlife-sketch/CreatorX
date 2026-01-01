@@ -1,75 +1,87 @@
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { spacing, borderRadius, typography } from '@/src/theme';
 import { useTheme } from '@/src/hooks';
-
-interface TransactionData {
-  id: string;
-  type: 'credit' | 'debit' | 'pending';
-  title: string;
-  description: string;
-  amount: string;
-  date: string;
-  status: 'completed' | 'pending' | 'failed';
-}
+import { ErrorView } from '@/src/components';
+import { useApp } from '@/src/context';
+import { TransactionDTO } from '@/src/api/services/walletService';
+import {
+  formatCurrencyAmount,
+  formatDateTime,
+  getTransactionStatusLabel,
+  getTransactionTypeLabel,
+} from '@/src/utils/walletFormatting';
 
 export default function TransactionDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const { transactions, transactionsLoading, transactionsError, fetchTransactions } = useApp();
+  const transactionId = typeof params.id === 'string' ? params.id : '';
+  const [transaction, setTransaction] = useState<TransactionDTO | null>(null);
+  const [fetchAttempted, setFetchAttempted] = useState(false);
+  const isMountedRef = useRef(true);
 
-  const transaction: TransactionData = {
-    id: params.id as string || '1',
-    type: (params.type as 'credit' | 'debit' | 'pending') || 'credit',
-    title: params.title as string || 'Transaction',
-    description: params.description as string || '',
-    amount: params.amount as string || '₹0',
-    date: params.date as string || '',
-    status: (params.status as 'completed' | 'pending' | 'failed') || 'completed',
-  };
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-  const getStatusConfig = () => {
-    switch (transaction.status) {
-      case 'completed':
+  useEffect(() => {
+    if (!transactionId) return;
+    const cached = transactions.find((item) => item.id === transactionId);
+    if (cached) {
+      if (isMountedRef.current) {
+        setTransaction(cached);
+      }
+      return;
+    }
+
+    if (!transactionsLoading && !fetchAttempted) {
+      if (isMountedRef.current) {
+        setFetchAttempted(true);
+      }
+      fetchTransactions({ page: 0, size: 20, refresh: true });
+    }
+  }, [transactionId, transactions, transactionsLoading, fetchAttempted, fetchTransactions]);
+
+  const statusConfig = useMemo(() => {
+    switch (transaction?.status) {
+      case 'COMPLETED':
         return {
           icon: 'check-circle' as const,
-          label: 'Completed',
+          label: getTransactionStatusLabel('COMPLETED'),
           color: colors.emerald,
           bgColor: colors.emeraldLight,
           borderColor: colors.emeraldBorder,
         };
-      case 'pending':
-        return {
-          icon: 'clock' as const,
-          label: 'Pending',
-          color: colors.amber,
-          bgColor: colors.amberLight,
-          borderColor: colors.amberBorder,
-        };
-      case 'failed':
+      case 'FAILED':
         return {
           icon: 'x-circle' as const,
-          label: 'Failed',
+          label: getTransactionStatusLabel('FAILED'),
           color: colors.red,
           bgColor: colors.redLight,
           borderColor: 'rgba(239, 68, 68, 0.3)',
         };
-    }
-  };
-
-  const getTypeConfig = () => {
-    switch (transaction.type) {
-      case 'credit':
+      case 'PENDING':
+      default:
         return {
-          icon: 'arrow-down-left' as const,
-          label: 'Income',
-          color: colors.emerald,
-          bgColor: colors.emeraldLight,
-          prefix: '+',
+          icon: 'clock' as const,
+          label: getTransactionStatusLabel('PENDING'),
+          color: colors.amber,
+          bgColor: colors.amberLight,
+          borderColor: colors.amberBorder,
         };
-      case 'debit':
+    }
+  }, [transaction?.status, colors]);
+
+  const typeConfig = useMemo(() => {
+    switch (transaction?.type) {
+      case 'DEBIT':
         return {
           icon: 'arrow-up-right' as const,
           label: 'Withdrawal',
@@ -77,21 +89,47 @@ export default function TransactionDetailScreen() {
           bgColor: colors.redLight,
           prefix: '-',
         };
-      case 'pending':
+      case 'CREDIT':
+      default:
         return {
-          icon: 'clock' as const,
-          label: 'Pending Payment',
-          color: colors.amber,
-          bgColor: colors.amberLight,
-          prefix: '',
+          icon: 'arrow-down-left' as const,
+          label: 'Income',
+          color: colors.emerald,
+          bgColor: colors.emeraldLight,
+          prefix: '+',
         };
     }
-  };
+  }, [transaction?.type, colors]);
 
-  const statusConfig = getStatusConfig();
-  const typeConfig = getTypeConfig();
+  const transactionIdValue = transaction?.id || '';
 
-  const referenceId = `TXN${transaction.id.padStart(8, '0')}`;
+  if (!transaction) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: colors.card }]}
+            data-testid="button-back"
+          >
+            <Feather name="arrow-left" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Transaction Details</Text>
+          <View style={styles.headerPlaceholder} />
+        </View>
+        {transactionsLoading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading transaction...</Text>
+          </View>
+        ) : (
+          <ErrorView
+            error={transactionsError || 'Transaction not found.'}
+            onRetry={() => fetchTransactions({ page: 0, size: 20, refresh: true })}
+          />
+        )}
+      </SafeAreaView>
+    );
+  }
 
   const InfoRow = ({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) => (
     <View style={[styles.infoRow, { borderBottomColor: colors.cardBorder }]}>
@@ -124,13 +162,16 @@ export default function TransactionDetailScreen() {
             <Feather name={typeConfig.icon} size={28} color={typeConfig.color} />
           </View>
 
-          <Text style={[styles.transactionTitle, { color: colors.text }]}>{transaction.title}</Text>
+          <Text style={[styles.transactionTitle, { color: colors.text }]}>
+            {getTransactionTypeLabel(transaction.type)}
+          </Text>
           <Text style={[styles.transactionDescription, { color: colors.textSecondary }]}>
-            {transaction.description}
+            {transaction.description || getTransactionStatusLabel(transaction.status)}
           </Text>
 
           <Text style={[styles.amount, { color: typeConfig.color }]}>
-            {typeConfig.prefix}{transaction.amount}
+            {typeConfig.prefix}
+            {formatCurrencyAmount(transaction.amount, transaction.currency)}
           </Text>
 
           <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor, borderColor: statusConfig.borderColor }]}>
@@ -142,24 +183,15 @@ export default function TransactionDetailScreen() {
         <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction Information</Text>
           
-          <InfoRow label="Transaction ID" value={referenceId} />
-          <InfoRow label="Type" value={typeConfig.label} valueColor={typeConfig.color} />
-          <InfoRow label="Date" value={transaction.date} />
+          <InfoRow label="Transaction ID" value={transactionIdValue || '—'} />
+          <InfoRow label="Type" value={getTransactionTypeLabel(transaction.type)} valueColor={typeConfig.color} />
+          <InfoRow label="Date" value={formatDateTime(transaction.createdAt)} />
           <InfoRow label="Status" value={statusConfig.label} valueColor={statusConfig.color} />
-          
-          {transaction.type === 'debit' && (
-            <InfoRow 
-              label="Transfer Method" 
-              value={transaction.description.includes('UPI') ? 'UPI Transfer' : 'Bank Transfer'} 
-            />
-          )}
-          
-          {transaction.type === 'credit' && (
-            <InfoRow label="Source" value="Campaign Payment" />
-          )}
+          {transaction.referenceId ? <InfoRow label="Reference ID" value={transaction.referenceId} /> : null}
+          {transaction.description ? <InfoRow label="Description" value={transaction.description} /> : null}
         </View>
 
-        {transaction.status === 'pending' && (
+        {transaction.status === 'PENDING' && (
           <View style={[styles.noteCard, { backgroundColor: colors.amberLight, borderColor: colors.amberBorder }]}>
             <Feather name="info" size={18} color={colors.amber} />
             <View style={styles.noteContent}>
@@ -171,7 +203,7 @@ export default function TransactionDetailScreen() {
           </View>
         )}
 
-        {transaction.status === 'completed' && transaction.type === 'debit' && (
+        {transaction.status === 'COMPLETED' && transaction.type === 'DEBIT' && (
           <View style={[styles.noteCard, { backgroundColor: colors.emeraldLight, borderColor: colors.emeraldBorder }]}>
             <Feather name="check-circle" size={18} color={colors.emerald} />
             <View style={styles.noteContent}>
@@ -228,6 +260,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.lg,
     paddingBottom: spacing.xxxl,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  loadingText: {
+    ...typography.body,
   },
   mainCard: {
     borderRadius: borderRadius.xxl,

@@ -53,6 +53,9 @@ export default function ConversationScreen() {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   const chat = chats.find(c => c.id === chatId);
   const chatName = name || chat?.name || 'Chat';
@@ -73,8 +76,13 @@ export default function ConversationScreen() {
     setInputText('');
 
     setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setIsTyping(false);
+      }
     }, 2500);
   }, [inputText, chatId, sendMessage]);
 
@@ -118,11 +126,26 @@ export default function ConversationScreen() {
 
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   }, [messages.length]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

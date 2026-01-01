@@ -50,9 +50,20 @@ export default function Index() {
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [splashComplete, setSplashComplete] = useState(false);
   const hasNavigated = useRef(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    checkAndMigrateStorage().then(setOnboardingComplete);
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    checkAndMigrateStorage().then((value) => {
+      if (isMountedRef.current) {
+        setOnboardingComplete(value);
+      }
+    });
   }, []);
 
   useEffect(() => {

@@ -12,6 +12,8 @@ export interface ErrorViewProps {
   onRetry?: () => void;
   title?: string;
   showIcon?: boolean;
+  compact?: boolean;
+  hideRetry?: boolean;
 }
 
 export const ErrorView: React.FC<ErrorViewProps> = ({
@@ -19,13 +21,19 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
   onRetry,
   title = 'Something went wrong',
   showIcon = true,
+  compact = false,
+  hideRetry = false,
 }) => {
   const { colors, isDark } = useTheme();
 
   if (!error) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[
+      styles.container,
+      compact && styles.containerCompact,
+      { backgroundColor: colors.background },
+    ]}>
       {showIcon && (
         <View style={[styles.iconContainer, { backgroundColor: colors.primaryLight }]}>
           <Feather name="alert-circle" size={48} color={colors.primary} />
@@ -35,7 +43,7 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       <Text style={[styles.message, { color: colors.textSecondary }]}>{error}</Text>
 
-      {onRetry && (
+      {onRetry && !hideRetry && (
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: colors.primary }]}
           onPress={onRetry}
@@ -55,6 +63,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  containerCompact: {
+    flex: 0,
+    padding: 16,
+    borderRadius: 12,
+    width: '100%',
   },
   iconContainer: {
     width: 96,
@@ -90,4 +104,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

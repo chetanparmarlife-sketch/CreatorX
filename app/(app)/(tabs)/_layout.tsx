@@ -168,7 +168,7 @@ const IconGlow = ({ focused, children }: { focused: boolean; children: React.Rea
 );
 
 export default function TabsLayout() {
-  const { unreadNotifications } = useApp();
+  const { unreadNotificationCount } = useApp();
   const { colors, isDark } = useTheme();
 
   const navBarBg = isDark ? '#0a0a0a' : '#ffffff';
@@ -262,10 +262,10 @@ export default function TabsLayout() {
                     color={focused ? activeColor : inactiveColor}
                     focused={focused}
                   />
-                  {unreadNotifications > 0 && (
+                  {unreadNotificationCount > 0 && (
                     <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                       <Text style={styles.badgeText}>
-                        {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                        {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
                       </Text>
                     </View>
                   )}

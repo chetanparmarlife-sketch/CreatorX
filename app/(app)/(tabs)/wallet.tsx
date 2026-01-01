@@ -1,15 +1,26 @@
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks';
-import { Avatar, Button, TransactionItem, WithdrawModal, EmptyState } from '@/src/components';
-import { Transaction } from '@/src/types';
+import {
+  Avatar,
+  Button,
+  TransactionItem,
+  EmptyState,
+  ErrorView,
+  Skeleton,
+  StatCardSkeleton,
+  TransactionItemSkeleton,
+} from '@/src/components';
+import { TransactionDTO } from '@/src/api/services/walletService';
 import { useApp } from '@/src/context';
+import { useAuth } from '@/src/context/AuthContext';
 import { useRefresh } from '@/src/hooks';
 import { spacing, borderRadius } from '@/src/theme';
+import { formatCurrencyAmount } from '@/src/utils/walletFormatting';
 
 const headerTabs = [
   { id: 'wallet', label: 'Wallet' },
@@ -337,12 +348,29 @@ const KYCStepCard = memo(function KYCStepCard({
 export default function MoneyScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const { wallet, transactions, addTransaction, updateWallet, addNotification, refreshData } = useApp();
+  const {
+    wallet,
+    transactions,
+    walletLoading,
+    walletError,
+    transactionsLoading,
+    transactionsError,
+    fetchWalletSummary,
+    fetchTransactions,
+    refreshWalletAll,
+  } = useApp();
+  const { isAuthenticated } = useAuth();
   const [selectedTab, setSelectedTab] = useState('wallet');
   const [walletFilter, setWalletFilter] = useState<FilterType>('all');
   const [invoiceFilter, setInvoiceFilter] = useState('all');
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  useEffect(() => {
+    if (hasLoadedOnce) return;
+    if (wallet || transactions.length > 0 || walletError || transactionsError) {
+      setHasLoadedOnce(true);
+    }
+  }, [hasLoadedOnce, wallet, transactions.length, walletError, transactionsError]);
 
   const [kycStatus, setKycStatus] = useState({
     personal: 'completed' as const,
@@ -352,45 +380,28 @@ export default function MoneyScreen() {
   });
 
   const handleRefresh = useCallback(async () => {
-    setIsLoading(true);
-    await refreshData();
-    setIsLoading(false);
-  }, [refreshData]);
+    if (!isAuthenticated) return;
+    await refreshWalletAll();
+  }, [isAuthenticated, refreshWalletAll]);
 
   const { refreshing, handleRefresh: onRefresh } = useRefresh(handleRefresh);
 
-  const handleWithdraw = useCallback((amount: number, method: string) => {
-    if (amount <= 0 || amount > wallet.balance) {
-      return;
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (wallet == null) {
+      refreshWalletAll();
     }
-
-    const newBalance = wallet.balance - amount;
-    const newWithdrawn = wallet.withdrawn + amount;
-    updateWallet({ balance: newBalance, withdrawn: newWithdrawn });
-
-    addTransaction({
-      type: 'debit',
-      title: 'Withdrawal',
-      description: method === 'upi' ? 'UPI Transfer' : 'Bank Transfer - HDFC',
-      amount: `₹${amount.toLocaleString()}`,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      status: 'completed',
-    });
-
-    addNotification({
-      type: 'payment',
-      title: 'Withdrawal Successful',
-      description: `₹${amount.toLocaleString()} has been transferred to your ${method === 'upi' ? 'UPI' : 'bank account'}`,
-      time: 'Just now',
-      read: false,
-    });
-
-    setShowWithdrawModal(false);
-  }, [wallet.balance, updateWallet, addTransaction, addNotification]);
+  }, [isAuthenticated, wallet, refreshWalletAll]);
 
   const filteredTransactions = useMemo(() => {
     if (walletFilter === 'all') return transactions;
-    return transactions.filter((t) => t.type === walletFilter);
+    if (walletFilter === 'pending') {
+      return transactions.filter((t) => t.status === 'PENDING');
+    }
+    if (walletFilter === 'credit') {
+      return transactions.filter((t) => t.type === 'CREDIT');
+    }
+    return transactions.filter((t) => t.type === 'DEBIT');
   }, [transactions, walletFilter]);
 
   const filteredInvoices = useMemo(() => {
@@ -399,9 +410,9 @@ export default function MoneyScreen() {
   }, [invoiceFilter]);
 
   const counts = useMemo(() => ({
-    pending: transactions.filter((t) => t.type === 'pending').length,
-    credit: transactions.filter((t) => t.type === 'credit').length,
-    debit: transactions.filter((t) => t.type === 'debit').length,
+    pending: transactions.filter((t) => t.status === 'PENDING').length,
+    credit: transactions.filter((t) => t.type === 'CREDIT').length,
+    debit: transactions.filter((t) => t.type === 'DEBIT').length,
   }), [transactions]);
 
   const invoiceCounts = useMemo(() => ({
@@ -417,96 +428,173 @@ export default function MoneyScreen() {
   }, [kycStatus]);
 
   const colorsWithDark = { ...colors, isDark };
+  const walletSummary = useMemo(
+    () =>
+      wallet ?? {
+        balance: 0,
+        availableBalance: 0,
+        pendingBalance: 0,
+        currency: 'INR',
+      },
+    [wallet]
+  );
+  const showWalletSkeleton = !hasLoadedOnce && walletLoading && !wallet && !walletError;
+  const showTransactionsSkeleton =
+    !hasLoadedOnce && transactionsLoading && filteredTransactions.length === 0 && !transactionsError;
 
   const handleSetFilterAll = useCallback(() => setWalletFilter('all'), []);
   const handleSetFilterCredit = useCallback(() => setWalletFilter('credit'), []);
   const handleSetFilterDebit = useCallback(() => setWalletFilter('debit'), []);
   const handleSetFilterPending = useCallback(() => setWalletFilter('pending'), []);
-  const handleOpenWithdraw = useCallback(() => setShowWithdrawModal(true), []);
+  const handleRetryAll = useCallback(() => {
+    fetchWalletSummary();
+    fetchTransactions({ page: 0, size: 20, refresh: true });
+  }, [fetchWalletSummary, fetchTransactions]);
 
-  const WalletListHeader = useMemo(() => (
-    <>
-      <View style={[styles.balanceCard, { borderColor: colors.primaryBorder }]}>
-        <LinearGradient
-          colors={['rgba(139, 92, 246, 0.4)', 'rgba(139, 92, 246, 0.2)', 'rgba(124, 58, 237, 0.15)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.balanceGradient}
-        >
-          <View style={styles.balanceHeader}>
-            <View>
-              <View style={styles.balanceLabelRow}>
-                <Feather name="credit-card" size={18} color={colors.primary} />
-                <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Available Balance</Text>
-              </View>
-              <Text style={[styles.balanceValue, { color: colors.text }]}>₹{wallet.balance.toLocaleString()}</Text>
-              <View style={styles.balanceChange}>
-                <View style={[styles.changeBadge, { backgroundColor: colors.emeraldLight }]}>
-                  <Feather name="trending-up" size={12} color={colors.emerald} />
-                  <Text style={[styles.changeText, { color: colors.emerald }]}>+₹{wallet.monthlyChange.toLocaleString()}</Text>
-                </View>
-                <Text style={[styles.changeLabel, { color: colors.textMuted }]}>this month</Text>
-              </View>
-            </View>
-            <View style={[styles.securedBadge, { backgroundColor: colors.emeraldLight, borderColor: colors.emeraldBorder }]}>
-              <Feather name="shield" size={14} color={colors.emerald} />
-              <Text style={[styles.securedText, { color: colors.emerald }]}>Secured</Text>
+  const WalletListHeader = useMemo(() => {
+    if (showWalletSkeleton && !walletError) {
+      return (
+        <>
+          <View style={[styles.balanceCard, { borderColor: colors.primaryBorder }]}>
+            <View style={styles.balanceGradient}>
+              <Skeleton width={160} height={16} style={{ marginBottom: spacing.sm }} />
+              <Skeleton width={200} height={32} style={{ marginBottom: spacing.sm }} />
+              <Skeleton width={120} height={12} />
+              <Skeleton width="100%" height={44} style={{ marginTop: spacing.lg }} />
             </View>
           </View>
+          <View style={styles.statsRow}>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </View>
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction History</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
+              <FilterTab label="All" isActive={walletFilter === 'all'} onPress={handleSetFilterAll} colors={colorsWithDark} />
+              <FilterTab label="Income" isActive={walletFilter === 'credit'} onPress={handleSetFilterCredit} count={counts.credit} colors={colorsWithDark} />
+              <FilterTab label="Withdrawals" isActive={walletFilter === 'debit'} onPress={handleSetFilterDebit} count={counts.debit} colors={colorsWithDark} />
+              <FilterTab label="Pending" isActive={walletFilter === 'pending'} onPress={handleSetFilterPending} count={counts.pending} colors={colorsWithDark} />
+            </ScrollView>
+          </View>
+          <View style={styles.resultsHeader}>
+            <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>{filteredTransactions.length} transactions</Text>
+          </View>
+        </>
+      );
+    }
 
-          <Button
-            title="Withdraw Funds"
-            onPress={handleOpenWithdraw}
-            variant="primary"
-            size="lg"
-            icon={<Feather name="arrow-up-right" size={18} color={colors.text} />}
-            fullWidth
-            style={styles.withdrawBtn}
-          />
-        </LinearGradient>
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { borderColor: colors.amberBorder }]}>
+    return (
+      <>
+        <View style={[styles.balanceCard, { borderColor: colors.primaryBorder }]}>
           <LinearGradient
-            colors={['rgba(251, 191, 36, 0.15)', 'rgba(251, 191, 36, 0.05)']}
-            style={styles.statGradient}
+            colors={['rgba(139, 92, 246, 0.4)', 'rgba(139, 92, 246, 0.2)', 'rgba(124, 58, 237, 0.15)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.balanceGradient}
           >
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pending</Text>
-            <Text style={[styles.statValue, { color: colors.amber }]}>₹{wallet.pending.toLocaleString()}</Text>
-            <Text style={[styles.statSubtext, { color: colors.textMuted }]}>Under review</Text>
+            <View style={styles.balanceHeader}>
+              <View>
+                <View style={styles.balanceLabelRow}>
+                  <Feather name="credit-card" size={18} color={colors.primary} />
+                  <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Available Balance</Text>
+                </View>
+                <Text style={[styles.balanceValue, { color: colors.text }]}>
+                  {formatCurrencyAmount(walletSummary.availableBalance, walletSummary.currency)}
+                </Text>
+                <Text style={[styles.changeLabel, { color: colors.textMuted }]}>Available now</Text>
+              </View>
+              <View style={[styles.securedBadge, { backgroundColor: colors.emeraldLight, borderColor: colors.emeraldBorder }]}>
+                <Feather name="shield" size={14} color={colors.emerald} />
+                <Text style={[styles.securedText, { color: colors.emerald }]}>Secured</Text>
+              </View>
+            </View>
+
+            <Button
+              title="Withdraw (Coming soon)"
+              onPress={() => {}}
+              variant="primary"
+              size="lg"
+              icon={<Feather name="arrow-up-right" size={18} color={colors.text} />}
+              fullWidth
+              style={styles.withdrawBtn}
+              disabled
+            />
+            <Text style={[styles.withdrawNote, { color: colors.textMuted }]}>
+              Withdrawals will be enabled after payout setup.
+            </Text>
           </LinearGradient>
         </View>
-        <View style={[styles.statCard, { borderColor: colors.emeraldBorder }]}>
-          <LinearGradient
-            colors={['rgba(52, 211, 153, 0.15)', 'rgba(52, 211, 153, 0.05)']}
-            style={styles.statGradient}
-          >
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Withdrawn</Text>
-            <Text style={[styles.statValue, { color: colors.emerald }]}>₹{wallet.withdrawn.toLocaleString()}</Text>
-            <Text style={[styles.statSubtext, { color: colors.textMuted }]}>This month</Text>
-          </LinearGradient>
+
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { borderColor: colors.amberBorder }]}>
+            <LinearGradient
+              colors={['rgba(251, 191, 36, 0.15)', 'rgba(251, 191, 36, 0.05)']}
+              style={styles.statGradient}
+            >
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pending</Text>
+              <Text style={[styles.statValue, { color: colors.amber }]}>
+                {formatCurrencyAmount(walletSummary.pendingBalance, walletSummary.currency)}
+              </Text>
+              <Text style={[styles.statSubtext, { color: colors.textMuted }]}>Under review</Text>
+            </LinearGradient>
+          </View>
+          <View style={[styles.statCard, { borderColor: colors.emeraldBorder }]}>
+            <LinearGradient
+              colors={['rgba(52, 211, 153, 0.15)', 'rgba(52, 211, 153, 0.05)']}
+              style={styles.statGradient}
+            >
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Balance</Text>
+              <Text style={[styles.statValue, { color: colors.emerald }]}>
+                {formatCurrencyAmount(walletSummary.balance, walletSummary.currency)}
+              </Text>
+              <Text style={[styles.statSubtext, { color: colors.textMuted }]}>Total</Text>
+            </LinearGradient>
+          </View>
         </View>
-      </View>
+        {walletError && !wallet ? (
+          <View style={styles.section}>
+            <ErrorView
+              error={walletError}
+              onRetry={handleRetryAll}
+              compact
+              showIcon={false}
+              title="Wallet summary unavailable"
+              hideRetry
+            />
+          </View>
+        ) : null}
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction History</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
-          <FilterTab label="All" isActive={walletFilter === 'all'} onPress={handleSetFilterAll} colors={colorsWithDark} />
-          <FilterTab label="Income" isActive={walletFilter === 'credit'} onPress={handleSetFilterCredit} count={counts.credit} colors={colorsWithDark} />
-          <FilterTab label="Withdrawals" isActive={walletFilter === 'debit'} onPress={handleSetFilterDebit} count={counts.debit} colors={colorsWithDark} />
-          <FilterTab label="Pending" isActive={walletFilter === 'pending'} onPress={handleSetFilterPending} count={counts.pending} colors={colorsWithDark} />
-        </ScrollView>
-      </View>
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction History</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
+            <FilterTab label="All" isActive={walletFilter === 'all'} onPress={handleSetFilterAll} colors={colorsWithDark} />
+            <FilterTab label="Income" isActive={walletFilter === 'credit'} onPress={handleSetFilterCredit} count={counts.credit} colors={colorsWithDark} />
+            <FilterTab label="Withdrawals" isActive={walletFilter === 'debit'} onPress={handleSetFilterDebit} count={counts.debit} colors={colorsWithDark} />
+            <FilterTab label="Pending" isActive={walletFilter === 'pending'} onPress={handleSetFilterPending} count={counts.pending} colors={colorsWithDark} />
+          </ScrollView>
+        </View>
 
-      <View style={styles.resultsHeader}>
-        <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>{filteredTransactions.length} transactions</Text>
-      </View>
-    </>
-  ), [wallet, walletFilter, counts, filteredTransactions.length, colors, colorsWithDark, handleSetFilterAll, handleSetFilterCredit, handleSetFilterDebit, handleSetFilterPending, handleOpenWithdraw]);
+        <View style={styles.resultsHeader}>
+          <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>{filteredTransactions.length} transactions</Text>
+        </View>
+      </>
+    );
+  }, [
+    showWalletSkeleton,
+    colors,
+    walletSummary,
+    walletFilter,
+    counts,
+    filteredTransactions.length,
+    colorsWithDark,
+    handleSetFilterAll,
+    handleSetFilterCredit,
+    handleSetFilterDebit,
+    handleSetFilterPending,
+  ]);
 
   const renderTransaction = useCallback(
-    ({ item, index }: { item: Transaction; index: number }) => (
+    ({ item, index }: { item: TransactionDTO; index: number }) => (
       <TransactionItem
         transaction={item}
         isLast={index === filteredTransactions.length - 1}
@@ -515,39 +603,64 @@ export default function MoneyScreen() {
     [filteredTransactions.length]
   );
 
-  const transactionKeyExtractor = useCallback((item: Transaction) => item.id, []);
+  const transactionKeyExtractor = useCallback((item: TransactionDTO) => item.id, []);
 
-  const WalletListEmpty = useMemo(() => (
-    <EmptyState
-      icon="inbox"
-      title="No transactions"
-      subtitle={walletFilter === 'all' ? 'Your transactions will appear here' : `No ${walletFilter} transactions found`}
-    />
-  ), [walletFilter]);
-
-  const renderWalletContent = () => (
-    <FlatList
-      data={filteredTransactions}
-      renderItem={renderTransaction}
-      keyExtractor={transactionKeyExtractor}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      ListHeaderComponent={WalletListHeader}
-      ListEmptyComponent={WalletListEmpty}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
+  const WalletListEmpty = useMemo(() => {
+    if (transactionsError) {
+      return (
+        <ErrorView
+          error={transactionsError}
+          onRetry={handleRetryAll}
+          compact
+          showIcon={false}
+          title="Transactions unavailable"
+          hideRetry
         />
-      }
-      initialNumToRender={8}
-      maxToRenderPerBatch={10}
-      windowSize={5}
-      removeClippedSubviews
-    />
-  );
+      );
+    }
+    return (
+      <EmptyState
+        icon="inbox"
+        title="No transactions yet"
+        subtitle={walletFilter === 'all' ? 'Your transactions will appear here' : `No ${walletFilter} transactions found`}
+      />
+    );
+  }, [walletFilter, transactionsError, handleRetryAll]);
+
+  const TransactionsSkeleton = useMemo(() => (
+    <View style={styles.transactionsSkeleton}>
+      {[0, 1, 2, 3].map((key) => (
+        <TransactionItemSkeleton key={`transaction-skeleton-${key}`} />
+      ))}
+    </View>
+  ), []);
+
+
+  const renderWalletContent = () => {
+    return (
+      <FlatList
+        data={filteredTransactions}
+        renderItem={renderTransaction}
+        keyExtractor={transactionKeyExtractor}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={WalletListHeader}
+        ListEmptyComponent={showTransactionsSkeleton ? TransactionsSkeleton : WalletListEmpty}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews
+      />
+    );
+  };
 
   const renderInvoicesContent = () => (
     <ScrollView 
@@ -705,13 +818,6 @@ export default function MoneyScreen() {
       {selectedTab === 'wallet' && renderWalletContent()}
       {selectedTab === 'invoices' && renderInvoicesContent()}
       {selectedTab === 'kyc' && renderKYCContent()}
-
-      <WithdrawModal
-        visible={showWithdrawModal}
-        onClose={() => setShowWithdrawModal(false)}
-        balance={wallet.balance}
-        onWithdraw={handleWithdraw}
-      />
     </SafeAreaView>
   );
 }
@@ -823,6 +929,11 @@ const styles = StyleSheet.create({
   withdrawBtn: {
     marginTop: spacing.xl,
   },
+  withdrawNote: {
+    marginTop: spacing.sm,
+    fontSize: 12,
+    textAlign: 'center',
+  },
   statsRow: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -885,6 +996,9 @@ const styles = StyleSheet.create({
   },
   resultsCount: {
     fontSize: 13,
+  },
+  transactionsSkeleton: {
+    paddingTop: spacing.sm,
   },
   transactionsList: {
     gap: 0,

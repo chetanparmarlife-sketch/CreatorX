@@ -4,8 +4,6 @@
 
 import { apiClient } from '../client';
 import {
-  Wallet,
-  Transaction,
   WithdrawalRequest,
   BankAccount,
   CreateWithdrawalRequest,
@@ -13,20 +11,57 @@ import {
   PaginatedResponse,
 } from '../types';
 
+export type WalletDTO = {
+  id: string;
+  balance: number;
+  availableBalance: number;
+  pendingBalance: number;
+  currency: string;
+};
+
+export type TransactionDTO = {
+  id: string;
+  type: 'CREDIT' | 'DEBIT';
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  amount: number;
+  currency: string;
+  description?: string;
+  createdAt: string;
+  campaignId?: string;
+  referenceId?: string;
+};
+
+export type WithdrawalDTO = {
+  id: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSING' | 'PAID' | 'FAILED';
+  createdAt: string;
+};
+
 export const walletService = {
   /**
    * Get wallet balance
    */
-  async getWallet(): Promise<Wallet> {
-    return await apiClient.get<Wallet>('/wallet');
+  async getWallet(): Promise<WalletDTO> {
+    return await apiClient.get<WalletDTO>('/wallet');
   },
 
   /**
    * Get transaction history
    */
-  async getTransactions(page = 0, size = 20): Promise<PaginatedResponse<Transaction>> {
-    return await apiClient.get<PaginatedResponse<Transaction>>(
+  async getTransactions(page = 0, size = 20): Promise<PaginatedResponse<TransactionDTO>> {
+    return await apiClient.get<PaginatedResponse<TransactionDTO>>(
       `/wallet/transactions?page=${page}&size=${size}`
+    );
+  },
+
+  /**
+   * Get withdrawals list
+   */
+  async getWithdrawals(page = 0, size = 20): Promise<PaginatedResponse<WithdrawalDTO>> {
+    return await apiClient.get<PaginatedResponse<WithdrawalDTO>>(
+      `/wallet/withdrawals?page=${page}&size=${size}`
     );
   },
 
@@ -51,4 +86,3 @@ export const walletService = {
     return await apiClient.post<BankAccount>('/wallet/bank-accounts', data);
   },
 };
-

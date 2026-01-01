@@ -56,9 +56,10 @@ class ApiClient {
         }
 
         try {
-          let token = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          let token = storedToken;
           if (!token) {
-            const session = await getSession();
+            const session = await getSession().catch(() => null);
             token = session?.access_token ?? null;
             if (token) {
               await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, token);
@@ -80,7 +81,9 @@ class ApiClient {
             : `${normalizedBase}${requestUrl.startsWith('/') ? '' : '/'}${requestUrl}`;
           const hasAuthHeader = Boolean(config.headers?.Authorization);
 
-          console.log(`[API Request] ${config.method?.toUpperCase()} ${requestUrl}`, {
+          console.log('[API Request]', {
+            method: config.method,
+            url: requestUrl,
             baseURL,
             fullUrl: normalizedPath,
             hasAuthHeader,
@@ -197,7 +200,7 @@ class ApiClient {
         };
 
         if (__DEV__) {
-          console.error('[API Error]', {
+          console.warn('[API Error]', {
             url: originalRequest?.url,
             method: originalRequest?.method,
             status: apiError.status,

@@ -4,7 +4,8 @@
  * Maintains backward compatibility with existing screens
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { featureFlags } from '@/src/config/featureFlags';
 import {
@@ -20,8 +21,6 @@ import {
   adaptCampaignsResponse,
   adaptCampaign,
   adaptApplication,
-  adaptTransaction,
-  adaptWallet,
   adaptNotification,
   adaptConversationToChatPreview,
   adaptMessage,
@@ -34,19 +33,18 @@ import { APP_OWNED_KEYS } from '@/src/storage/schema';
 import { safeParseJSON } from '@/src/storage/serialization';
 import {
   Campaign,
-  Transaction,
   ChatPreview,
   Notification,
   Deliverable,
   Message,
   Conversation,
   UserProfile,
-  WalletData,
   ActiveCampaign,
   CampaignApplication,
 } from '@/src/types';
 import { CampaignFilters } from '@/src/api/services/campaignService';
 import { ApplicationRequest } from '@/src/api/services/applicationService';
+import { TransactionDTO, WalletDTO, WithdrawalDTO } from '@/src/api/services/walletService';
 import { getSession } from '@/src/lib/supabase';
 import { getSecureItem } from '@/src/lib/secureStore';
 import { storageService } from '@/src/api/services/storageService';
@@ -60,27 +58,34 @@ interface ApplicationFormData {
 interface AppContextType {
   // Data
   user: UserProfile;
-  wallet: WalletData;
+  wallet: WalletDTO | null;
   campaigns: Campaign[];
   applications: CampaignApplication[];
   deliverables: Deliverable[];
-  transactions: Transaction[];
+  transactions: TransactionDTO[];
+  withdrawals: WithdrawalDTO[];
   chats: ChatPreview[];
   conversations: Conversation[];
   messagesByConversation: Record<string, Message[]>;
   savedCampaigns: string[];
   notifications: Notification[];
   unreadNotifications: number;
+  unreadNotificationCount: number;
   darkMode: boolean;
   isLoading: boolean;
   activeCampaigns: ActiveCampaign[];
   error: string | null;
+  notificationsError: string | null;
+  walletError: string | null;
+  transactionsError: string | null;
+  withdrawalsError: string | null;
 
   // Loading states
   loadingCampaigns: boolean;
   loadingApplications: boolean;
-  loadingWallet: boolean;
-  loadingTransactions: boolean;
+  walletLoading: boolean;
+  transactionsLoading: boolean;
+  withdrawalsLoading: boolean;
   loadingNotifications: boolean;
   loadingChats: boolean;
 
@@ -103,16 +108,17 @@ interface AppContextType {
   fetchApplications: () => Promise<void>;
 
   // Actions - Wallet
-  fetchWallet: () => Promise<void>;
-  fetchTransactions: () => Promise<void>;
-  requestWithdrawal: (amount: number, bankAccountId: string) => Promise<void>;
-  updateWallet: (data: Partial<WalletData>) => void;
+  fetchWalletSummary: () => Promise<void>;
+  fetchTransactions: (params?: { page?: number; size?: number; refresh?: boolean }) => Promise<void>;
+  fetchWithdrawals: (params?: { page?: number; size?: number; refresh?: boolean }) => Promise<void>;
+  refreshWalletAll: () => Promise<void>;
 
   // Actions - Notifications
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
   addNotification: (notification: Omit<Notification, 'id'>) => void;
   fetchNotifications: () => Promise<void>;
+  fetchUnreadNotificationCount: () => Promise<void>;
 
   // Actions - Messaging
   sendMessage: (chatId: string, text: string) => Promise<void>;
@@ -146,7 +152,6 @@ interface AppContextType {
   // Actions - Deliverables (legacy)
   addDeliverable: (deliverable: Omit<Deliverable, 'id'>) => void;
   updateDeliverable: (id: string, updates: Partial<Deliverable>) => void;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   approveApplication: (campaignId: string) => void;
   rejectApplication: (campaignId: string, feedback?: string) => void;
   updateCampaignStatus: (campaignId: string, status: Campaign['status']) => void;
@@ -227,47 +232,54 @@ const defaultUser: UserProfile = {
   },
 };
 
-const defaultWallet: WalletData = {
-  balance: 0,
-  pending: 0,
-  withdrawn: 0,
-  monthlyChange: 0,
-  lifetimeEarnings: 0,
-};
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   // State
   const [user, setUser] = useState<UserProfile>(defaultUser);
-  const [wallet, setWallet] = useState<WalletData>(defaultWallet);
+  const [wallet, setWallet] = useState<WalletDTO | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [applications, setApplications] = useState<CampaignApplication[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<TransactionDTO[]>([]);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalDTO[]>([]);
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messagesByConversation, setMessagesByConversation] = useState<Record<string, Message[]>>({});
   const [savedCampaigns, setSavedCampaigns] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [activeCampaigns, setActiveCampaigns] = useState<ActiveCampaign[]>([]);
   const [darkMode, setDarkMode] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const [withdrawalsError, setWithdrawalsError] = useState<string | null>(null);
 
   // Loading states
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [loadingApplications, setLoadingApplications] = useState(false);
-  const [loadingWallet, setLoadingWallet] = useState(false);
-  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [loadingChats, setLoadingChats] = useState(false);
+  const loadingWallet = walletLoading;
 
   // Pagination
   const [campaignsPage, setCampaignsPage] = useState(0);
   const [campaignsHasMore, setCampaignsHasMore] = useState(true);
   const [campaignsTotal, setCampaignsTotal] = useState(0);
   const [campaignFilters, setCampaignFilters] = useState<CampaignFilters>({});
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Load cached data on mount
   useEffect(() => {
@@ -281,33 +293,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       // Load saved campaigns
       const saved = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_CAMPAIGNS);
-      if (saved) setSavedCampaigns(safeParseJSON<string[]>(saved, []));
+      if (saved && isMountedRef.current) setSavedCampaigns(safeParseJSON<string[]>(saved, []));
 
       // Load dark mode
       const dark = await AsyncStorage.getItem(STORAGE_KEYS.DARK_MODE);
-      if (dark) setDarkMode(safeParseJSON<boolean>(dark, true));
+      if (dark && isMountedRef.current) setDarkMode(safeParseJSON<boolean>(dark, true));
 
       // Load cached campaigns if using API
       if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
         const cached = await cacheUtils.get<Campaign[]>('campaigns');
-        if (cached) setCampaigns(cached);
+        if (cached && isMountedRef.current) setCampaigns(cached);
       }
 
       // Load cached wallet
       if (featureFlags.isEnabled('USE_API_WALLET')) {
-        const cached = await cacheUtils.get<WalletData>('wallet');
-        if (cached) setWallet(cached);
+        const cached = await cacheUtils.get<WalletDTO>('wallet');
+        if (cached && isMountedRef.current) setWallet(cached);
       }
 
       // Load cached notifications
       if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
         const cached = await cacheUtils.get<Notification[]>('notifications');
-        if (cached) setNotifications(cached);
+        if (cached && isMountedRef.current) setNotifications(cached);
       }
     } catch (error) {
       console.error('Error loading cached data:', error);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -593,101 +607,130 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [loadingApplications]);
 
   /**
-   * Fetch wallet
+   * Fetch wallet summary
    */
-  const fetchWallet = useCallback(async () => {
-    if (loadingWallet) return;
+  const fetchWalletSummary = useCallback(async () => {
+    if (walletLoading) return;
 
-    setLoadingWallet(true);
     try {
       if (featureFlags.isEnabled('USE_API_WALLET')) {
+        const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+        if (!storedToken) {
+          const session = await getSession().catch(() => null);
+          if (!session?.access_token) {
+            if (__DEV__) {
+              console.log('[Wallet] Skipping fetch — no auth token yet');
+            }
+            return;
+          }
+        }
+
+        setWalletLoading(true);
+        setWalletError(null);
         const apiWallet = await walletService.getWallet();
-        const adapted = adaptWallet(apiWallet);
-        setWallet(adapted);
-        await cacheUtils.set('wallet', adapted);
-        await AsyncStorage.setItem(STORAGE_KEYS.WALLET, JSON.stringify(adapted));
+        setWallet(apiWallet);
+        await cacheUtils.set('wallet', apiWallet);
+        await AsyncStorage.setItem(STORAGE_KEYS.WALLET, JSON.stringify(apiWallet));
+      } else {
+        setWallet(null);
       }
     } catch (err) {
       const apiError = handleAPIError(err);
       setError(apiError.message);
+      setWalletError(apiError.message);
 
-      // Load from cache
       if (isNetworkError(apiError)) {
-        const cached = await cacheUtils.get<WalletData>('wallet');
+        const cached = await cacheUtils.get<WalletDTO>('wallet');
         if (cached) setWallet(cached);
       }
     } finally {
-      setLoadingWallet(false);
+      setWalletLoading(false);
     }
-  }, [loadingWallet]);
+  }, [walletLoading]);
 
   /**
    * Fetch transactions
    */
-  const fetchTransactions = useCallback(async () => {
-    if (loadingTransactions) return;
+  const fetchTransactions = useCallback(
+    async ({ page = 0, size = 20, refresh = false } = {}) => {
+      if (transactionsLoading) return;
 
-    setLoadingTransactions(true);
-    try {
-      if (featureFlags.isEnabled('USE_API_WALLET')) {
-        const result = await walletService.getTransactions(0, 100);
-        const adapted = result.items.map(adaptTransaction);
-        setTransactions(adapted);
-      }
-    } catch (err) {
-      const apiError = handleAPIError(err);
-      setError(apiError.message);
-    } finally {
-      setLoadingTransactions(false);
-    }
-  }, [loadingTransactions]);
-
-  /**
-   * Request withdrawal
-   */
-  const requestWithdrawal = useCallback(
-    async (amount: number, bankAccountId: string) => {
       try {
         if (featureFlags.isEnabled('USE_API_WALLET')) {
-          await walletService.withdrawFunds({
-            amount,
-            bankAccountId: bankAccountId,
-          });
+          const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          if (!storedToken) {
+            const session = await getSession().catch(() => null);
+            if (!session?.access_token) {
+              if (__DEV__) {
+                console.log('[Wallet] Skipping transactions fetch — no auth token yet');
+              }
+              return;
+            }
+          }
 
-          // Update wallet optimistically
-          setWallet((prev) => ({
-            ...prev,
-            balance: prev.balance - amount,
-            withdrawn: prev.withdrawn + amount,
-          }));
-
-          // Refresh wallet to get accurate data
-          await fetchWallet();
-        } else {
-          // Mock withdrawal
-          setWallet((prev) => ({
-            ...prev,
-            balance: prev.balance - amount,
-            withdrawn: prev.withdrawn + amount,
-          }));
+          setTransactionsLoading(true);
+          setTransactionsError(null);
+          const result = await walletService.getTransactions(page, size);
+          setTransactions((prev) => (refresh || page === 0 ? result.items : [...prev, ...result.items]));
+        } else if (refresh || page === 0) {
+          setTransactions([]);
         }
       } catch (err) {
         const apiError = handleAPIError(err);
         setError(apiError.message);
-        throw apiError;
+        setTransactionsError(apiError.message);
+      } finally {
+        setTransactionsLoading(false);
       }
     },
-    [fetchWallet]
+    [transactionsLoading]
   );
 
   /**
-   * Update wallet (local only, for mock mode)
+   * Fetch withdrawals
    */
-  const updateWallet = useCallback(async (data: Partial<WalletData>) => {
-    const updated = { ...wallet, ...data };
-    setWallet(updated);
-    await AsyncStorage.setItem(STORAGE_KEYS.WALLET, JSON.stringify(updated));
-  }, [wallet]);
+  const fetchWithdrawals = useCallback(
+    async ({ page = 0, size = 20, refresh = false } = {}) => {
+      if (withdrawalsLoading) return;
+
+      try {
+        if (featureFlags.isEnabled('USE_API_WALLET')) {
+          const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          if (!storedToken) {
+            const session = await getSession().catch(() => null);
+            if (!session?.access_token) {
+              if (__DEV__) {
+                console.log('[Wallet] Skipping withdrawals fetch — no auth token yet');
+              }
+              return;
+            }
+          }
+
+          setWithdrawalsLoading(true);
+          setWithdrawalsError(null);
+          const result = await walletService.getWithdrawals(page, size);
+          setWithdrawals((prev) => (refresh || page === 0 ? result.items : [...prev, ...result.items]));
+        } else if (refresh || page === 0) {
+          setWithdrawals([]);
+        }
+      } catch (err) {
+        const apiError = handleAPIError(err);
+        setError(apiError.message);
+        setWithdrawalsError(apiError.message);
+      } finally {
+        setWithdrawalsLoading(false);
+      }
+    },
+    [withdrawalsLoading]
+  );
+
+  const refreshWalletAll = useCallback(async () => {
+    await Promise.all([
+      fetchWalletSummary(),
+      fetchTransactions({ page: 0, size: 20, refresh: true }),
+      fetchWithdrawals({ page: 0, size: 20, refresh: true }),
+    ]);
+  }, [fetchWalletSummary, fetchTransactions, fetchWithdrawals]);
 
   /**
    * Fetch notifications
@@ -696,8 +739,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (loadingNotifications) return;
 
     setLoadingNotifications(true);
+    setNotificationsError(null);
+    setWalletError(null);
+    setTransactionsError(null);
+    setWithdrawalsError(null);
     try {
       if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
+        const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+        if (!storedToken) {
+          const session = await getSession().catch(() => null);
+          if (!session?.access_token) {
+            if (__DEV__) {
+              console.log('[Notifications] Skipping fetch until auth token is ready.');
+            }
+            return;
+          }
+        }
+
         const result = await notificationService.getNotifications(0, 100);
         const adapted = result.items.map(adaptNotification);
         setNotifications(adapted);
@@ -706,6 +764,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const apiError = handleAPIError(err);
       setError(apiError.message);
+      setNotificationsError(apiError.message);
 
       // Load from cache
       if (isNetworkError(apiError)) {
@@ -718,6 +777,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [loadingNotifications]);
 
   /**
+   * Fetch unread notification count
+   */
+  const fetchUnreadNotificationCount = useCallback(async () => {
+    if (!featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+    if (!storedToken) {
+      const session = await getSession().catch(() => null);
+      if (!session?.access_token) {
+        if (__DEV__) {
+          console.log('[Notifications] Skipping unread count until auth token is ready.');
+        }
+        return;
+      }
+    }
+
+    try {
+      const result = await notificationService.getUnreadCount();
+      setUnreadNotificationCount(result.count);
+      setNotificationsError(null);
+    } catch (err) {
+      const apiError = handleAPIError(err);
+      setNotificationsError(apiError.message);
+    }
+  }, []);
+
+  // Bootstrap notifications when authenticated
+  useEffect(() => {
+    if (!featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
+      return;
+    }
+    fetchNotifications();
+    fetchUnreadNotificationCount();
+  }, [fetchNotifications, fetchUnreadNotificationCount]);
+
+  // Refresh unread count on app resume
+  useEffect(() => {
+    if (!featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
+      return;
+    }
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        fetchUnreadNotificationCount();
+      }
+    });
+    return () => subscription.remove();
+  }, [fetchUnreadNotificationCount]);
+
+  /**
    * Mark notification as read
    */
   const markNotificationRead = useCallback(
@@ -727,7 +838,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       try {
         if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
-          await notificationService.markAsRead(id);
+          await notificationService.markNotificationRead(id);
+          await fetchUnreadNotificationCount();
         }
       } catch (err) {
         // Revert on error
@@ -735,7 +847,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Error marking notification read:', err);
       }
     },
-    []
+    [fetchUnreadNotificationCount]
   );
 
   /**
@@ -747,17 +859,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     try {
       if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
-        await notificationService.markAllRead();
+        const unread = notifications.filter((n) => !n.read);
+        await Promise.all(unread.map((n) => notificationService.markNotificationRead(n.id)));
+        await fetchUnreadNotificationCount();
       }
     } catch (err) {
       console.error('Error marking all notifications read:', err);
     }
-  }, []);
+  }, [fetchUnreadNotificationCount, notifications]);
 
   /**
    * Add notification (local only)
    */
   const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
+    if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
+      return;
+    }
     const newNotification: Notification = {
       ...notification,
       id: Date.now().toString(),
@@ -1067,14 +1184,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setNotificationsError(null);
 
     try {
       await Promise.all([
         fetchCampaigns({}, true),
         fetchApplications(),
-        fetchWallet(),
-        fetchTransactions(),
+        refreshWalletAll(),
         fetchNotifications(),
+        fetchUnreadNotificationCount(),
         fetchConversations(),
       ]);
     } catch (err) {
@@ -1083,31 +1201,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchCampaigns, fetchApplications, fetchWallet, fetchTransactions, fetchNotifications, fetchConversations]);
+  }, [
+    fetchCampaigns,
+    fetchApplications,
+    refreshWalletAll,
+    fetchNotifications,
+    fetchUnreadNotificationCount,
+    fetchConversations,
+  ]);
 
   /**
    * Reset app state on logout
    */
   const resetAppState = useCallback(async () => {
     setUser(defaultUser);
-    setWallet(defaultWallet);
+    setWallet(null);
     setCampaigns([]);
     setApplications([]);
     setDeliverables([]);
     setTransactions([]);
+    setWithdrawals([]);
     setChats([]);
     setConversations([]);
     setMessagesByConversation({});
     setSavedCampaigns([]);
     setNotifications([]);
+    setUnreadNotificationCount(0);
     setActiveCampaigns([]);
     setDarkMode(true);
     setIsLoading(false);
+    setNotificationsError(null);
     setError(null);
     setLoadingCampaigns(false);
     setLoadingApplications(false);
-    setLoadingWallet(false);
-    setLoadingTransactions(false);
+    setWalletLoading(false);
+    setTransactionsLoading(false);
+    setWithdrawalsLoading(false);
     setLoadingNotifications(false);
     setLoadingChats(false);
     setCampaignsPage(0);
@@ -1150,14 +1279,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDeliverables((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)));
   }, []);
 
-  const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: Date.now().toString(),
-    };
-    setTransactions((prev) => [newTransaction, ...prev]);
-  }, []);
-
   const approveApplication = useCallback((campaignId: string) => {
     setApplications((prev) =>
       prev.map((a) =>
@@ -1184,7 +1305,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   // Calculate unread notifications
-  const unreadNotifications = notifications.filter((n) => !n.read).length;
+  const resolvedUnreadNotificationCount = featureFlags.isEnabled('USE_API_NOTIFICATIONS')
+    ? unreadNotificationCount
+    : notifications.filter((n) => !n.read).length;
+  const unreadNotifications = resolvedUnreadNotificationCount;
 
   const value: AppContextType = {
     // Data
@@ -1194,22 +1318,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     applications,
     deliverables,
     transactions,
+    withdrawals,
     chats,
     conversations,
     messagesByConversation,
     savedCampaigns,
     notifications,
     unreadNotifications,
+    unreadNotificationCount: resolvedUnreadNotificationCount,
     darkMode,
     isLoading,
     activeCampaigns,
     error,
+    notificationsError,
+    walletError,
+    transactionsError,
+    withdrawalsError,
 
     // Loading states
     loadingCampaigns,
     loadingApplications,
-    loadingWallet,
-    loadingTransactions,
+    walletLoading,
+    transactionsLoading,
+    withdrawalsLoading,
     loadingNotifications,
     loadingChats,
 
@@ -1228,14 +1359,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     getApplication,
     withdrawApplication,
     fetchApplications,
-    fetchWallet,
+    fetchWalletSummary,
     fetchTransactions,
-    requestWithdrawal,
-    updateWallet,
+    fetchWithdrawals,
+    refreshWalletAll,
     markNotificationRead,
     markAllNotificationsRead,
     addNotification,
     fetchNotifications,
+    fetchUnreadNotificationCount,
     sendMessage,
     getConversation,
     markChatRead,
@@ -1257,7 +1389,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Legacy methods
     addDeliverable,
     updateDeliverable,
-    addTransaction,
     approveApplication,
     rejectApplication,
     updateCampaignStatus,

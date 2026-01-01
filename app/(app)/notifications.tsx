@@ -70,8 +70,18 @@ const NotificationItem = memo(function NotificationItem({
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { notifications, markNotificationRead, markAllNotificationsRead, unreadNotifications, refreshData } = useApp();
-  const { refreshing, handleRefresh } = useRefresh(refreshData);
+  const {
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    unreadNotificationCount,
+    fetchNotifications,
+    fetchUnreadNotificationCount,
+    notificationsError,
+  } = useApp();
+  const { refreshing, handleRefresh } = useRefresh(async () => {
+    await Promise.all([fetchNotifications(), fetchUnreadNotificationCount()]);
+  });
 
   const handleNotificationPress = useCallback((notification: Notification) => {
     markNotificationRead(notification.id);
@@ -100,13 +110,13 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Notifications</Text>
-          {unreadNotifications > 0 && (
+          {unreadNotificationCount > 0 && (
             <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>{unreadNotifications}</Text>
+              <Text style={styles.unreadBadgeText}>{unreadNotificationCount}</Text>
             </View>
           )}
         </View>
-        {unreadNotifications > 0 && (
+        {unreadNotificationCount > 0 && (
           <TouchableOpacity style={styles.markAllButton} onPress={markAllNotificationsRead}>
             <Feather name="check-circle" size={20} color={colors.primary} />
           </TouchableOpacity>
@@ -128,11 +138,19 @@ export default function NotificationsScreen() {
           />
         }
         ListEmptyComponent={
-          <EmptyState
-            icon="bell-off"
-            title="No notifications yet"
-            subtitle="You'll see updates about your campaigns and payments here"
-          />
+          notificationsError ? (
+            <EmptyState
+              icon="alert-circle"
+              title="Failed to load notifications"
+              subtitle="Pull to retry."
+            />
+          ) : (
+            <EmptyState
+              icon="bell-off"
+              title="No notifications yet"
+              subtitle="You'll see updates about your campaigns and payments here"
+            />
+          )
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         initialNumToRender={10}

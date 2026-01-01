@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,6 +13,8 @@ const STORAGE_KEYS = {
 
 export default function ResetOnboarding() {
   const router = useRouter();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     const resetAndRedirect = async () => {
@@ -28,12 +30,19 @@ export default function ResetOnboarding() {
         console.error('Failed to clear onboarding data:', e);
       }
       
-      setTimeout(() => {
+      if (!isMountedRef.current) return;
+      timeoutRef.current = setTimeout(() => {
         router.replace('/(auth)/connect');
       }, 500);
     };
 
     resetAndRedirect();
+    return () => {
+      isMountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [router]);
 
   return (

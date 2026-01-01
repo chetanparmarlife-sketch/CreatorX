@@ -1,11 +1,11 @@
 import { useState, useCallback, useMemo, memo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { spacing, borderRadius, typography } from '@/src/theme';
 import { ChatItem, ChatItemSkeleton, EmptyState, Avatar } from '@/src/components';
-import { ChatPreview } from '@/src/types';
+import { ChatPreview, Notification } from '@/src/types';
 import { useDebounce, useRefresh, useTheme } from '@/src/hooks';
 import { useApp } from '@/src/context';
 
@@ -13,74 +13,6 @@ const headerTabs = [
   { id: 'messages', label: 'Messages' },
   { id: 'notifications', label: 'Notifications' },
 ];
-
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'campaign_approved' as const,
-    title: 'Campaign Approved',
-    message: 'Your application for StyleCo Summer Collection has been approved!',
-    time: '2 min ago',
-    isRead: false,
-    icon: 'check-circle',
-  },
-  {
-    id: '2',
-    type: 'deliverable_approved' as const,
-    title: 'Deliverable Approved',
-    message: 'Your Instagram Reel for TechBrand has been approved.',
-    time: '1 hour ago',
-    isRead: false,
-    icon: 'thumbs-up',
-  },
-  {
-    id: '3',
-    type: 'payment' as const,
-    title: 'Payment Received',
-    message: 'You received ₹15,000 for FoodieApp Promo Campaign.',
-    time: '3 hours ago',
-    isRead: true,
-    icon: 'rupee-sign',
-  },
-  {
-    id: '4',
-    type: 'invite' as const,
-    title: 'Brand Invitation',
-    message: 'BeautyBox has invited you to join their new campaign.',
-    time: '5 hours ago',
-    isRead: true,
-    icon: 'mail',
-  },
-  {
-    id: '5',
-    type: 'reminder' as const,
-    title: 'Deadline Reminder',
-    message: 'Your deliverable for GymPro is due in 2 days.',
-    time: 'Yesterday',
-    isRead: true,
-    icon: 'clock',
-  },
-  {
-    id: '6',
-    type: 'system' as const,
-    title: 'Profile Verified',
-    message: 'Congratulations! Your KYC verification is complete.',
-    time: '2 days ago',
-    isRead: true,
-    icon: 'shield',
-  },
-  {
-    id: '7',
-    type: 'campaign_update' as const,
-    title: 'Campaign Update',
-    message: 'StyleCo has updated the campaign requirements.',
-    time: '3 days ago',
-    isRead: true,
-    icon: 'refresh-cw',
-  },
-];
-
-type NotificationType = typeof mockNotifications[0];
 
 const HeaderTabButton = memo(function HeaderTabButton({
   label,
@@ -131,22 +63,20 @@ const NotificationItem = memo(function NotificationItem({
   colors,
   onPress,
 }: {
-  notification: NotificationType;
+  notification: Notification;
   colors: any;
   onPress: () => void;
 }) {
   const getIconColor = () => {
     switch (notification.type) {
-      case 'campaign_approved':
-      case 'deliverable_approved':
+      case 'campaign':
+      case 'application':
         return '#10b981';
       case 'payment':
         return colors.primary;
-      case 'invite':
+      case 'referral':
         return '#f59e0b';
-      case 'reminder':
-        return '#ef4444';
-      case 'system':
+      case 'message':
         return '#3b82f6';
       default:
         return colors.textSecondary;
@@ -157,7 +87,7 @@ const NotificationItem = memo(function NotificationItem({
     <TouchableOpacity
       style={[
         styles.notificationItem,
-        !notification.isRead && { backgroundColor: colors.isDark ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.05)' },
+        !notification.read && { backgroundColor: colors.isDark ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.05)' },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
@@ -167,7 +97,7 @@ const NotificationItem = memo(function NotificationItem({
         {notification.type === 'payment' ? (
           <FontAwesome5 name="rupee-sign" size={16} color={getIconColor()} />
         ) : (
-          <Feather name={notification.icon as any} size={18} color={getIconColor()} />
+          <Feather name="bell" size={18} color={getIconColor()} />
         )}
       </View>
       <View style={styles.notificationContent}>
@@ -175,12 +105,12 @@ const NotificationItem = memo(function NotificationItem({
           <Text style={[styles.notificationTitle, { color: colors.text }]} numberOfLines={1}>
             {notification.title}
           </Text>
-          {!notification.isRead && (
+          {!notification.read && (
             <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
           )}
         </View>
         <Text style={[styles.notificationMessage, { color: colors.textSecondary }]} numberOfLines={2}>
-          {notification.message}
+          {notification.description}
         </Text>
         <Text style={[styles.notificationTime, { color: colors.textMuted }]}>
           {notification.time}
@@ -206,11 +136,17 @@ const MemoizedChatItem = memo(function MemoizedChatItem({
 export default function UpdatesScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const { chats, markChatRead, refreshData } = useApp();
+  const {
+    chats,
+    notifications,
+    markChatRead,
+    markNotificationRead,
+    unreadNotificationCount,
+    refreshData,
+  } = useApp();
   const [selectedTab, setSelectedTab] = useState('messages');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -230,11 +166,12 @@ export default function UpdatesScreen() {
     });
   }, [router, markChatRead]);
 
-  const handleNotificationPress = useCallback((notification: NotificationType) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
-    );
-  }, []);
+  const handleNotificationPress = useCallback((notification: Notification) => {
+    markNotificationRead(notification.id);
+    if (notification.action?.path) {
+      router.push(notification.action.path as any);
+    }
+  }, [markNotificationRead, router]);
 
   const filteredChats = useMemo(() => {
     if (!debouncedSearch) return chats;
@@ -250,7 +187,7 @@ export default function UpdatesScreen() {
     return notifications.filter(
       (n) =>
         n.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        n.message.toLowerCase().includes(debouncedSearch.toLowerCase())
+        n.description.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
   }, [notifications, debouncedSearch]);
 
@@ -259,10 +196,7 @@ export default function UpdatesScreen() {
     [chats]
   );
 
-  const unreadNotifications = useMemo(
-    () => notifications.filter(n => !n.isRead).length,
-    [notifications]
-  );
+  const unreadNotifications = unreadNotificationCount;
 
   const renderChat = useCallback(
     ({ item }: { item: ChatPreview }) => (
@@ -272,7 +206,7 @@ export default function UpdatesScreen() {
   );
 
   const renderNotification = useCallback(
-    ({ item }: { item: NotificationType }) => (
+    ({ item }: { item: Notification }) => (
       <NotificationItem 
         notification={item} 
         colors={{ ...colors, isDark }} 
@@ -283,7 +217,7 @@ export default function UpdatesScreen() {
   );
 
   const chatKeyExtractor = useCallback((item: ChatPreview) => item.id, []);
-  const notificationKeyExtractor = useCallback((item: NotificationType) => item.id, []);
+  const notificationKeyExtractor = useCallback((item: Notification) => item.id, []);
 
   const MessagesEmptyComponent = useMemo(
     () =>
