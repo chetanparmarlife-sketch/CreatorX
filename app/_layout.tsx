@@ -31,7 +31,7 @@ function AuthGuard() {
 
   useEffect(() => {
     if (!initialized) return;
-    if (segments.length === 0) return;
+    if (!segments || !segments.length) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inAppGroup = segments[0] === '(app)';

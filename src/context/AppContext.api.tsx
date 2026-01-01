@@ -170,6 +170,7 @@ const STORAGE_KEYS = {
   DARK_MODE: '@dark_mode',
   ACTIVE_CAMPAIGNS: '@active_campaigns',
   APPLICATIONS: '@applications',
+  ACCESS_TOKEN: '@access_token',
 };
 
 const getMessageTimestamp = (message: Message): number | null => {
