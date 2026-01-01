@@ -171,9 +171,9 @@ export default function TabsLayout() {
   const { unreadNotificationCount } = useApp();
   const { colors, isDark } = useTheme();
 
-  const navBarBg = isDark ? '#0c0c0c' : '#ffffff';
+  const navBarBg = isDark ? '#0a0a0a' : '#ffffff';
   const activeColor = isDark ? '#ffffff' : colors.primary;
-  const inactiveColor = isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.45)';
+  const inactiveColor = isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.45)';
 
   return (
     <Tabs
@@ -382,26 +382,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   iconGlowContainer: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: 22,
   },
   iconGlowActive: {
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     ...Platform.select({
       ios: {
         shadowColor: '#8B5CF6',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.35,
-        shadowRadius: 6,
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
       web: {
-        boxShadow: '0 0 12px rgba(139, 92, 246, 0.4)',
+        boxShadow: '0 0 16px rgba(139, 92, 246, 0.5)',
       },
     }),
   },

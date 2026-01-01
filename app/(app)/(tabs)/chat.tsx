@@ -264,18 +264,18 @@ export default function UpdatesScreen() {
   const ListHeader = useMemo(() => (
     <>
       <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: isDark ? '#1a1a1a' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]}>
-          <Feather name="search" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#1a1a1a'} />
+        <View style={[styles.searchBar, { backgroundColor: '#FFFFFF' }]}>
+          <Feather name="search" size={20} color="#1a1a1a" />
           <TextInput
-            style={[styles.searchInput, { color: isDark ? '#ffffff' : '#1a1a1a' }]}
+            style={[styles.searchInput, { color: '#1a1a1a' }]}
             placeholder={selectedTab === 'messages' ? 'Search conversations...' : 'Search notifications...'}
-            placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)'}
+            placeholderTextColor="rgba(0,0,0,0.5)"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} data-testid="button-clear-search">
-              <Feather name="x" size={18} color={isDark ? 'rgba(255,255,255,0.5)' : '#1a1a1a'} />
+              <Feather name="x" size={18} color="#1a1a1a" />
             </TouchableOpacity>
           )}
         </View>
