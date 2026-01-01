@@ -4,9 +4,9 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const styles: Record<string, string> = {
-    active: 'bg-green-100 text-green-700',
-    closed: 'bg-gray-100 text-gray-700',
-    draft: 'bg-yellow-100 text-yellow-700',
+    active: 'bg-emerald-100 text-emerald-700',
+    closed: 'bg-slate-100 text-slate-700',
+    draft: 'bg-amber-100 text-amber-800',
     paused: 'bg-orange-100 text-orange-700',
   }
 
@@ -27,8 +27,8 @@ export function PillBadge({ label, variant = 'outline' }: PillBadgeProps) {
     <span
       className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
         variant === 'outline'
-          ? 'border border-gray-300 text-gray-700 bg-white'
-          : 'bg-gray-100 text-gray-700'
+          ? 'border border-slate-200/70 text-slate-700 bg-white/80'
+          : 'bg-slate-100 text-slate-700'
       }`}
     >
       {label}

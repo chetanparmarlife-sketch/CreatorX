@@ -48,7 +48,7 @@ export const campaignService = {
    * @param id - Campaign ID
    * @returns Campaign details
    */
-  async getCampaignById(id: number): Promise<Campaign> {
+  async getCampaignById(id: string): Promise<Campaign> {
     return await apiClient.get<Campaign>(`/campaigns/${id}`);
   },
 
@@ -73,7 +73,7 @@ export const campaignService = {
    * Save campaign (bookmark for later)
    * @param id - Campaign ID
    */
-  async saveCampaign(id: number): Promise<void> {
+  async saveCampaign(id: string): Promise<void> {
     await apiClient.post(`/campaigns/${id}/save`);
   },
 
@@ -81,7 +81,7 @@ export const campaignService = {
    * Unsave campaign (remove bookmark)
    * @param id - Campaign ID
    */
-  async unsaveCampaign(id: number): Promise<void> {
+  async unsaveCampaign(id: string): Promise<void> {
     await apiClient.delete(`/campaigns/${id}/save`);
   },
 
@@ -101,4 +101,3 @@ export const campaignService = {
     return await apiClient.get<Campaign[]>('/campaigns/active');
   },
 };
-

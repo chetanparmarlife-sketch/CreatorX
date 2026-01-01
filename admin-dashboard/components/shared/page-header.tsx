@@ -10,12 +10,17 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, ctaLabel, onCtaClick }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between mb-6">
-      <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
+    <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+          {title}
+        </h1>
+        <div className="h-1 w-10 rounded-full bg-primary/70" />
+      </div>
       {ctaLabel && (
         <Button 
           onClick={onCtaClick}
-          className="bg-sky-500 hover:bg-sky-600 text-white"
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
           {ctaLabel}
         </Button>

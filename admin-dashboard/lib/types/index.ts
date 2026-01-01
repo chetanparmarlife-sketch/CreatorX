@@ -265,6 +265,24 @@ export interface Application {
   feedback?: ApplicationFeedback
 }
 
+export interface AdminApplicationDTO {
+  id: string
+  campaignId: string
+  creatorId: string
+  status: ApplicationStatus
+  pitchText?: string
+  expectedTimeline?: string
+  appliedAt: string
+  updatedAt?: string
+  campaign?: Campaign
+  creator?: {
+    id: string
+    email: string
+    profile?: UserProfile
+  }
+  feedback?: ApplicationFeedback
+}
+
 export interface ApplicationFeedback {
   id: string
   applicationId: string

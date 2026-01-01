@@ -544,7 +544,7 @@ export default function MessagesPage() {
   }, [activeConversationId, markReadMutation])
 
   return (
-    <div className="fixed inset-0 left-64 top-0 bg-[#F7F9FC] flex">
+    <div className="w-full bg-[#F7F9FC] border border-slate-200/70 rounded-2xl overflow-hidden shadow-sm flex h-[calc(100vh-8rem)]">
       <ConversationList
         conversations={conversations}
         activeId={activeConversationId}

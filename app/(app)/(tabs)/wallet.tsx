@@ -76,7 +76,7 @@ const kycSteps = [
   { id: 'personal', label: 'Personal Information', description: 'Basic details and contact info', icon: 'user' as const },
   { id: 'identity', label: 'Identity Verification', description: 'Government ID and selfie', icon: 'credit-card' as const },
   { id: 'address', label: 'Address Proof', description: 'Utility bill or bank statement', icon: 'map-pin' as const },
-  { id: 'bank', label: 'Bank Details', description: 'Account for payouts', icon: 'dollar-sign' as const },
+  { id: 'bank', label: 'Bank Details', description: 'Account for payouts', icon: 'rupee-sign' as const },
 ];
 
 type FilterType = 'all' | 'credit' | 'debit' | 'pending';

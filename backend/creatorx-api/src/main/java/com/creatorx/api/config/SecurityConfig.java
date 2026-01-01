@@ -4,6 +4,7 @@ import com.creatorx.api.security.SupabaseJwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -16,7 +17,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -25,6 +29,9 @@ import java.util.List;
 public class SecurityConfig {
     
     private final SupabaseJwtAuthenticationFilter supabaseJwtAuthenticationFilter;
+    
+    @Value("${creatorx.cors.allowed-origins:}")
+    private String allowedOrigins;
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -52,12 +59,20 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
+        List<String> baseOrigins = Arrays.asList(
             "http://localhost:8081", // Expo default
             "http://localhost:19006", // Expo web
             "exp://localhost:8081",
             "http://localhost:3000"
-        ));
+        );
+        List<String> extraOrigins = parseAllowedOrigins(allowedOrigins);
+        if (extraOrigins.isEmpty()) {
+            configuration.setAllowedOrigins(baseOrigins);
+        } else {
+            List<String> allOrigins = new ArrayList<>(baseOrigins);
+            allOrigins.addAll(extraOrigins);
+            configuration.setAllowedOriginPatterns(allOrigins);
+        }
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
@@ -68,7 +83,15 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
+    private List<String> parseAllowedOrigins(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(raw.split(","))
+            .map(String::trim)
+            .filter(value -> !value.isEmpty())
+            .collect(Collectors.toList());
+    }
 }
-
-
 

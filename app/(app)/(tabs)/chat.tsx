@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { spacing, borderRadius, typography } from '@/src/theme';
 import { ChatItem, ChatItemSkeleton, EmptyState, Avatar } from '@/src/components';
@@ -40,7 +40,7 @@ const mockNotifications = [
     message: 'You received ₹15,000 for FoodieApp Promo Campaign.',
     time: '3 hours ago',
     isRead: true,
-    icon: 'dollar-sign',
+    icon: 'rupee-sign',
   },
   {
     id: '4',
@@ -164,7 +164,11 @@ const NotificationItem = memo(function NotificationItem({
       data-testid={`notification-${notification.id}`}
     >
       <View style={[styles.notificationIconContainer, { backgroundColor: `${getIconColor()}15` }]}>
-        <Feather name={notification.icon as any} size={18} color={getIconColor()} />
+        {notification.type === 'payment' ? (
+          <FontAwesome5 name="rupee-sign" size={16} color={getIconColor()} />
+        ) : (
+          <Feather name={notification.icon as any} size={18} color={getIconColor()} />
+        )}
       </View>
       <View style={styles.notificationContent}>
         <View style={styles.notificationHeader}>

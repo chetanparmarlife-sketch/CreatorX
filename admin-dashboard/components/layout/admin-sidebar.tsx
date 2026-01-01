@@ -163,18 +163,18 @@ export function AdminSidebar() {
   }
 
   return (
-    <div className="w-64 h-screen bg-slate-950 border-r border-slate-800/70 text-slate-100 flex flex-col fixed left-0 top-0">
+    <div className="w-64 h-screen bg-slate-950 border-r border-slate-800/80 text-slate-100 flex flex-col fixed left-0 top-0 shadow-[0_0_40px_rgba(15,23,42,0.4)]">
       <div className="px-6 py-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Admin Console</p>
+        <p className="text-xs uppercase tracking-[0.32em] text-slate-500">Admin Console</p>
         <h2 className="text-xl font-semibold text-white">CreatorX</h2>
       </div>
 
-      <nav className="flex-1 px-3 overflow-y-auto">
+      <nav className="flex-1 px-3 pr-2 overflow-y-auto sidebar-scroll">
         {navSections.map((section, sectionIdx) => (
           <div key={sectionIdx} className="mb-6">
             {section.title && (
               <div className="px-3 mb-2">
-                <span className="text-xs font-semibold tracking-[0.2em] text-slate-400">
+                <span className="text-xs font-semibold tracking-[0.28em] text-slate-500">
                   {section.title}
                 </span>
               </div>
@@ -187,16 +187,16 @@ export function AdminSidebar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg border border-transparent text-sm font-medium transition-all',
                       isActive
-                        ? 'bg-white/10 text-white'
+                        ? 'bg-white/12 text-white border-white/15 shadow-[0_10px_20px_rgba(15,23,42,0.25)]'
                         : 'text-slate-300 hover:bg-white/5 hover:text-white'
                     )}
                   >
                     <item.icon className="w-4 h-4" />
                     <span className="flex-1">{item.label}</span>
                     {item.count !== undefined && (
-                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-slate-100">
+                      <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[11px] text-white">
                         {item.count}
                       </span>
                     )}
@@ -204,8 +204,8 @@ export function AdminSidebar() {
                       <span
                         className={cn(
                           'rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide',
-                          item.slaTone === 'danger' && 'bg-red-500/20 text-red-200',
-                          item.slaTone === 'warning' && 'bg-amber-500/20 text-amber-200',
+                          item.slaTone === 'danger' && 'bg-red-500/25 text-red-100',
+                          item.slaTone === 'warning' && 'bg-amber-500/25 text-amber-100',
                           item.slaTone === 'default' && 'bg-white/10 text-slate-200'
                         )}
                       >
@@ -223,7 +223,7 @@ export function AdminSidebar() {
       <div className="p-4 border-t border-slate-800/70">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-200">
+            <button className="w-full flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
               <div>
                 <p className="font-medium">{user?.email || 'Admin'}</p>
                 <p className="text-xs text-slate-400">Administrator</p>

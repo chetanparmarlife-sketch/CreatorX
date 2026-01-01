@@ -47,6 +47,8 @@ import {
 } from '@/src/types';
 import { CampaignFilters } from '@/src/api/services/campaignService';
 import { ApplicationRequest } from '@/src/api/services/applicationService';
+import { getSession } from '@/src/lib/supabase';
+import { getSecureItem } from '@/src/lib/secureStore';
 
 interface ApplicationFormData {
   pitch: string;
@@ -315,6 +317,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (filters: CampaignFilters = {}, reset: boolean = false) => {
       if (loadingCampaigns) return;
 
+      if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
+        const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+        if (!storedToken) {
+          const session = await getSession().catch(() => null);
+          if (!session?.access_token) {
+            if (__DEV__) {
+              console.log('[Campaigns] Skipping fetch until auth token is ready.');
+            }
+            return;
+          }
+        }
+      }
+
       setLoadingCampaigns(true);
       setError(null);
       setCampaignFilters(filters);
@@ -403,7 +418,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       try {
         if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
-          await campaignService.saveCampaign(Number(campaignId));
+          await campaignService.saveCampaign(campaignId);
         }
       } catch (err) {
         // Revert on error
@@ -444,7 +459,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       try {
         if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
-          await campaignService.unsaveCampaign(Number(campaignId));
+          await campaignService.unsaveCampaign(campaignId);
         }
       } catch (err) {
         // Revert on error
@@ -478,7 +493,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         if (featureFlags.isEnabled('USE_API_APPLICATIONS')) {
           const request: ApplicationRequest = {
-            campaignId: Number(campaignId),
+            campaignId,
             pitchText: applicationData.pitch,
             availability: applicationData.expectedTimeline,
             expectedTimeline: applicationData.expectedTimeline,
@@ -545,7 +560,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const withdrawApplication = useCallback(async (applicationId: string) => {
       try {
         if (featureFlags.isEnabled('USE_API_APPLICATIONS')) {
-          await applicationService.withdrawApplication(Number(applicationId));
+          await applicationService.withdrawApplication(applicationId);
         }
       setApplications((prev) => prev.filter((a) => a.id !== applicationId));
     } catch (err) {

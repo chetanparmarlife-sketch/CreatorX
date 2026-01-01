@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
-import { Manrope, Space_Grotesk } from "next/font/google"
+import { Playfair_Display, Sora } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" })
-const spaceGrotesk = Space_Grotesk({
+const sora = Sora({ subsets: ["latin"], variable: "--font-sans" })
+const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-display",
 })
@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${spaceGrotesk.variable} antialiased`}>
+      <body className={`${sora.variable} ${playfairDisplay.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

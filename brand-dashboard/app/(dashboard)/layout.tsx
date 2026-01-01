@@ -35,9 +35,15 @@ export default function DashboardLayout({
   if (hasToken === null) {
     return (
       <div className="min-h-screen flex items-center justify-center dashboard-shell">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading...</p>
+        <div className="loading-card">
+          <div className="loading-ring"></div>
+          <p className="mt-5 text-sm uppercase tracking-[0.28em] text-amber-700/70">
+            Preparing Workspace
+          </p>
+          <p className="mt-2 text-base font-semibold text-slate-900">
+            Loading your brand dashboard.
+          </p>
+          <p className="mt-2 text-xs text-slate-500">Syncing campaigns and creator activity.</p>
         </div>
       </div>
     )
@@ -50,8 +56,8 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen dashboard-shell">
       <Sidebar />
-      <main className="ml-64 p-8">
-        <div className="max-w-[1440px] mx-auto">
+      <main className="ml-64 px-6 py-8 lg:px-10 lg:py-10 page-fade">
+        <div className="max-w-[1480px] mx-auto">
           {children}
         </div>
       </main>

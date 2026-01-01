@@ -34,15 +34,32 @@ const getEnvironment = (): Environment => {
 
 const ENV = getEnvironment();
 
-const getBaseURL = (env: Environment): string => {
-  // Check for explicit environment variable (highest priority)
+const appendApiVersion = (url: string): string => {
+  if (!url) return url;
+  const normalized = url.replace(/\/+$/, '');
+  return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
+};
+
+const getEnvBaseURL = (): string | null => {
   // @ts-ignore - Expo environment variables
-  if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_BASE_URL) {
-    // @ts-ignore
-    const url = process.env.EXPO_PUBLIC_API_BASE_URL;
-    if (url && url !== 'your-api-url') {
-      return url;
-    }
+  if (typeof process === 'undefined') return null;
+  // @ts-ignore
+  const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (explicit && explicit !== 'your-api-url') {
+    return explicit;
+  }
+  // @ts-ignore
+  const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+  if (backendUrl && backendUrl !== 'your-api-url') {
+    return appendApiVersion(backendUrl);
+  }
+  return null;
+};
+
+const getBaseURL = (env: Environment): string => {
+  const envUrl = getEnvBaseURL();
+  if (envUrl) {
+    return envUrl;
   }
   
   // Default URLs based on environment
@@ -110,14 +127,35 @@ export const API_TIMEOUT = API_CONFIG[ENV].timeout;
 export const WS_BASE_URL = getWebSocketURL(ENV);
 export const CURRENT_ENV = ENV;
 
+const hasExplicitApiUrl = !!getEnvBaseURL();
+const isLocalhostBaseUrl =
+  API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1');
+const isHttpBaseUrl = API_BASE_URL.startsWith('http://');
+
 // Validation and warnings for local development
-if (__DEV__ && ENV === 'dev') {
-  if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
+if (__DEV__) {
+  if (!hasExplicitApiUrl) {
+    console.warn(
+      '⚠️  EXPO_PUBLIC_API_BASE_URL not set. Set EXPO_PUBLIC_API_BASE_URL=https://<host>/api/v1 for device testing.'
+    );
+  }
+  if (isHttpBaseUrl && !isLocalhostBaseUrl) {
+    console.warn(
+      `⚠️  API_BASE_URL is not HTTPS (${API_BASE_URL}). Use HTTPS for device builds.`
+    );
+  }
+  if (ENV === 'dev' && isLocalhostBaseUrl) {
     console.log('📍 Local Development Mode');
     console.log(`   API: ${API_BASE_URL}`);
     console.log(`   WebSocket: ${WS_BASE_URL}`);
     console.log('   Make sure backend is running on http://localhost:8080');
   }
+}
+
+if (!__DEV__ && (isLocalhostBaseUrl || !API_BASE_URL)) {
+  throw new Error(
+    'API_BASE_URL is invalid for production builds. Set EXPO_PUBLIC_API_BASE_URL=https://<host>/api/v1.'
+  );
 }
 
 // Storage keys
@@ -127,4 +165,3 @@ export const STORAGE_KEYS = {
   USER: '@user',
   LAST_SYNC: '@last_sync',
 } as const;
-

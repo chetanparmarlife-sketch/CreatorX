@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_TIMEOUT, STORAGE_KEYS } from '@/src/config/env';
 import { ApiError } from './types';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '@/src/lib/secureStore';
+import { getSession } from '@/src/lib/supabase';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -26,6 +27,10 @@ class ApiClient {
     });
 
     this.setupInterceptors();
+
+    if (__DEV__) {
+      console.log('[API] Base URL:', API_BASE_URL);
+    }
   }
 
   private setupInterceptors() {
@@ -40,8 +45,25 @@ class ApiClient {
           return config;
         }
 
+        const baseURL = config.baseURL || API_BASE_URL;
+        if (!__DEV__ && baseURL?.startsWith('http://')) {
+          throw new Error(
+            'Refusing to use insecure HTTP API base URL. Set EXPO_PUBLIC_API_BASE_URL=https://<host>/api/v1.'
+          );
+        }
+        if (__DEV__ && baseURL?.startsWith('http://') && !baseURL.includes('localhost')) {
+          console.warn(`[API] Insecure base URL in dev: ${baseURL}`);
+        }
+
         try {
-          const token = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          let token = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          if (!token) {
+            const session = await getSession();
+            token = session?.access_token ?? null;
+            if (token) {
+              await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+            }
+          }
           if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
           }
@@ -51,7 +73,17 @@ class ApiClient {
 
         // Log request in development
         if (__DEV__) {
-          console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
+          const requestUrl = config.url || '';
+          const normalizedBase = baseURL?.replace(/\/+$/, '') || '';
+          const normalizedPath = requestUrl.startsWith('http')
+            ? requestUrl
+            : `${normalizedBase}${requestUrl.startsWith('/') ? '' : '/'}${requestUrl}`;
+          const hasAuthHeader = Boolean(config.headers?.Authorization);
+
+          console.log(`[API Request] ${config.method?.toUpperCase()} ${requestUrl}`, {
+            baseURL,
+            fullUrl: normalizedPath,
+            hasAuthHeader,
             params: config.params,
             data: config.data,
           });

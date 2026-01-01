@@ -30,8 +30,8 @@ interface FeatureFlags {
 
 const DEFAULT_FLAGS: FeatureFlags = {
   USE_API_AUTH: false, // Start with mock
-  USE_API_CAMPAIGNS: false,
-  USE_API_APPLICATIONS: false,
+  USE_API_CAMPAIGNS: true,
+  USE_API_APPLICATIONS: true,
   USE_API_DELIVERABLES: false,
   USE_API_WALLET: false,
   USE_API_MESSAGING: false,
@@ -80,4 +80,3 @@ export const featureFlags = new FeatureFlagManager();
 
 // Initialize on import
 featureFlags.loadFlags();
-

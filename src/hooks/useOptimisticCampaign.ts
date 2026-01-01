@@ -15,8 +15,8 @@ import { handleAPIError } from '@/src/api/errors';
 export interface UseOptimisticCampaignResult {
   campaigns: Campaign[];
   setCampaigns: (campaigns: Campaign[]) => void;
-  saveCampaign: (campaignId: number) => Promise<void>;
-  unsaveCampaign: (campaignId: number) => Promise<void>;
+  saveCampaign: (campaignId: string) => Promise<void>;
+  unsaveCampaign: (campaignId: string) => Promise<void>;
   isSaving: boolean;
   error: Error | null;
 }
@@ -35,7 +35,7 @@ export function useOptimisticCampaign(
    * Save campaign with optimistic update
    */
   const saveCampaign = useCallback(
-    async (campaignId: number) => {
+    async (campaignId: string) => {
       // 1. Optimistic update
       const { updatedState, revert } = optimisticSaveCampaign(
         campaigns,
@@ -65,7 +65,7 @@ export function useOptimisticCampaign(
    * Unsave campaign with optimistic update
    */
   const unsaveCampaign = useCallback(
-    async (campaignId: number) => {
+    async (campaignId: string) => {
       // 1. Optimistic update
       const { updatedState, revert } = optimisticUnsaveCampaign(
         campaigns,
@@ -100,5 +100,4 @@ export function useOptimisticCampaign(
     error,
   };
 }
-
 

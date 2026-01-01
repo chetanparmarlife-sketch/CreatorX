@@ -21,6 +21,8 @@ export default function AdminOverviewPage() {
   const [csatRating, setCsatRating] = useState<number | null>(null)
   const [csatComment, setCsatComment] = useState('')
   const [showFeedback, setShowFeedback] = useState(false)
+  const [statsPage, setStatsPage] = useState(0)
+  const [showAllStats, setShowAllStats] = useState(false)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin-system-summary'],
@@ -50,25 +52,31 @@ export default function AdminOverviewPage() {
         ? `${data.userGrowthPercent >= 0 ? '+' : ''}${data.userGrowthPercent.toFixed(1)}% MoM`
         : '—'
     return [
-      { label: 'Total Users', value: data?.totalUsers ?? '—', icon: Users, color: 'bg-blue-500', helper: growthLabel },
-      { label: 'Brands', value: data?.totalBrands ?? '—', icon: Building2, color: 'bg-indigo-500' },
-      { label: 'Total Campaigns', value: data?.totalCampaigns ?? '—', icon: Flag, color: 'bg-green-500' },
-      { label: 'Payouts', value: financeSummary?.totalWithdrawals ?? '—', icon: ClipboardList, color: 'bg-emerald-600' },
-      { label: 'Pending KYC', value: data?.pendingKyc ?? '—', icon: FileCheck, color: 'bg-yellow-500' },
-      { label: 'Brand Verifications', value: data?.pendingBrandVerifications ?? '—', icon: Building2, color: 'bg-purple-500' },
-      { label: 'Open Disputes', value: data?.openDisputes ?? '—', icon: Scale, color: 'bg-red-500' },
-      { label: 'Campaign Flags', value: data?.openCampaignFlags ?? '—', icon: AlertTriangle, color: 'bg-orange-500' },
-      { label: 'Open Appeals', value: data?.openAppeals ?? '—', icon: ClipboardList, color: 'bg-pink-500' },
-      { label: 'GDPR Requests', value: data?.pendingGdprRequests ?? '—', icon: ClipboardList, color: 'bg-cyan-500' },
-      { label: 'Admin DAU', value: data?.adminDailyActiveUsers ?? '—', icon: Activity, color: 'bg-slate-700' },
+      { label: 'Total Users', value: data?.totalUsers ?? '—', icon: Users, color: 'bg-slate-900 text-white', helper: growthLabel },
+      { label: 'Brands', value: data?.totalBrands ?? '—', icon: Building2, color: 'bg-blue-600 text-white' },
+      { label: 'Total Campaigns', value: data?.totalCampaigns ?? '—', icon: Flag, color: 'bg-emerald-600 text-white' },
+      { label: 'Payouts', value: financeSummary?.totalWithdrawals ?? '—', icon: ClipboardList, color: 'bg-indigo-600 text-white' },
+      { label: 'Pending KYC', value: data?.pendingKyc ?? '—', icon: FileCheck, color: 'bg-amber-500 text-white' },
+      { label: 'Brand Verifications', value: data?.pendingBrandVerifications ?? '—', icon: Building2, color: 'bg-violet-600 text-white' },
+      { label: 'Campaign Flags', value: data?.openCampaignFlags ?? '—', icon: AlertTriangle, color: 'bg-orange-500 text-white' },
+      { label: 'Open Appeals', value: data?.openAppeals ?? '—', icon: ClipboardList, color: 'bg-pink-600 text-white' },
+      { label: 'GDPR Requests', value: data?.pendingGdprRequests ?? '—', icon: ClipboardList, color: 'bg-cyan-600 text-white' },
+      { label: 'Admin DAU', value: data?.adminDailyActiveUsers ?? '—', icon: Activity, color: 'bg-slate-700 text-white' },
       {
         label: 'Admin CSAT',
         value: data?.adminCsatAverage ? data.adminCsatAverage.toFixed(1) : '—',
         icon: Star,
-        color: 'bg-amber-500',
+        color: 'bg-amber-500 text-white',
       },
     ]
   }, [data, financeSummary])
+  const statsPerPage = 4
+  const totalStatsPages = Math.max(1, Math.ceil(stats.length / statsPerPage))
+  const pagedStats = showAllStats
+    ? stats
+    : stats.slice(statsPage * statsPerPage, (statsPage + 1) * statsPerPage)
+  const canPrevStats = statsPage > 0
+  const canNextStats = statsPage < totalStatsPages - 1
 
   const workQueue = [
     {
@@ -97,35 +105,93 @@ export default function AdminOverviewPage() {
   ]
 
   const getSlaTone = (breaches?: number) => {
-    if (!breaches) return 'bg-slate-100 text-slate-500'
-    if (breaches >= 5) return 'bg-red-100 text-red-700'
-    return 'bg-amber-100 text-amber-700'
+    if (!breaches) return 'bg-slate-100 text-slate-600'
+    if (breaches >= 5) return 'bg-rose-600 text-white'
+    return 'bg-amber-500 text-white'
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Admin Dashboard</p>
+      <div className="space-y-2">
+        <p className="text-xs uppercase tracking-[0.32em] text-slate-500">Admin Dashboard</p>
         <h1 className="text-3xl font-semibold text-slate-900">Platform Overview</h1>
+      </div>
+
+      <div className="ops-hero">
+        <div className="relative z-10 grid gap-4 md:grid-cols-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Operational Pulse</p>
+            <p className="mt-2 text-xl font-semibold text-slate-900">
+              Prioritize queues with SLA exposure.
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200/80 bg-white/90 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pending KYC</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{data?.pendingKyc ?? '—'}</p>
+            <p className="text-xs text-slate-500">Verification queue</p>
+          </div>
+          <div className="rounded-xl border border-slate-200/80 bg-white/90 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">KYC SLA Breaches</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{data?.kycSlaBreaches ?? '—'}</p>
+            <p className="text-xs text-slate-500">Immediate attention</p>
+          </div>
+        </div>
       </div>
 
       {isLoading && !data ? (
         <StatCardsSkeleton />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className={`w-10 h-10 rounded-lg ${stat.color} flex items-center justify-center`}>
-                  <stat.icon className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xs text-slate-400">{data ? 'Live' : 'Pending'}</span>
-              </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-900">{stat.value ?? '—'}</p>
-              <p className="text-sm text-slate-500">{stat.label}</p>
-              {stat.helper ? <p className="mt-1 text-xs text-slate-400">{stat.helper}</p> : null}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Key Metrics</p>
+              <p className="text-sm text-slate-600">
+                Showing {showAllStats ? stats.length : pagedStats.length} of {stats.length}
+              </p>
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <button
+                className="h-9 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-40"
+                disabled={!canPrevStats || showAllStats}
+                onClick={() => setStatsPage((page) => Math.max(0, page - 1))}
+              >
+                Prev
+              </button>
+              <button
+                className="h-9 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-40"
+                disabled={!canNextStats || showAllStats}
+                onClick={() => setStatsPage((page) => Math.min(totalStatsPages - 1, page + 1))}
+              >
+                Next
+              </button>
+              <button
+                className="h-9 rounded-full border border-slate-200 bg-slate-900 px-3 text-xs font-semibold text-white hover:bg-slate-800"
+                onClick={() => {
+                  setShowAllStats((value) => !value)
+                  setStatsPage(0)
+                }}
+              >
+                {showAllStats ? 'Show less' : 'See all'}
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {pagedStats.map((stat) => (
+              <div key={stat.label} className="metric-card">
+                <div className="flex items-center justify-between">
+                  <div className={`metric-icon ${stat.color}`}>
+                    <stat.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+                    {data ? 'Live' : 'Pending'}
+                  </span>
+                </div>
+                <p className="mt-4 text-2xl font-semibold text-slate-900">{stat.value ?? '—'}</p>
+                <p className="text-sm text-slate-500">{stat.label}</p>
+                {stat.helper ? <p className="mt-1 text-xs text-slate-400">{stat.helper}</p> : null}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {isError && (
@@ -134,24 +200,24 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="section-card">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Work Queue</h2>
             <p className="text-sm text-slate-500">Prioritized queues with SLA risk.</p>
           </div>
-          <span className="text-xs text-slate-400">Live</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Live</span>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {workQueue.map((item) => (
             <a
               key={item.label}
               href={item.href}
-              className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:shadow-sm"
+              className="rounded-xl border border-slate-200 bg-white/80 p-4 transition hover:shadow-md"
             >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-800">{item.label}</p>
-                <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-600">
+                <span className="rounded-full bg-slate-900/5 px-2 py-0.5 text-xs text-slate-700">
                   {item.count ?? '—'}
                 </span>
               </div>
@@ -167,7 +233,7 @@ export default function AdminOverviewPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="section-card">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -188,13 +254,13 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="section-card">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">System Snapshot</h2>
           <div className="space-y-3 text-sm text-slate-600">
             <p>Pending KYC: <span className="font-semibold text-slate-900">{data?.pendingKyc ?? '—'}</span></p>
-            <p>Open Disputes: <span className="font-semibold text-slate-900">{data?.openDisputes ?? '—'}</span></p>
             <p>Campaign Flags: <span className="font-semibold text-slate-900">{data?.openCampaignFlags ?? '—'}</span></p>
             <p>GDPR Requests: <span className="font-semibold text-slate-900">{data?.pendingGdprRequests ?? '—'}</span></p>
+            <p>Open Appeals: <span className="font-semibold text-slate-900">{data?.openAppeals ?? '—'}</span></p>
             <p>
               Avg KYC Decision:{' '}
               <span className="font-semibold text-slate-900">
@@ -222,7 +288,7 @@ export default function AdminOverviewPage() {
       </div>
 
       {showFeedback && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="section-card">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Admin CSAT</h2>

@@ -7,7 +7,7 @@ import { apiClient } from '../client';
 import { Application, Page } from '../types';
 
 export interface ApplicationRequest {
-  campaignId: number;
+  campaignId: string;
   pitchText: string;
   availability?: string;
   expectedTimeline?: string;
@@ -44,7 +44,7 @@ export const applicationService = {
    * @param id - Application ID
    * @returns Application details
    */
-  async getApplicationById(id: number): Promise<Application> {
+  async getApplicationById(id: string): Promise<Application> {
     return await apiClient.get<Application>(`/applications/${id}`);
   },
 
@@ -52,8 +52,7 @@ export const applicationService = {
    * Withdraw application
    * @param id - Application ID
    */
-  async withdrawApplication(id: number): Promise<void> {
+  async withdrawApplication(id: string): Promise<void> {
     await apiClient.delete(`/applications/${id}`);
   },
 };
-

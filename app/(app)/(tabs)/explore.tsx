@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, useMemo, useRef } from 'react';
+import { useState, useCallback, memo, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,18 +8,21 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  FlatList,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { spacing, borderRadius, typography } from '@/src/theme';
+import { spacing, borderRadius } from '@/src/theme';
 import { useTheme } from '@/src/hooks';
-import { Avatar, CampaignDetailModal, CampaignApplicationModal } from '@/src/components';
+import { Avatar, CampaignDetailModal, CampaignApplicationModal, CampaignCardSkeleton, ErrorView } from '@/src/components';
 import { ApplicationFormData } from '@/src/components/CampaignApplicationModal';
 import { useApp } from '@/src/context';
 import { Campaign } from '@/src/types';
+import { useRefresh } from '@/src/hooks';
+import { handleAPIError } from '@/src/api/errors';
+import { useAuth } from '@/src/context/AuthContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const quickFilterCardWidth = 100;
@@ -122,6 +125,7 @@ const CampaignCard = memo(function CampaignCard({
   onApply,
   onSave,
   isSaved,
+  isApplied,
   colors,
   isDark,
 }: {
@@ -130,6 +134,7 @@ const CampaignCard = memo(function CampaignCard({
   onApply: () => void;
   onSave: () => void;
   isSaved: boolean;
+  isApplied: boolean;
   colors: any;
   isDark: boolean;
 }) {
@@ -186,6 +191,8 @@ const CampaignCard = memo(function CampaignCard({
     shareBorder: isDark ? colors.cardBorder : '#E5E5E5',
   };
   
+  const applyLabel = isApplied ? 'Applied' : 'Apply';
+
   return (
     <TouchableOpacity 
       style={[
@@ -298,11 +305,17 @@ const CampaignCard = memo(function CampaignCard({
         </Text>
         
         <TouchableOpacity 
-          style={[styles.applyButton, { backgroundColor: colors.amber }]}
+          style={[
+            styles.applyButton,
+            { backgroundColor: isApplied ? colors.cardBorder : colors.amber },
+          ]}
           onPress={onApply}
+          disabled={isApplied}
         >
-          <Text style={[styles.applyButtonText, { color: isDark ? '#1a1a1a' : '#1a1a1a' }]}>Apply</Text>
-          <Feather name="arrow-right" size={14} color="#1a1a1a" />
+          <Text style={[styles.applyButtonText, { color: isApplied ? colors.textMuted : '#1a1a1a' }]}>
+            {applyLabel}
+          </Text>
+          {!isApplied && <Feather name="arrow-right" size={14} color="#1a1a1a" />}
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -342,7 +355,19 @@ const SectionHeader = memo(function SectionHeader({
 export default function ExploreScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const { campaigns, applyCampaign, saveCampaign, unsaveCampaign, isCampaignSaved } = useApp();
+  const { session, initialized, loading: authLoading } = useAuth();
+  const {
+    campaigns,
+    applyCampaign,
+    saveCampaign,
+    unsaveCampaign,
+    isCampaignSaved,
+    fetchCampaigns,
+    loadingCampaigns,
+    error,
+    getApplication,
+    fetchApplications,
+  } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [selectedHeaderTab, setSelectedHeaderTab] = useState('explore');
@@ -351,6 +376,19 @@ export default function ExploreScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [recommendedSectionY, setRecommendedSectionY] = useState(0);
+  const isAuthReady = initialized && !authLoading && !!session?.access_token;
+  const apiFilters = useMemo(() => ({
+    platform: selectedPlatform === 'all' ? undefined : selectedPlatform,
+  }), [selectedPlatform]);
+  const { refreshing, handleRefresh } = useRefresh(async () => {
+    if (!isAuthReady) return;
+    await fetchCampaigns(apiFilters, true);
+  });
+
+  useEffect(() => {
+    if (!isAuthReady) return;
+    fetchCampaigns(apiFilters, true);
+  }, [fetchCampaigns, apiFilters, isAuthReady]);
 
   const scrollToRecommended = useCallback(() => {
     if (scrollViewRef.current && recommendedSectionY > 0) {
@@ -398,21 +436,51 @@ export default function ExploreScreen() {
   const handleApply = useCallback((id: string) => {
     const campaign = campaigns.find((c) => c.id === id);
     if (campaign) {
+      const alreadyApplied = campaign.userState === 'APPLIED' || !!getApplication(campaign.id);
+      if (alreadyApplied) {
+        Alert.alert('Already Applied', 'You have already applied to this campaign.');
+        return;
+      }
       setSelectedCampaign(campaign);
       setShowApplicationModal(true);
     }
-  }, [campaigns]);
+  }, [campaigns, getApplication]);
+
+  const getApplyErrorMessage = useCallback((error: unknown) => {
+    const apiError = handleAPIError(error);
+    const code = apiError.code?.toLowerCase() || '';
+    const message = apiError.message?.toLowerCase() || '';
+
+    if (code.includes('duplicate') || message.includes('already applied')) {
+      return 'You have already applied to this campaign.';
+    }
+    if (code.includes('deadline') || message.includes('deadline')) {
+      return 'The application deadline has passed.';
+    }
+    if (code.includes('eligible') || message.includes('eligible')) {
+      return 'You are not eligible for this campaign.';
+    }
+    if (apiError.status === 401 || apiError.status === 403) {
+      return 'Please sign in again to apply.';
+    }
+    return apiError.message || 'Unable to submit application. Please try again.';
+  }, []);
 
   const handleSubmitApplication = useCallback(async (data: ApplicationFormData) => {
     if (!selectedCampaign) return;
-    
+
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    applyCampaign(selectedCampaign.id, data);
-    setIsSubmitting(false);
-    setShowApplicationModal(false);
-    setSelectedCampaign(null);
-  }, [selectedCampaign, applyCampaign]);
+    try {
+      await applyCampaign(selectedCampaign.id, data);
+      await Promise.all([fetchApplications(), fetchCampaigns(apiFilters, true)]);
+      setShowApplicationModal(false);
+      setSelectedCampaign(null);
+    } catch (err) {
+      Alert.alert('Application Failed', getApplyErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedCampaign, applyCampaign, fetchApplications, fetchCampaigns, getApplyErrorMessage, apiFilters]);
 
   const handleSave = useCallback((id: string) => {
     if (isCampaignSaved(id)) {
@@ -447,9 +515,19 @@ export default function ExploreScreen() {
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {selectedHeaderTab === 'explore' && (
           <>
+            {!isAuthReady ? (
+              <View style={styles.authPendingCard}>
+                <Text style={[styles.authPendingTitle, { color: colors.text }]}>Signing you in...</Text>
+                <Text style={[styles.authPendingSubtitle, { color: colors.textSecondary }]}>
+                  We're getting your session ready.
+                </Text>
+              </View>
+            ) : (
+              <>
             <View style={styles.searchContainer}>
               <View style={[
                 styles.searchBar, 
@@ -525,18 +603,32 @@ export default function ExploreScreen() {
                   ))}
                 </ScrollView>
               </View>
-              {filteredCampaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onPress={() => handleCampaignPress(campaign)}
-                  onApply={() => handleApply(campaign.id)}
-                  onSave={() => handleSave(campaign.id)}
-                  isSaved={isCampaignSaved(campaign.id)}
-                  colors={colors}
-                  isDark={isDark}
-                />
-              ))}
+              {loadingCampaigns && filteredCampaigns.length === 0 ? (
+                <>
+                  <CampaignCardSkeleton />
+                  <CampaignCardSkeleton />
+                  <CampaignCardSkeleton />
+                </>
+              ) : error ? (
+                <ErrorView error={error} onRetry={() => fetchCampaigns(apiFilters, true)} />
+              ) : (
+                filteredCampaigns.map((campaign) => {
+                  const isApplied = campaign.userState === 'APPLIED' || !!getApplication(campaign.id);
+                  return (
+                    <CampaignCard
+                      key={campaign.id}
+                      campaign={campaign}
+                      onPress={() => handleCampaignPress(campaign)}
+                      onApply={() => handleApply(campaign.id)}
+                      onSave={() => handleSave(campaign.id)}
+                      isSaved={isCampaignSaved(campaign.id)}
+                      isApplied={isApplied}
+                      colors={colors}
+                      isDark={isDark}
+                    />
+                  );
+                })
+              )}
             </View>
 
             <View 
@@ -559,11 +651,14 @@ export default function ExploreScreen() {
                   onApply={() => handleApply(campaign.id)}
                   onSave={() => handleSave(campaign.id)}
                   isSaved={isCampaignSaved(campaign.id)}
+                  isApplied={campaign.userState === 'APPLIED' || !!getApplication(campaign.id)}
                   colors={colors}
                   isDark={isDark}
                 />
               ))}
             </View>
+            </>
+            )}
           </>
         )}
 
@@ -673,6 +768,25 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     fontSize: 15,
     fontWeight: '400',
+  },
+  authPendingCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  authPendingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  authPendingSubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   filtersContainer: {
     marginBottom: spacing.md,

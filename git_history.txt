@@ -1,0 +1,1441 @@
+ec37e32 Remove large gradle files and add to .gitignore
+ .gitignore | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+a0f9350 Add preview mode to login and connect screens with demo credentials
+ app/(auth)/connect.tsx      |  4 +++-
+ app/(auth)/login-otp.tsx    | 50 +++++++++++++++++++++++++++++++++++++++++++++
+ replit.md                   |  2 ++
+ src/context/AuthContext.tsx | 22 ++++++++++++++++++++
+ 4 files changed, 77 insertions(+), 1 deletion(-)
+51d1bda Add a temporary button to skip authentication during development previews
+ app/(auth)/connect.tsx | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+2d55aef Improve app navigation and reset functionality for a smoother user experience
+ app/_dev/reset-onboarding.tsx   | 59 +++++++++++++++++++++++++++++++++++++++++
+ app/index.tsx                   | 36 ++++++++++++++++++++++---
+ src/components/SplashScreen.tsx |  3 ++-
+ 3 files changed, 94 insertions(+), 4 deletions(-)
+b0be0dc Improve splash screen and authentication flow
+ app/(auth)/eligibility.tsx       |   2 +-
+ app/(auth)/login-otp.tsx         |   2 +-
+ app/(auth)/marketing-profile.tsx |   2 +-
+ app/(auth)/onboarding-form.tsx   |   2 +-
+ app/_layout.tsx                  | 107 ++++-----------------------------------
+ app/index.tsx                    |  53 +++++++++++++++++++
+ package-lock.json                | 101 +++++++++++++++++++++---------------
+ package.json                     |   6 +--
+ replit.md                        |   2 +
+ src/components/SplashScreen.tsx  |  91 ++++++++++++++++++++++++---------
+ src/config/supabase.ts           |  11 ++--
+ src/context/AuthContext.tsx      |  15 ++++--
+ 12 files changed, 217 insertions(+), 177 deletions(-)
+7865821 Add influencer marketing details to creator onboarding process
+ replit.md | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+ab33e9e Improve splash screen animation and add marketing profile details
+ app/(auth)/marketing-profile.tsx | 536 +++++++++++++++++++++++++++++++++++++++
+ app/(auth)/onboarding-form.tsx   |   5 +-
+ src/components/SplashScreen.tsx  | 162 +++++++++---
+ 3 files changed, 663 insertions(+), 40 deletions(-)
+9851837 Add login option to social connect screen for existing users
+ app/(auth)/connect.tsx | 46 ++++++++++++++++++++--------------------------
+ 1 file changed, 20 insertions(+), 26 deletions(-)
+8edb439 Update app documentation to reflect new authentication and onboarding flow
+ replit.md | 22 +++++++++++++---------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
+acce0f4 Implement new user authentication and onboarding flow
+ app/(auth)/connect.tsx                             | 248 ++++++++++++
+ app/(auth)/eligibility.tsx                         | 289 ++++++++++++++
+ app/(auth)/login-otp.tsx                           | 341 +++++++++++++++++
+ app/(auth)/onboarding-form.tsx                     | 421 +++++++++++++++++++++
+ app/_layout.tsx                                    |  43 ++-
+ ...e-app-auth-onboarding-flow-to_1767197347597.txt | 115 ++++++
+ ...e-app-auth-onboarding-flow-to_1767197494446.txt | 118 ++++++
+ attached_assets/image_1767197371584.png            | Bin 0 -> 906942 bytes
+ attached_assets/image_1767197384040.png            | Bin 0 -> 860690 bytes
+ src/services/otpMock.ts                            |  62 +++
+ src/services/socialConnectMock.ts                  |  66 ++++
+ 11 files changed, 1695 insertions(+), 8 deletions(-)
+8cd6be4 Update mobile app to rebuild auth and onboarding flow
+ ...e-app-auth-onboarding-flow-to_1767197288233.txt | 115 +++++++++++++++++++++
+ ...e-app-auth-onboarding-flow-to_1767197292143.txt | 115 +++++++++++++++++++++
+ 2 files changed, 230 insertions(+)
+651e2f8 Restored to '9fb7fdeafb4578e67cd50a95d5ec78b5ef8aaf70'
+ app/(auth)/login.tsx                               |   3 +-
+ .../onboarding/_components/OnboardingFlow.tsx      | 252 ---------------------
+ app/(auth)/onboarding/_layout.tsx                  |  11 -
+ app/(auth)/onboarding/admin.tsx                    |  35 ---
+ app/(auth)/onboarding/brand.tsx                    |  35 ---
+ app/(auth)/onboarding/creator.tsx                  |  35 ---
+ app/(auth)/onboarding/index.tsx                    |  13 --
+ app/(auth)/register.tsx                            |   3 +-
+ app/_layout.tsx                                    |  71 ++----
+ src/constants/routes.ts                            |   4 -
+ src/lib/onboarding.ts                              |  26 ---
+ 11 files changed, 15 insertions(+), 473 deletions(-)
+6c19ff2 Saved your changes before starting work
+ app/(auth)/login.tsx                               |   3 +-
+ .../onboarding/_components/OnboardingFlow.tsx      | 252 +++++++++++++++++++++
+ app/(auth)/onboarding/_layout.tsx                  |  11 +
+ app/(auth)/onboarding/admin.tsx                    |  35 +++
+ app/(auth)/onboarding/brand.tsx                    |  35 +++
+ app/(auth)/onboarding/creator.tsx                  |  35 +++
+ app/(auth)/onboarding/index.tsx                    |  13 ++
+ app/(auth)/register.tsx                            |   3 +-
+ app/_layout.tsx                                    |  71 ++++--
+ src/constants/routes.ts                            |   4 +
+ src/lib/onboarding.ts                              |  26 +++
+ 11 files changed, 473 insertions(+), 15 deletions(-)
+a0d748f Update admin dashboard documentation and functionality
+ ADMIN_DASHBOARD.md                                 | 149 +++++-
+ APP_LAUNCH_GUIDE.md                                |   5 +
+ APP_PREVIEW.md                                     |   6 +-
+ BRAND_CREATOR_FLOW_BUGS_FIXED.md                   |   4 +-
+ BRAND_CREATOR_FLOW_TEST_RESULTS.md                 |   4 +-
+ DOCUMENTATION_INDEX.md                             |   4 +-
+ PHASE0_STATE_MACHINES.md                           | 116 +++++
+ PHASE1_BUG_FIXES_SUMMARY.md                        |   5 +-
+ PHASE1_COMPLETION_REPORT.md                        |   6 +-
+ PHASE1_DOCUMENTATION_SUMMARY.md                    |   6 +-
+ README.md                                          |  24 +-
+ TEST_RESULTS.md                                    |   3 +
+ UAT_FEEDBACK.md                                    |   4 +-
+ admin-dashboard/PROJECT_SUMMARY.md                 | 203 ++------
+ admin-dashboard/README.md                          | 108 ++--
+ admin-dashboard/SETUP.md                           |  72 +--
+ .../__tests__/admin-compliance-page.test.tsx       |  70 +++
+ .../__tests__/admin-disputes-page.test.tsx         |  52 ++
+ .../__tests__/admin-finance-page.test.tsx          |  76 +++
+ admin-dashboard/__tests__/admin-kyc-page.test.tsx  |  59 +++
+ .../__tests__/admin-moderation-page.test.tsx       |  52 ++
+ .../__tests__/admin-settings-page.test.tsx         | 164 ++++++
+ admin-dashboard/app/(admin)/admin/appeals/page.tsx |  96 +++-
+ .../app/(admin)/admin/applications/page.tsx        | 301 +++++++++++
+ admin-dashboard/app/(admin)/admin/audit/page.tsx   | 263 +++++++++-
+ admin-dashboard/app/(admin)/admin/brands/page.tsx  | 405 +++++++++++++--
+ .../admin/campaign-management/[id]/page.tsx        | 568 +++++++++++++++++++++
+ .../(admin)/admin/campaign-management/new/page.tsx | 443 ++++++++++++++++
+ .../app/(admin)/admin/campaign-management/page.tsx | 184 +++++++
+ .../(admin)/admin/campaign-reviews/[id]/page.tsx   | 193 +++++++
+ .../app/(admin)/admin/campaign-reviews/page.tsx    |  96 ++++
+ .../app/(admin)/admin/campaigns/page.tsx           | 248 ++++++++-
+ .../app/(admin)/admin/compliance/page.tsx          | 321 +++++++++++-
+ .../app/(admin)/admin/compliance/reports/page.tsx  | 220 ++++++++
+ .../app/(admin)/admin/deliverables/page.tsx        | 248 +++++++++
+ .../app/(admin)/admin/disputes/[id]/page.tsx       | 396 ++++++++++++++
+ .../app/(admin)/admin/disputes/page.tsx            | 413 ++++++++++++++-
+ admin-dashboard/app/(admin)/admin/finance/page.tsx | 479 ++++++++++++++++-
+ admin-dashboard/app/(admin)/admin/health/page.tsx  | 111 ++++
+ admin-dashboard/app/(admin)/admin/kyc/page.tsx     | 512 ++++++++++++++++---
+ .../app/(admin)/admin/messages/page.tsx            | 211 ++++++++
+ .../app/(admin)/admin/moderation/page.tsx          | 119 ++++-
+ admin-dashboard/app/(admin)/admin/page.tsx         | 267 ++++++++--
+ .../app/(admin)/admin/permissions/page.tsx         | 208 ++++++++
+ .../app/(admin)/admin/settings/page.tsx            | 447 +++++++++++++---
+ .../app/(admin)/admin/users/[id]/page.tsx          | 196 +++++++
+ admin-dashboard/app/(admin)/admin/users/page.tsx   |  46 +-
+ admin-dashboard/app/(admin)/layout.tsx             |  14 +
+ admin-dashboard/app/(auth)/login/page.tsx          |   2 +-
+ .../app/(dashboard)/campaigns/new/page.tsx         |   2 +-
+ admin-dashboard/app/(dashboard)/campaigns/page.tsx |   8 +-
+ admin-dashboard/app/globals.css                    | 133 +++++
+ .../components/layout/admin-sidebar.tsx            | 105 +++-
+ admin-dashboard/components/shared/action-bar.tsx   |  23 +
+ .../components/shared/context-panel.tsx            |  33 ++
+ admin-dashboard/components/shared/empty-state.tsx  |  21 +
+ admin-dashboard/components/shared/pagination.tsx   |  35 ++
+ .../components/shared/queue-toolbar.tsx            |  51 ++
+ admin-dashboard/components/shared/status-chip.tsx  |  35 ++
+ admin-dashboard/components/shared/toast.tsx        |  50 ++
+ admin-dashboard/jest.config.js                     |  15 +
+ admin-dashboard/jest.setup.js                      |   1 +
+ admin-dashboard/lib/api/admin/audit.ts             |  12 +
+ .../lib/api/admin/brand-verification.ts            |  15 +-
+ .../lib/api/admin/campaign-management.ts           | 143 ++++++
+ admin-dashboard/lib/api/admin/campaign-review.ts   |  16 +
+ .../lib/api/admin/compliance-reports.ts            |  28 +
+ admin-dashboard/lib/api/admin/compliance.ts        |   9 +
+ admin-dashboard/lib/api/admin/disputes.ts          |  45 +-
+ admin-dashboard/lib/api/admin/finance.ts           |  39 +-
+ admin-dashboard/lib/api/admin/kyc.ts               |  11 +-
+ admin-dashboard/lib/api/admin/messages.ts          |  18 +
+ admin-dashboard/lib/api/admin/moderation.ts        |  15 +-
+ admin-dashboard/lib/api/admin/permissions.ts       |  19 +
+ admin-dashboard/lib/api/admin/profiles.ts          |  22 +
+ admin-dashboard/lib/api/admin/system.ts            |  14 +-
+ admin-dashboard/lib/api/admin/users.ts             |   8 +-
+ admin-dashboard/lib/api/client.ts                  |   6 +-
+ admin-dashboard/lib/constants/admin-permissions.ts |  18 +
+ admin-dashboard/lib/constants/platform-settings.ts |  20 +
+ admin-dashboard/lib/hooks/use-websocket.ts         |  37 +-
+ admin-dashboard/lib/hooks/useToast.ts              |  19 +
+ admin-dashboard/lib/types/index.ts                 | 150 ++++++
+ admin-dashboard/package.json                       |   9 +-
+ app/{ => (app)}/(tabs)/_layout.tsx                 |   0
+ app/{ => (app)}/(tabs)/active-campaigns.tsx        |   0
+ app/{ => (app)}/(tabs)/chat.tsx                    |   0
+ app/{ => (app)}/(tabs)/explore.tsx                 |   2 +-
+ app/{ => (app)}/(tabs)/index.tsx                   |   0
+ app/{ => (app)}/(tabs)/more.tsx                    |   0
+ app/{ => (app)}/(tabs)/profile.tsx                 |   0
+ app/{ => (app)}/(tabs)/wallet.tsx                  |   0
+ app/(app)/_layout.tsx                              |  29 ++
+ app/{ => (app)}/conversation.tsx                   |   6 +-
+ app/{ => (app)}/documents.tsx                      |   0
+ app/{ => (app)}/edit-profile.tsx                   |   0
+ app/{ => (app)}/help.tsx                           |   0
+ app/{ => (app)}/kyc.tsx                            |   0
+ app/{ => (app)}/new-message.tsx                    |   0
+ app/{ => (app)}/notifications.tsx                  |   0
+ app/{ => (app)}/privacy.tsx                        |   0
+ app/{ => (app)}/profile.tsx                        |   0
+ app/{ => (app)}/saved.tsx                          |  18 +-
+ app/{ => (app)}/transaction-detail.tsx             |   0
+ app/(auth)/_layout.tsx                             |  11 +
+ app/{auth/login.supabase.tsx => (auth)/login.tsx}  |   7 +-
+ .../register.supabase.tsx => (auth)/register.tsx}  |  73 +--
+ app/_layout.tsx                                    | 134 ++---
+ backend/DOCUMENTATION_INDEX.md                     |   3 +-
+ backend/creatorx-api/build.gradle                  |  10 +-
+ .../java/com/creatorx/api/CreatorXApplication.java |   3 +-
+ .../com/creatorx/api/config/SecurityConfig.java    |   2 +-
+ .../api/controller/AdminAuditController.java       |  36 +-
+ .../AdminCampaignManagementController.java         | 465 +++++++++++++++++
+ .../controller/AdminCampaignReviewController.java  |  66 +++
+ .../api/controller/AdminComplianceController.java  |  34 +-
+ .../AdminComplianceReportController.java           |  80 +++
+ .../api/controller/AdminFinanceController.java     |  87 +++-
+ .../api/controller/AdminMessageController.java     |  64 +++
+ .../api/controller/AdminModerationController.java  |  42 +-
+ .../api/controller/AdminPermissionController.java  |  17 +-
+ .../api/controller/AdminProfileController.java     | 144 ++++++
+ .../api/controller/AdminSettingsController.java    |  12 +-
+ .../api/controller/AdminSystemController.java      |  51 +-
+ .../api/controller/AdminUserController.java        |  21 +-
+ .../controller/BrandVerificationController.java    |  34 +-
+ .../api/controller/CampaignController.java         |  46 +-
+ .../creatorx/api/controller/DisputeController.java |  86 +++-
+ .../creatorx/api/controller/HealthController.java  |  12 +-
+ .../com/creatorx/api/controller/KYCController.java |  23 +-
+ .../com/creatorx/api/dto/AdminFeedbackRequest.java |   9 +
+ .../com/creatorx/api/dto/AdminMessageRequest.java  |  10 +
+ .../creatorx/api/dto/AdminSessionEventRequest.java |   9 +
+ .../creatorx/api/dto/CampaignReviewRequest.java    |   8 +
+ .../api/dto/ComplianceReportGenerateRequest.java   |  16 +
+ .../com/creatorx/api/dto/DisputeAssignRequest.java |   9 +
+ .../com/creatorx/api/dto/DisputeNoteRequest.java   |   8 +
+ .../creatorx/api/dto/DisputeResolveRequest.java    |   4 +
+ ...rawalRequest.java => WithdrawalRequestDTO.java} |   1 -
+ .../api/security/JwtAuthenticationFilter.java      |   3 +-
+ .../src/main/resources/application.yml             |   2 +-
+ .../db/migration/V21__seed_admin_permissions.sql   |  21 +
+ .../db/migration/V22__campaign_preapproval.sql     |  17 +
+ .../db/migration/V23__dispute_admin_extensions.sql |  22 +
+ .../db/migration/V24__compliance_reports.sql       |  24 +
+ .../db/migration/V25__admin_heart_metrics.sql      |  26 +
+ .../V26__admin_campaign_manage_permission.sql      |   5 +
+ .../migration/V27__admin_messages_permission.sql   |   5 +
+ .../api/AdminPermissionIntegrationTest.java        | 112 ++++
+ .../common}/dto/CampaignFilterRequest.java         |   5 +-
+ .../com/creatorx/common/enums/CampaignStatus.java  |   2 +-
+ .../common/enums/ComplianceReportStatus.java       |   7 +
+ .../common/enums/ComplianceReportType.java         |   6 +
+ .../creatorx/common/enums/FinanceReportPeriod.java |  17 +
+ .../common/permissions/AdminPermissions.java       |  22 +
+ .../common/settings/PlatformSettingKeys.java       |  17 +
+ .../repository/AdminFeedbackRepository.java        |  16 +
+ .../repository/AdminSessionEventRepository.java    |  14 +
+ .../creatorx/repository/ApplicationRepository.java |  13 +-
+ .../BrandVerificationDocumentRepository.java       |   8 +
+ .../repository/CampaignFlagRepository.java         |   9 +
+ .../creatorx/repository/CampaignRepository.java    |  21 +-
+ .../repository/ComplianceReportRepository.java     |  33 ++
+ .../creatorx/repository/DeliverableRepository.java |  13 +-
+ .../creatorx/repository/DisputeNoteRepository.java |  12 +
+ .../com/creatorx/repository/DisputeRepository.java |  11 +
+ .../creatorx/repository/GDPRRequestRepository.java |  12 +
+ .../creatorx/repository/KYCDocumentRepository.java |  13 +
+ .../creatorx/repository/TransactionRepository.java |  59 ++-
+ .../com/creatorx/repository/UserRepository.java    |   6 +-
+ .../creatorx/repository/entity/AdminFeedback.java  |  36 ++
+ .../repository/entity/AdminSessionEvent.java       |  41 ++
+ .../com/creatorx/repository/entity/Campaign.java   |  11 +-
+ .../repository/entity/ComplianceReport.java        |  63 +++
+ .../com/creatorx/repository/entity/Dispute.java    |  19 +-
+ .../creatorx/repository/entity/DisputeNote.java    |  32 ++
+ .../projection/FinanceCampaignAggregate.java       |  10 +
+ .../projection/FinancePeriodAggregate.java         |  10 +
+ .../projection/FinanceUserAggregate.java           |  10 +
+ backend/creatorx-service/build.gradle              |  13 +
+ .../com/creatorx/service/ApplicationService.java   |  14 +
+ .../java/com/creatorx/service/AuthService.java     |   3 +-
+ .../creatorx/service/BrandVerificationService.java |  83 ++-
+ .../java/com/creatorx/service/CampaignService.java |  25 +-
+ .../creatorx/service/CampaignTemplateService.java  |   2 +-
+ .../creatorx/service/CreatorDiscoveryService.java  |   2 +-
+ .../com/creatorx/service/DeliverableService.java   |  19 +
+ .../java/com/creatorx/service/DisputeService.java  | 226 +++++++-
+ .../main/java/com/creatorx/service/KYCService.java |   9 +-
+ .../java/com/creatorx/service/MessageService.java  |  85 ++-
+ .../creatorx/service/PlatformSettingsResolver.java | 108 ++++
+ .../com/creatorx/service/SupabaseJwtService.java   |   8 +-
+ .../java/com/creatorx/service/UserService.java     |  30 +-
+ .../java/com/creatorx/service/WalletService.java   | 104 +++-
+ .../com/creatorx/service/WithdrawalService.java    |  41 +-
+ .../creatorx/service/admin/AdminAuditService.java  |  89 ++++
+ .../admin/AdminCampaignManagementService.java      | 323 ++++++++++++
+ .../service/admin/AdminCampaignReviewService.java  | 113 ++++
+ .../service/admin/AdminEngagementService.java      |  66 +++
+ .../service/admin/AdminFinanceService.java         | 174 +++++++
+ .../service/admin/AdminMessageService.java         |  83 +++
+ .../service/admin/AdminPermissionService.java      |   8 +
+ .../creatorx/service/admin/AdminSystemService.java | 115 +++++
+ .../service/admin/ComplianceReportService.java     | 204 ++++++++
+ .../service/admin/ComplianceRetentionJob.java      |  87 ++++
+ .../creatorx/service/admin/ComplianceService.java  | 203 ++++++++
+ .../creatorx/service/admin/ModerationService.java  |  98 +++-
+ .../service/admin/PlatformSettingsService.java     |  57 ++-
+ .../service/admin/RegulatoryReportJob.java         |  58 +++
+ .../com/creatorx/service/dto/AdminSummaryDTO.java  |  10 +
+ .../service/dto/BrandProfileSummaryDTO.java        |  22 +
+ .../service/dto/BrandVerificationDetailDTO.java    |  27 +
+ .../service/dto/BrandVerificationHistoryDTO.java   |  21 +
+ .../service/dto/BrandVerificationRiskDTO.java      |  17 +
+ .../java/com/creatorx/service/dto/CampaignDTO.java |   4 +-
+ .../com/creatorx/service/dto/CampaignFlagDTO.java  |   1 +
+ .../creatorx/service/dto/ComplianceReportDTO.java  |  30 ++
+ .../java/com/creatorx/service/dto/DisputeDTO.java  |   5 +
+ .../com/creatorx/service/dto/DisputeNoteDTO.java   |  21 +
+ .../service/dto/FinanceCampaignReportRowDTO.java   |  19 +
+ .../service/dto/FinancePeriodReportRowDTO.java     |  20 +
+ .../service/dto/FinanceUserReportRowDTO.java       |  19 +
+ .../creatorx/service/dto/ModerationRuleDTO.java    |   3 +
+ .../service/dto/ModerationRuleTestResultDTO.java   |  28 +
+ .../service/dto/SystemHealthSummaryDTO.java        |  18 +
+ .../creatorx/service/mapper/CampaignMapper.java    |  19 +-
+ .../service/storage/FileValidationService.java     |   1 +
+ .../service/storage/SupabaseStorageService.java    |  38 ++
+ .../com/creatorx/service/CampaignServiceTest.java  |   2 +-
+ backend/gradle/wrapper/gradle-cli.jar              | Bin 0 -> 27687 bytes
+ backend/gradle/wrapper/gradle-wrapper-shared.jar   | Bin 0 -> 32944 bytes
+ backend/gradle/wrapper/gradle-wrapper.jar          | Bin 307 -> 42613 bytes
+ backend/gradlew                                    |   4 +-
+ brand-dashboard/PROJECT_SUMMARY.md                 | 194 ++-----
+ brand-dashboard/README.md                          | 104 +---
+ brand-dashboard/SETUP.md                           |  51 +-
+ brand-dashboard/app/(admin)/admin/appeals/page.tsx |  46 +-
+ brand-dashboard/app/(admin)/admin/audit/page.tsx   |  53 +-
+ brand-dashboard/app/(admin)/admin/brands/page.tsx  |  21 +-
+ .../app/(admin)/admin/campaigns/page.tsx           |  47 +-
+ .../app/(admin)/admin/compliance/page.tsx          |  46 +-
+ .../app/(admin)/admin/disputes/page.tsx            |  47 +-
+ brand-dashboard/app/(admin)/admin/kyc/page.tsx     |  21 +-
+ brand-dashboard/app/(admin)/admin/page.tsx         |  94 +++-
+ brand-dashboard/app/(admin)/admin/users/page.tsx   |  63 ++-
+ .../app/(dashboard)/applications/page.tsx          | 202 ++++++++
+ .../app/(dashboard)/campaigns/new/page.tsx         | 136 ++++-
+ brand-dashboard/app/(dashboard)/campaigns/page.tsx | 307 +++++++++--
+ brand-dashboard/app/(dashboard)/creators/page.tsx  | 212 +++++++-
+ brand-dashboard/app/(dashboard)/dashboard/page.tsx | 120 ++++-
+ .../app/(dashboard)/deliverables/page.tsx          | 229 ++++++++-
+ brand-dashboard/app/(dashboard)/payments/page.tsx  | 116 ++++-
+ brand-dashboard/app/(dashboard)/profile/page.tsx   |  39 ++
+ brand-dashboard/app/globals.css                    | 133 +++++
+ .../components/layout/admin-sidebar.tsx            |   3 +-
+ brand-dashboard/components/layout/sidebar.tsx      |   1 +
+ brand-dashboard/components/shared/action-bar.tsx   |  23 +
+ .../components/shared/context-panel.tsx            |  33 ++
+ brand-dashboard/components/shared/empty-state.tsx  |  21 +
+ .../components/shared/queue-toolbar.tsx            |  51 ++
+ brand-dashboard/components/shared/status-chip.tsx  |  35 ++
+ .../lib/api/admin/brand-verification.ts            |  11 +-
+ brand-dashboard/lib/api/admin/kyc.ts               |  11 +-
+ brand-dashboard/lib/api/applications.ts            |   3 +
+ brand-dashboard/lib/types/index.ts                 |   4 +
+ package-lock.json                                  |  10 +
+ package.json                                       |  11 +-
+ replit.md                                          |  27 +-
+ src/api/adapters/index.ts                          |  72 ++-
+ src/api/client.ts                                  |  18 +-
+ src/api/services/authService.ts                    |  28 +-
+ src/api/services/messagingService.ts               |  13 +-
+ src/api/types.ts                                   |  16 +-
+ src/api/utils/transformers.ts                      |  27 +-
+ src/bootstrap/bootstrap.ts                         |   7 +
+ src/bootstrap/useBootstrap.ts                      |  48 ++
+ src/components/CampaignCard.tsx                    |  57 ++-
+ src/components/CampaignDetailModal.tsx             |  55 +-
+ src/config/supabase.ts                             |  13 +-
+ src/context/AppContext.api.tsx                     | 191 +++++--
+ src/context/AppContext.migrated.tsx                |   3 +-
+ src/context/AppContext.tsx                         |  24 +-
+ src/context/AuthContext.tsx                        | 137 +++--
+ src/lib/secureStore.ts                             |  53 ++
+ src/lib/websocket.ts                               |   7 +-
+ src/storage/cleanup.ts                             |  13 +
+ src/storage/migrations.ts                          |  28 +
+ src/storage/schema.ts                              |  31 ++
+ src/storage/serialization.ts                       |   8 +
+ src/types/index.ts                                 |  13 +-
+ 290 files changed, 16406 insertions(+), 1621 deletions(-)
+6419849 Saved progress at the end of the loop
+ .replit                                            |   20 +
+ ADMIN_DASHBOARD.md                                 |  112 +
+ admin-dashboard/.eslintrc.json                     |    4 +
+ admin-dashboard/.gitignore                         |   37 +
+ admin-dashboard/PROJECT_SUMMARY.md                 |  193 +
+ admin-dashboard/README.md                          |  166 +
+ admin-dashboard/SETUP.md                           |   93 +
+ admin-dashboard/app/(admin)/admin/appeals/page.tsx |   92 +
+ admin-dashboard/app/(admin)/admin/audit/page.tsx   |   67 +
+ admin-dashboard/app/(admin)/admin/brands/page.tsx  |  166 +
+ .../app/(admin)/admin/campaigns/page.tsx           |   95 +
+ .../app/(admin)/admin/compliance/page.tsx          |   90 +
+ .../app/(admin)/admin/disputes/page.tsx            |   89 +
+ admin-dashboard/app/(admin)/admin/finance/page.tsx |   40 +
+ admin-dashboard/app/(admin)/admin/kyc/page.tsx     |  172 +
+ .../app/(admin)/admin/moderation/page.tsx          |  161 +
+ admin-dashboard/app/(admin)/admin/page.tsx         |  101 +
+ .../app/(admin)/admin/settings/page.tsx            |  127 +
+ admin-dashboard/app/(admin)/admin/users/page.tsx   |   96 +
+ admin-dashboard/app/(admin)/layout.tsx             |   56 +
+ admin-dashboard/app/(auth)/layout.tsx              |   11 +
+ admin-dashboard/app/(auth)/login/page.tsx          |  167 +
+ admin-dashboard/app/(auth)/register/page.tsx       |  252 +
+ .../(dashboard)/campaigns/[id]/analytics/page.tsx  |  274 +
+ .../campaigns/[id]/applications/page.tsx           |  487 ++
+ .../campaigns/[id]/deliverables/page.tsx           |  447 +
+ .../app/(dashboard)/campaigns/new/page.tsx         |  995 +++
+ admin-dashboard/app/(dashboard)/campaigns/page.tsx |  212 +
+ .../app/(dashboard)/campaigns/templates/page.tsx   |  202 +
+ .../app/(dashboard)/creators/[id]/page.tsx         |  248 +
+ admin-dashboard/app/(dashboard)/creators/page.tsx  |  315 +
+ admin-dashboard/app/(dashboard)/dashboard/page.tsx |  259 +
+ .../app/(dashboard)/deliverables/page.tsx          |  276 +
+ admin-dashboard/app/(dashboard)/facebook/page.tsx  |  161 +
+ admin-dashboard/app/(dashboard)/help/page.tsx      |  117 +
+ admin-dashboard/app/(dashboard)/instagram/page.tsx |  207 +
+ admin-dashboard/app/(dashboard)/layout.tsx         |   60 +
+ admin-dashboard/app/(dashboard)/lists/page.tsx     |   83 +
+ admin-dashboard/app/(dashboard)/messages/page.tsx  |  573 ++
+ admin-dashboard/app/(dashboard)/payments/page.tsx  |  148 +
+ admin-dashboard/app/(dashboard)/profile/page.tsx   |  247 +
+ admin-dashboard/app/(dashboard)/settings/page.tsx  |  236 +
+ admin-dashboard/app/(dashboard)/youtube/page.tsx   |  173 +
+ admin-dashboard/app/globals.css                    |   68 +
+ admin-dashboard/app/layout.tsx                     |   29 +
+ admin-dashboard/app/page.tsx                       |    6 +
+ admin-dashboard/app/providers.tsx                  |   25 +
+ .../components/layout/admin-sidebar.tsx            |  164 +
+ admin-dashboard/components/layout/header.tsx       |   60 +
+ admin-dashboard/components/layout/sidebar.tsx      |  192 +
+ admin-dashboard/components/shared/badges.tsx       |   37 +
+ admin-dashboard/components/shared/page-header.tsx  |   25 +
+ admin-dashboard/components/shared/skeleton.tsx     |   67 +
+ admin-dashboard/components/ui/alert.tsx            |   60 +
+ admin-dashboard/components/ui/avatar.tsx           |   45 +
+ admin-dashboard/components/ui/badge.tsx            |   37 +
+ admin-dashboard/components/ui/button.tsx           |   56 +
+ admin-dashboard/components/ui/calendar.tsx         |   65 +
+ admin-dashboard/components/ui/card.tsx             |   79 +
+ admin-dashboard/components/ui/checkbox.tsx         |   26 +
+ admin-dashboard/components/ui/date-picker.tsx      |   58 +
+ admin-dashboard/components/ui/dialog.tsx           |  121 +
+ admin-dashboard/components/ui/dropdown-menu.tsx    |   73 +
+ admin-dashboard/components/ui/form.tsx             |  177 +
+ admin-dashboard/components/ui/input.tsx            |   25 +
+ admin-dashboard/components/ui/label.tsx            |   25 +
+ admin-dashboard/components/ui/popover.tsx          |   29 +
+ admin-dashboard/components/ui/select.tsx           |  158 +
+ admin-dashboard/components/ui/slider.tsx           |   24 +
+ admin-dashboard/components/ui/table.tsx            |  118 +
+ admin-dashboard/components/ui/tabs.tsx             |   50 +
+ admin-dashboard/components/ui/textarea.tsx         |   24 +
+ admin-dashboard/lib/api/admin/audit.ts             |   17 +
+ .../lib/api/admin/brand-verification.ts            |   19 +
+ admin-dashboard/lib/api/admin/compliance.ts        |   20 +
+ admin-dashboard/lib/api/admin/disputes.ts          |   12 +
+ admin-dashboard/lib/api/admin/finance.ts           |    8 +
+ admin-dashboard/lib/api/admin/kyc.ts               |   20 +
+ admin-dashboard/lib/api/admin/moderation.ts        |   35 +
+ admin-dashboard/lib/api/admin/settings.ts          |   12 +
+ admin-dashboard/lib/api/admin/system.ts            |    8 +
+ admin-dashboard/lib/api/admin/users.ts             |   26 +
+ admin-dashboard/lib/api/analytics.ts               |   13 +
+ admin-dashboard/lib/api/applications.ts            |   39 +
+ admin-dashboard/lib/api/auth.ts                    |  220 +
+ admin-dashboard/lib/api/brand-verification.ts      |   19 +
+ admin-dashboard/lib/api/campaigns.ts               |   52 +
+ admin-dashboard/lib/api/client.ts                  |  223 +
+ admin-dashboard/lib/api/creators.ts                |   42 +
+ admin-dashboard/lib/api/deliverables.ts            |   30 +
+ admin-dashboard/lib/api/messages.ts                |   53 +
+ admin-dashboard/lib/api/payments.ts                |   49 +
+ admin-dashboard/lib/api/profile.ts                 |   52 +
+ admin-dashboard/lib/api/templates.ts               |   23 +
+ .../lib/hooks/use-brand-verification.ts            |   21 +
+ admin-dashboard/lib/hooks/use-campaigns.ts         |   58 +
+ admin-dashboard/lib/hooks/use-creators.ts          |   55 +
+ admin-dashboard/lib/hooks/use-messages.ts          |   66 +
+ admin-dashboard/lib/hooks/use-payments.ts          |   43 +
+ admin-dashboard/lib/hooks/use-profile.ts           |   31 +
+ admin-dashboard/lib/hooks/use-team-members.ts      |   32 +
+ admin-dashboard/lib/hooks/use-templates.ts         |   63 +
+ admin-dashboard/lib/hooks/use-websocket.ts         |   74 +
+ admin-dashboard/lib/services/auth-service.ts       |   63 +
+ admin-dashboard/lib/services/websocket-service.ts  |  260 +
+ admin-dashboard/lib/store/auth-store.ts            |  107 +
+ admin-dashboard/lib/types/index.ts                 |  590 ++
+ admin-dashboard/lib/utils/cn.ts                    |    7 +
+ admin-dashboard/next.config.js                     |   21 +
+ admin-dashboard/package-lock.json                  | 8558 ++++++++++++++++++++
+ admin-dashboard/package.json                       |   53 +
+ admin-dashboard/postcss.config.js                  |    7 +
+ admin-dashboard/tailwind.config.ts                 |   84 +
+ admin-dashboard/tsconfig.json                      |   28 +
+ .../api/controller/AdminAuditController.java       |   47 +
+ .../api/controller/AdminComplianceController.java  |   51 +
+ .../api/controller/AdminFinanceController.java     |   35 +
+ .../api/controller/AdminModerationController.java  |   91 +
+ .../api/controller/AdminPermissionController.java  |   58 +
+ .../api/controller/AdminSettingsController.java    |   35 +
+ .../api/controller/AdminSystemController.java      |   28 +
+ .../api/controller/AdminUserController.java        |   78 +
+ .../creatorx/api/controller/AppealController.java  |   47 +
+ .../api/controller/ApplicationController.java      |   20 +-
+ .../controller/BrandVerificationController.java    |   96 +
+ .../api/controller/CampaignTemplateController.java |   93 +
+ .../api/controller/ComplianceController.java       |   47 +
+ .../creatorx/api/controller/DisputeController.java |  125 +
+ .../com/creatorx/api/controller/KYCController.java |   25 +-
+ .../api/controller/TeamMemberController.java       |   27 +-
+ .../creatorx/api/dto/AdminPermissionsRequest.java  |   10 +
+ .../creatorx/api/dto/AdminUserStatusRequest.java   |   10 +
+ .../java/com/creatorx/api/dto/AppealRequest.java   |    8 +
+ .../com/creatorx/api/dto/AppealResolveRequest.java |   10 +
+ .../dto/BrandVerificationBulkReviewRequest.java    |   12 +
+ .../api/dto/BrandVerificationReviewRequest.java    |   12 +
+ .../com/creatorx/api/dto/BulkStatusRequest.java    |   19 +
+ .../com/creatorx/api/dto/CampaignFlagRequest.java  |   10 +
+ .../api/dto/CampaignFlagResolveRequest.java        |   11 +
+ .../com/creatorx/api/dto/DisputeCreateRequest.java |   13 +
+ .../creatorx/api/dto/DisputeEvidenceRequest.java   |   10 +
+ .../creatorx/api/dto/DisputeResolveRequest.java    |   10 +
+ .../creatorx/api/dto/GDPRRequestCreateRequest.java |   12 +
+ .../creatorx/api/dto/GDPRRequestUpdateRequest.java |   10 +
+ .../com/creatorx/api/dto/KycBulkReviewRequest.java |   13 +
+ .../db/migration/V16__create_team_members.sql      |   19 +
+ .../V17__create_brand_verification_documents.sql   |   16 +
+ .../migration/V18__create_campaign_templates.sql   |   45 +
+ .../V19__create_team_member_invitations.sql        |   18 +
+ .../migration/V20__create_admin_phase3_tables.sql  |  145 +
+ .../com/creatorx/common/enums/AppealStatus.java    |    8 +
+ .../creatorx/common/enums/CampaignFlagStatus.java  |    7 +
+ .../creatorx/common/enums/GDPRRequestStatus.java   |    8 +
+ .../com/creatorx/common/enums/GDPRRequestType.java |    6 +
+ .../common/enums/ModerationRuleSeverity.java       |    8 +
+ .../common/enums/ModerationRuleStatus.java         |    6 +
+ .../creatorx/common/enums/PlatformSettingType.java |    8 +
+ .../repository/AccountAppealRepository.java        |   21 +
+ .../creatorx/repository/AdminActionRepository.java |   10 +
+ .../repository/AdminPermissionRepository.java      |   18 +
+ .../BrandVerificationDocumentRepository.java       |   17 +
+ .../repository/CampaignFlagRepository.java         |   20 +
+ .../repository/CampaignTemplateRepository.java     |   10 +
+ .../repository/DisputeEvidenceRepository.java      |   12 +
+ .../com/creatorx/repository/DisputeRepository.java |   22 +
+ .../creatorx/repository/GDPRRequestRepository.java |   26 +
+ .../creatorx/repository/KYCDocumentRepository.java |    3 +-
+ .../repository/ModerationRuleRepository.java       |   16 +
+ .../repository/PlatformSettingRepository.java      |   15 +
+ .../repository/TeamMemberInvitationRepository.java |   15 +
+ .../creatorx/repository/TeamMemberRepository.java  |   17 +
+ .../creatorx/repository/TransactionRepository.java |   16 +-
+ .../com/creatorx/repository/UserRepository.java    |    4 +-
+ .../creatorx/repository/entity/AccountAppeal.java  |   46 +
+ .../repository/entity/AdminPermission.java         |   27 +
+ .../entity/BrandVerificationDocument.java          |   44 +
+ .../creatorx/repository/entity/CampaignFlag.java   |   54 +
+ .../repository/entity/CampaignTemplate.java        |   75 +
+ .../entity/CampaignTemplateDeliverable.java        |   41 +
+ .../repository/entity/DisputeEvidence.java         |   36 +
+ .../creatorx/repository/entity/GDPRRequest.java    |   58 +
+ .../creatorx/repository/entity/ModerationRule.java |   42 +
+ .../repository/entity/PlatformSetting.java         |   32 +
+ .../com/creatorx/repository/entity/TeamMember.java |   52 +
+ .../repository/entity/TeamMemberInvitation.java    |   51 +
+ .../com/creatorx/service/ApplicationService.java   |   16 +-
+ .../creatorx/service/BrandVerificationService.java |  161 +
+ .../java/com/creatorx/service/CampaignService.java |    5 +-
+ .../creatorx/service/CampaignTemplateService.java  |  225 +
+ .../com/creatorx/service/DeliverableService.java   |    7 +-
+ .../java/com/creatorx/service/DisputeService.java  |  192 +
+ .../main/java/com/creatorx/service/KYCService.java |   51 +-
+ .../com/creatorx/service/TeamMemberService.java    |  197 +-
+ .../creatorx/service/admin/AdminAuditService.java  |  112 +
+ .../service/admin/AdminFinanceService.java         |   47 +
+ .../service/admin/AdminPermissionService.java      |  100 +
+ .../creatorx/service/admin/AdminSystemService.java |   39 +
+ .../creatorx/service/admin/AdminUserService.java   |  176 +
+ .../creatorx/service/admin/ComplianceService.java  |  118 +
+ .../creatorx/service/admin/ModerationService.java  |  244 +
+ .../service/admin/PlatformSettingsService.java     |   56 +
+ .../com/creatorx/service/dto/AccountAppealDTO.java |   25 +
+ .../com/creatorx/service/dto/AdminActionDTO.java   |   27 +
+ .../com/creatorx/service/dto/AdminSummaryDTO.java  |   21 +
+ .../com/creatorx/service/dto/AdminUserDTO.java     |   26 +
+ .../service/dto/BrandVerificationStatusDTO.java    |   23 +
+ .../com/creatorx/service/dto/CampaignFlagDTO.java  |   28 +
+ .../creatorx/service/dto/CampaignTemplateDTO.java  |   33 +
+ .../dto/CampaignTemplateDeliverableDTO.java        |   22 +
+ .../com/creatorx/service/dto/DeliverableDTO.java   |    6 +-
+ .../java/com/creatorx/service/dto/DisputeDTO.java  |   33 +
+ .../creatorx/service/dto/DisputeEvidenceDTO.java   |   21 +
+ .../creatorx/service/dto/FinanceSummaryDTO.java    |   21 +
+ .../com/creatorx/service/dto/GDPRRequestDTO.java   |   28 +
+ .../com/creatorx/service/dto/KYCDocumentDTO.java   |    2 +-
+ .../creatorx/service/dto/ModerationRuleDTO.java    |   25 +
+ .../creatorx/service/dto/PlatformSettingDTO.java   |   19 +
+ .../service/storage/FileValidationService.java     |    8 +-
+ .../service/storage/SupabaseStorageService.java    |   12 +-
+ brand-dashboard/app/(admin)/admin/appeals/page.tsx |   92 +
+ brand-dashboard/app/(admin)/admin/audit/page.tsx   |   67 +
+ brand-dashboard/app/(admin)/admin/brands/page.tsx  |  166 +
+ .../app/(admin)/admin/campaigns/page.tsx           |   95 +
+ .../app/(admin)/admin/compliance/page.tsx          |   90 +
+ .../app/(admin)/admin/disputes/page.tsx            |   89 +
+ brand-dashboard/app/(admin)/admin/finance/page.tsx |   40 +
+ brand-dashboard/app/(admin)/admin/kyc/page.tsx     |  172 +
+ .../app/(admin)/admin/moderation/page.tsx          |  161 +
+ brand-dashboard/app/(admin)/admin/page.tsx         |   40 +
+ .../app/(admin)/admin/settings/page.tsx            |  127 +
+ brand-dashboard/app/(admin)/admin/users/page.tsx   |   96 +
+ brand-dashboard/app/(admin)/layout.tsx             |   60 +
+ brand-dashboard/app/(auth)/layout.tsx              |    6 +-
+ brand-dashboard/app/(auth)/login/page.tsx          |  218 +-
+ brand-dashboard/app/(auth)/register/page.tsx       |    5 +-
+ .../(dashboard)/campaigns/[id]/analytics/page.tsx  |  133 +-
+ .../campaigns/[id]/applications/page.tsx           |   87 +
+ .../campaigns/[id]/deliverables/page.tsx           |   49 +
+ .../app/(dashboard)/campaigns/new/page.tsx         |   56 +-
+ brand-dashboard/app/(dashboard)/campaigns/page.tsx |  244 +-
+ .../app/(dashboard)/campaigns/templates/page.tsx   |  202 +
+ .../app/(dashboard)/creators/[id]/page.tsx         |   33 +-
+ brand-dashboard/app/(dashboard)/creators/page.tsx  |  129 +-
+ brand-dashboard/app/(dashboard)/dashboard/page.tsx |  216 +-
+ .../app/(dashboard)/deliverables/page.tsx          |  276 +
+ brand-dashboard/app/(dashboard)/layout.tsx         |    8 +-
+ brand-dashboard/app/(dashboard)/messages/page.tsx  |  486 +-
+ brand-dashboard/app/(dashboard)/payments/page.tsx  |   83 +-
+ brand-dashboard/app/(dashboard)/profile/page.tsx   |  244 +-
+ brand-dashboard/app/(dashboard)/settings/page.tsx  |   82 +-
+ brand-dashboard/app/globals.css                    |   64 +-
+ brand-dashboard/app/layout.tsx                     |   11 +-
+ .../components/layout/admin-sidebar.tsx            |  164 +
+ brand-dashboard/components/layout/header.tsx       |    5 +-
+ brand-dashboard/components/layout/sidebar.tsx      |   50 +-
+ brand-dashboard/components/ui/button.tsx           |    9 +-
+ brand-dashboard/components/ui/card.tsx             |    3 +-
+ brand-dashboard/components/ui/input.tsx            |    3 +-
+ brand-dashboard/components/ui/select.tsx           |    5 +-
+ brand-dashboard/components/ui/textarea.tsx         |    3 +-
+ brand-dashboard/lib/api/admin/audit.ts             |   17 +
+ .../lib/api/admin/brand-verification.ts            |   19 +
+ brand-dashboard/lib/api/admin/compliance.ts        |   20 +
+ brand-dashboard/lib/api/admin/disputes.ts          |   12 +
+ brand-dashboard/lib/api/admin/finance.ts           |    8 +
+ brand-dashboard/lib/api/admin/kyc.ts               |   20 +
+ brand-dashboard/lib/api/admin/moderation.ts        |   35 +
+ brand-dashboard/lib/api/admin/settings.ts          |   12 +
+ brand-dashboard/lib/api/admin/system.ts            |    8 +
+ brand-dashboard/lib/api/admin/users.ts             |   26 +
+ brand-dashboard/lib/api/applications.ts            |   11 +
+ brand-dashboard/lib/api/brand-verification.ts      |   19 +
+ brand-dashboard/lib/api/deliverables.ts            |    8 +
+ brand-dashboard/lib/api/messages.ts                |   12 +-
+ brand-dashboard/lib/api/payments.ts                |    3 +
+ brand-dashboard/lib/api/templates.ts               |   23 +
+ .../lib/hooks/use-brand-verification.ts            |   21 +
+ brand-dashboard/lib/hooks/use-creators.ts          |   55 +
+ brand-dashboard/lib/hooks/use-messages.ts          |   66 +
+ brand-dashboard/lib/hooks/use-payments.ts          |   43 +
+ brand-dashboard/lib/hooks/use-profile.ts           |   31 +
+ brand-dashboard/lib/hooks/use-team-members.ts      |   32 +
+ brand-dashboard/lib/hooks/use-templates.ts         |   63 +
+ brand-dashboard/lib/types/index.ts                 |  290 +
+ brand-dashboard/package.json                       |    4 +-
+ brand-dashboard/tailwind.config.ts                 |    5 +-
+ replit.md                                          |   24 +-
+ 287 files changed, 29769 insertions(+), 843 deletions(-)
+9225410 Add loading indicators and mock data to enhance user experience
+ brand-dashboard/app/(dashboard)/campaigns/page.tsx |  371 ++++----
+ brand-dashboard/app/(dashboard)/dashboard/page.tsx |   39 +
+ brand-dashboard/app/(dashboard)/instagram/page.tsx |   28 +-
+ brand-dashboard/app/(dashboard)/lists/page.tsx     |    2 +-
+ brand-dashboard/app/(dashboard)/messages/page.tsx  | 1004 ++++++++++----------
+ brand-dashboard/app/(dashboard)/payments/page.tsx  |  376 ++------
+ brand-dashboard/app/(dashboard)/settings/page.tsx  |  630 +++---------
+ brand-dashboard/components/shared/skeleton.tsx     |   67 ++
+ 8 files changed, 989 insertions(+), 1528 deletions(-)
+014515a Update dashboard and help pages with sky blue colors
+ brand-dashboard/app/(dashboard)/dashboard/page.tsx |  2 +-
+ brand-dashboard/app/(dashboard)/help/page.tsx      |  2 +-
+ brand-dashboard/app/(dashboard)/lists/page.tsx     |  2 +-
+ replit.md                                          | 95 ++++++++++++++++------
+ 4 files changed, 73 insertions(+), 28 deletions(-)
+d09a4b4 Simplify authentication layout by removing gradient background
+ brand-dashboard/app/(auth)/layout.tsx | 23 +----------------------
+ 1 file changed, 1 insertion(+), 22 deletions(-)
+d100b31 Update dashboard UI and login page to match new Figma design
+ .replit                                            |   5 +
+ .../B2B_SaaS_Dashboard_UI_Design_1767102354085.zip | Bin 0 -> 96782 bytes
+ attached_assets/figma_design/ATTRIBUTIONS.md       |   3 +
+ attached_assets/figma_design/README.md             |  11 +
+ .../figma_design/guidelines/Guidelines.md          |  61 ++
+ attached_assets/figma_design/index.html            |  15 +
+ attached_assets/figma_design/package.json          |  88 +++
+ attached_assets/figma_design/postcss.config.mjs    |  15 +
+ attached_assets/figma_design/src/app/App.tsx       |  76 +++
+ .../figma_design/src/app/components/Badges.tsx     |  35 +
+ .../src/app/components/CampaignMessagesView.tsx    | 151 +++++
+ .../src/app/components/CampaignsPage.tsx           |  87 +++
+ .../src/app/components/FacebookPage.tsx            |  56 ++
+ .../figma_design/src/app/components/HelpPage.tsx   | 133 ++++
+ .../figma_design/src/app/components/HomePage.tsx   | 161 +++++
+ .../src/app/components/InfluencerListsPage.tsx     |  83 +++
+ .../src/app/components/InstagramPage.tsx           | 187 ++++++
+ .../figma_design/src/app/components/LoginPage.tsx  | 150 +++++
+ .../src/app/components/MessageAnalyticsPage.tsx    | 280 ++++++++
+ .../src/app/components/MessageTemplatesPage.tsx    | 286 ++++++++
+ .../src/app/components/MessagesPage.tsx            | 456 +++++++++++++
+ .../figma_design/src/app/components/PageHeader.tsx |  23 +
+ .../src/app/components/PaymentsPage.tsx            |  85 +++
+ .../src/app/components/ProfilePage.tsx             | 145 ++++
+ .../src/app/components/SettingsPage.tsx            | 166 +++++
+ .../src/app/components/SharedFilesView.tsx         | 303 +++++++++
+ .../figma_design/src/app/components/Sidebar.tsx    | 132 ++++
+ .../src/app/components/YouTubePage.tsx             |  56 ++
+ .../src/app/components/figma/ImageWithFallback.tsx |  27 +
+ .../src/app/components/ui/accordion.tsx            |  66 ++
+ .../src/app/components/ui/alert-dialog.tsx         | 157 +++++
+ .../figma_design/src/app/components/ui/alert.tsx   |  66 ++
+ .../src/app/components/ui/aspect-ratio.tsx         |  11 +
+ .../figma_design/src/app/components/ui/avatar.tsx  |  53 ++
+ .../figma_design/src/app/components/ui/badge.tsx   |  46 ++
+ .../src/app/components/ui/breadcrumb.tsx           | 109 ++++
+ .../figma_design/src/app/components/ui/button.tsx  |  58 ++
+ .../src/app/components/ui/calendar.tsx             |  75 +++
+ .../figma_design/src/app/components/ui/card.tsx    |  92 +++
+ .../src/app/components/ui/carousel.tsx             | 241 +++++++
+ .../figma_design/src/app/components/ui/chart.tsx   | 353 ++++++++++
+ .../src/app/components/ui/checkbox.tsx             |  32 +
+ .../src/app/components/ui/collapsible.tsx          |  33 +
+ .../figma_design/src/app/components/ui/command.tsx | 177 +++++
+ .../src/app/components/ui/context-menu.tsx         | 252 +++++++
+ .../figma_design/src/app/components/ui/dialog.tsx  | 135 ++++
+ .../figma_design/src/app/components/ui/drawer.tsx  | 132 ++++
+ .../src/app/components/ui/dropdown-menu.tsx        | 257 ++++++++
+ .../figma_design/src/app/components/ui/form.tsx    | 168 +++++
+ .../src/app/components/ui/hover-card.tsx           |  44 ++
+ .../src/app/components/ui/input-otp.tsx            |  77 +++
+ .../figma_design/src/app/components/ui/input.tsx   |  21 +
+ .../figma_design/src/app/components/ui/label.tsx   |  24 +
+ .../figma_design/src/app/components/ui/menubar.tsx | 276 ++++++++
+ .../src/app/components/ui/navigation-menu.tsx      | 168 +++++
+ .../src/app/components/ui/pagination.tsx           | 127 ++++
+ .../figma_design/src/app/components/ui/popover.tsx |  48 ++
+ .../src/app/components/ui/progress.tsx             |  31 +
+ .../src/app/components/ui/radio-group.tsx          |  45 ++
+ .../src/app/components/ui/resizable.tsx            |  56 ++
+ .../src/app/components/ui/scroll-area.tsx          |  58 ++
+ .../figma_design/src/app/components/ui/select.tsx  | 189 ++++++
+ .../src/app/components/ui/separator.tsx            |  28 +
+ .../figma_design/src/app/components/ui/sheet.tsx   | 139 ++++
+ .../figma_design/src/app/components/ui/sidebar.tsx | 726 +++++++++++++++++++++
+ .../src/app/components/ui/skeleton.tsx             |  13 +
+ .../figma_design/src/app/components/ui/slider.tsx  |  63 ++
+ .../figma_design/src/app/components/ui/sonner.tsx  |  25 +
+ .../figma_design/src/app/components/ui/switch.tsx  |  31 +
+ .../figma_design/src/app/components/ui/table.tsx   | 116 ++++
+ .../figma_design/src/app/components/ui/tabs.tsx    |  66 ++
+ .../src/app/components/ui/textarea.tsx             |  18 +
+ .../src/app/components/ui/toggle-group.tsx         |  73 +++
+ .../figma_design/src/app/components/ui/toggle.tsx  |  47 ++
+ .../figma_design/src/app/components/ui/tooltip.tsx |  61 ++
+ .../src/app/components/ui/use-mobile.ts            |  21 +
+ .../figma_design/src/app/components/ui/utils.ts    |   6 +
+ .../figma_design/src/app/data/messages-data.ts     | 321 +++++++++
+ attached_assets/figma_design/src/main.tsx          |   7 +
+ attached_assets/figma_design/src/styles/fonts.css  |   0
+ attached_assets/figma_design/src/styles/index.css  |   3 +
+ .../figma_design/src/styles/tailwind.css           |   4 +
+ attached_assets/figma_design/src/styles/theme.css  | 181 +++++
+ attached_assets/figma_design/vite.config.ts        |  19 +
+ brand-dashboard/app/(auth)/login/page.tsx          | 170 +++--
+ brand-dashboard/app/(dashboard)/dashboard/page.tsx | 160 +++++
+ brand-dashboard/app/(dashboard)/facebook/page.tsx  | 161 +++++
+ brand-dashboard/app/(dashboard)/help/page.tsx      | 117 ++++
+ brand-dashboard/app/(dashboard)/instagram/page.tsx | 185 ++++++
+ brand-dashboard/app/(dashboard)/layout.tsx         |  23 +-
+ brand-dashboard/app/(dashboard)/lists/page.tsx     |  83 +++
+ brand-dashboard/app/(dashboard)/profile/page.tsx   | 103 +++
+ brand-dashboard/app/(dashboard)/youtube/page.tsx   | 173 +++++
+ brand-dashboard/app/globals.css                    |  32 +-
+ brand-dashboard/components/layout/sidebar.tsx      | 190 ++++--
+ brand-dashboard/components/shared/badges.tsx       |  37 ++
+ brand-dashboard/components/shared/page-header.tsx  |  25 +
+ 97 files changed, 10248 insertions(+), 132 deletions(-)
+44591a2 Add demo login mode for previewing the dashboard
+ attached_assets/image_1767030308793.png | Bin 0 -> 714770 bytes
+ brand-dashboard/lib/api/auth.ts         |  31 ++++++++++++++++++++++++++++++-
+ 2 files changed, 30 insertions(+), 1 deletion(-)
+b46c3f7 Update brand dashboard configuration and Expo app watch folders
+ .replit                        | 20 ++++++++++++++++++--
+ brand-dashboard/next.config.js |  2 +-
+ brand-dashboard/package.json   |  2 +-
+ metro.config.js                |  7 +++++++
+ 4 files changed, 27 insertions(+), 4 deletions(-)
+16513f0 Enable simultaneous previews for Expo app and brand dashboard
+ brand-dashboard/next.config.js | 11 +++++++++++
+ brand-dashboard/package.json   |  2 +-
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+14c8343 Transitioned from Plan to Build mode
+ .replit                                            |    4 +
+ .../creatorx/repository/entity/AdminAction.java    |    1 +
+ .../com/creatorx/repository/entity/Wallet.java     |    1 +
+ backend/gradle/wrapper/gradle-wrapper.jar          |    2 +
+ backend/gradlew                                    |    0
+ brand-dashboard/package-lock.json                  | 8558 ++++++++++++++++++++
+ gradle-wrapper-tmp/plugin/META-INF/MANIFEST.MF     |    4 +
+ .../gradle-8.5/lib/plugins/gradle-wrapper-8.5.jar  |  Bin 0 -> 42613 bytes
+ .../plugin/gradle-wrapper-classpath.properties     |    2 +
+ .../gradle-wrapper-parameter-names.properties      |    0
+ gradle-wrapper-tmp/plugin/gradle-wrapper.jar       |  Bin 0 -> 43462 bytes
+ .../org/gradle/wrapper/GradleWrapperMain.class     |  Bin 0 -> 5982 bytes
+ gradle-wrapper-tmp/shared/META-INF/MANIFEST.MF     |    4 +
+ .../gradle-8.5/lib/gradle-wrapper-shared-8.5.jar   |  Bin 0 -> 32944 bytes
+ .../gradle-wrapper-shared-classpath.properties     |    2 +
+ ...radle-wrapper-shared-parameter-names.properties |    0
+ .../internal/WrapperDistributionUrlConverter.class |  Bin 0 -> 1049 bytes
+ .../gradle/wrapper/BootstrapMainStarter$1.class    |  Bin 0 -> 793 bytes
+ .../org/gradle/wrapper/BootstrapMainStarter.class  |  Bin 0 -> 2572 bytes
+ .../shared/org/gradle/wrapper/Download$1.class     |  Bin 0 -> 210 bytes
+ .../Download$DefaultDownloadProgressListener.class |  Bin 0 -> 2008 bytes
+ .../wrapper/Download$ProxyAuthenticator.class      |  Bin 0 -> 1918 bytes
+ .../shared/org/gradle/wrapper/Download.class       |  Bin 0 -> 11316 bytes
+ .../gradle/wrapper/DownloadProgressListener.class  |  Bin 0 -> 202 bytes
+ .../wrapper/ExclusiveFileAccessManager.class       |  Bin 0 -> 3204 bytes
+ .../org/gradle/wrapper/GradleUserHomeLookup.class  |  Bin 0 -> 1158 bytes
+ .../shared/org/gradle/wrapper/IDownload.class      |  Bin 0 -> 219 bytes
+ .../shared/org/gradle/wrapper/Install$1.class      |  Bin 0 -> 2988 bytes
+ .../org/gradle/wrapper/Install$InstallCheck.class  |  Bin 0 -> 1559 bytes
+ .../shared/org/gradle/wrapper/Install.class        |  Bin 0 -> 13902 bytes
+ .../shared/org/gradle/wrapper/Logger.class         |  Bin 0 -> 1332 bytes
+ .../wrapper/PathAssembler$LocalDistribution.class  |  Bin 0 -> 751 bytes
+ .../shared/org/gradle/wrapper/PathAssembler.class  |  Bin 0 -> 3648 bytes
+ .../gradle/wrapper/SystemPropertiesHandler.class   |  Bin 0 -> 2428 bytes
+ .../org/gradle/wrapper/WrapperConfiguration.class  |  Bin 0 -> 2393 bytes
+ .../org/gradle/wrapper/WrapperExecutor.class       |  Bin 0 -> 5769 bytes
+ 36 files changed, 8578 insertions(+)
+0061d9e Update Supabase configuration to use Expo environment variables
+ .../favicon-48.png                                   | Bin 0 -> 152 bytes
+ src/config/supabase.ts                               |  19 +++++++------------
+ 2 files changed, 7 insertions(+), 12 deletions(-)
+2b3256a Enable app preview by configuring tunnel access
+ .expo/settings.json | 3 +++
+ .replit             | 8 ++++----
+ 2 files changed, 7 insertions(+), 4 deletions(-)
+e7ebc7a Remove duplicate component definition to fix preview errors
+ .expo/settings.json                                |   3 ---
+ .../favicon-48.png                                 | Bin 152 -> 0 bytes
+ src/components/SkeletonLoader.tsx                  |  28 +--------------------
+ src/components/index.ts                            |   2 +-
+ 4 files changed, 2 insertions(+), 31 deletions(-)
+da5aed7 Saved progress at the end of the loop
+ .replit           | 75 ++++++-------------------------------------------------
+ package-lock.json | 45 +++++++++++++++++++++++----------
+ 2 files changed, 39 insertions(+), 81 deletions(-)
+ff24455 phase 2
+ .cursor/rules/rules.mdc                            |    34 +
+ .expo/README.md                                    |     8 +
+ .expo/devices.json                                 |     3 +
+ .expo/settings.json                                |     3 +
+ .../favicon-48.png                                 |   Bin 0 -> 152 bytes
+ .github/workflows/backend-tests.yml                |    97 +
+ .github/workflows/ci-cd.yml                        |   370 +
+ .gitignore                                         |    10 +
+ .replit                                            |   107 +
+ ALL_FIXES_SUMMARY.md                               |   212 +
+ API_CLIENT_DOCUMENTATION.md                        |   484 +
+ API_INTEGRATION_GUIDE.md                           |   428 +
+ APP_LAUNCH_GUIDE.md                                |   209 +
+ APP_PREVIEW.md                                     |   379 +
+ AUTHENTICATION_SUMMARY.md                          |   123 +
+ BRAND_CREATOR_FLOW_BUGS_FIXED.md                   |   197 +
+ BRAND_CREATOR_FLOW_TEST_RESULTS.md                 |   168 +
+ BUGS.md                                            |    88 +
+ BUGS_FIXED.md                                      |   354 +
+ CAMPAIGN_APPLICATION_SERVICES.md                   |   537 +
+ CAMPAIGN_SERVICE_IMPLEMENTATION.md                 |   224 +
+ CONTEXT_MIGRATION_GUIDE.md                         |   445 +
+ DOCUMENTATION_INDEX.md                             |   204 +
+ FILE_UPLOAD_IMPLEMENTATION.md                      |   287 +
+ IMPLEMENTATION_CHECKLIST.md                        |    88 +
+ INTEGRATION_GUIDE.md                               |   262 +
+ LOCAL_DEVELOPMENT.md                               |   402 +
+ MIGRATION_REPLIT_TO_LOCAL.md                       |   211 +
+ MIGRATION_STRATEGY.md                              |   408 +
+ MIGRATION_SUMMARY.md                               |   286 +
+ PERFORMANCE_REPORT.md                              |   256 +
+ PHASE1_BUG_FIXES_SUMMARY.md                        |   156 +
+ PHASE1_COMPLETION_REPORT.md                        |   444 +
+ PHASE1_DOCUMENTATION_SUMMARY.md                    |   346 +
+ QUICK_START.md                                     |    96 +
+ README.md                                          |   378 +
+ RUNNING_WITHOUT_BACKEND.md                         |   180 +
+ START_EXPO_APP.md                                  |   134 +
+ SUPABASE_AUTH_IMPLEMENTATION.md                    |   328 +
+ SUPABASE_AUTH_SETUP.md                             |   270 +
+ TEST_EXECUTION_FRAMEWORK.md                        |   130 +
+ TEST_EXECUTION_GUIDE.md                            |   161 +
+ TEST_RESULTS.md                                    |   281 +
+ UAT_FEEDBACK.md                                    |   247 +
+ WEBSOCKET_MESSAGING_IMPLEMENTATION.md              |   239 +
+ WEBSOCKET_SETUP_GUIDE.md                           |   145 +
+ app.json                                           |    33 +
+ app/(tabs)/_layout.tsx                             |   408 +
+ app/(tabs)/active-campaigns.tsx                    |   772 ++
+ app/(tabs)/chat.tsx                                |   575 +
+ app/(tabs)/explore.tsx                             |   956 ++
+ app/(tabs)/index.tsx                               |     5 +
+ app/(tabs)/more.tsx                                |  1102 ++
+ app/(tabs)/profile.tsx                             |   955 ++
+ app/(tabs)/wallet.tsx                              |  1159 ++
+ app/_layout.supabase.tsx.example                   |    43 +
+ app/_layout.tsx                                    |   103 +
+ app/auth/login.supabase.tsx                        |   138 +
+ app/auth/register.supabase.tsx                     |   235 +
+ app/conversation.tsx                               |   324 +
+ app/documents.tsx                                  |   451 +
+ app/edit-profile.tsx                               |   654 +
+ app/help.tsx                                       |   588 +
+ app/kyc.tsx                                        |   670 +
+ app/new-message.tsx                                |   264 +
+ app/notifications.tsx                              |   267 +
+ app/privacy.tsx                                    |   565 +
+ app/profile.tsx                                    |   540 +
+ app/saved.tsx                                      |   266 +
+ app/transaction-detail.tsx                         |   334 +
+ assets/.gitkeep                                    |     1 +
+ assets/adaptive-icon.png                           |   Bin 0 -> 70 bytes
+ assets/favicon.png                                 |   Bin 0 -> 70 bytes
+ assets/icon.png                                    |   Bin 0 -> 70 bytes
+ assets/splash.png                                  |   Bin 0 -> 70 bytes
+ ...t-Refined-Functional-Creator-_1765004470874.txt |   142 +
+ ...25-12-03_at_16.09.38_fd6966b7_1764758427733.jpg |   Bin 0 -> 29209 bytes
+ ...25-12-03_at_16.19.36_d4049fd4_1764759127931.jpg |   Bin 0 -> 29235 bytes
+ ...25-12-03_at_23.55.22_a3f79d7f_1764786414562.jpg |   Bin 0 -> 49360 bytes
+ ...25-12-04_at_14.46.57_0172563a_1765008565579.jpg |   Bin 0 -> 56289 bytes
+ ...25-12-06_at_13.43.12_1ce814bb_1765013010221.jpg |   Bin 0 -> 13916 bytes
+ ...25-12-06_at_13.43.12_abbb34bf_1765008952385.jpg |   Bin 0 -> 13916 bytes
+ ...25-12-06_at_14.26.03_844b5c93_1765011369455.jpg |   Bin 0 -> 50333 bytes
+ ...25-12-06_at_15.34.39_02472d76_1765133295993.jpg |   Bin 0 -> 34905 bytes
+ ...25-12-06_at_15.34.39_bcf8db08_1765015649197.jpg |   Bin 0 -> 34905 bytes
+ ...25-12-06_at_15.45.40_4264832f_1765016169396.jpg |   Bin 0 -> 51650 bytes
+ ...25-12-06_at_15.45.40_ad92bb70_1765016157208.jpg |   Bin 0 -> 51443 bytes
+ ...25-12-07_at_10.28.06_923913d7_1765083644283.jpg |   Bin 0 -> 87726 bytes
+ ...25-12-07_at_16.29.20_2ddd5511_1765105185547.jpg |   Bin 0 -> 5054 bytes
+ ...25-12-07_at_16.40.19_e9c6e060_1765105917811.jpg |   Bin 0 -> 15178 bytes
+ attached_assets/image_1764784590803.png            |   Bin 0 -> 1189 bytes
+ attached_assets/image_1764876335857.png            |   Bin 0 -> 114754 bytes
+ attached_assets/image_1764877635099.png            |   Bin 0 -> 115361 bytes
+ attached_assets/image_1765109709962.png            |   Bin 0 -> 24955 bytes
+ attached_assets/image_1765109940072.png            |   Bin 0 -> 24955 bytes
+ attached_assets/image_1765115697140.png            |   Bin 0 -> 364444 bytes
+ attached_assets/image_1765115847188.png            |   Bin 0 -> 111804 bytes
+ attached_assets/image_1765116205491.png            |   Bin 0 -> 16650 bytes
+ attached_assets/image_1765119058440.png            |   Bin 0 -> 5702 bytes
+ attached_assets/targeted_element_1765020000869.png |   Bin 0 -> 2329 bytes
+ attached_assets/targeted_element_1765090520229.png |   Bin 0 -> 4589 bytes
+ attached_assets/targeted_element_1765105281026.png |   Bin 0 -> 2427 bytes
+ attached_assets/targeted_element_1765107067287.png |   Bin 0 -> 919 bytes
+ attached_assets/targeted_element_1765107436955.png |   Bin 0 -> 4505 bytes
+ attached_assets/targeted_element_1765107721431.png |   Bin 0 -> 7488 bytes
+ attached_assets/targeted_element_1765108303226.png |   Bin 0 -> 6832 bytes
+ attached_assets/targeted_element_1765109788937.png |   Bin 0 -> 4386 bytes
+ attached_assets/targeted_element_1765110365621.png |   Bin 0 -> 7825 bytes
+ attached_assets/targeted_element_1765110994902.png |   Bin 0 -> 4919 bytes
+ attached_assets/targeted_element_1765111327357.png |   Bin 0 -> 918 bytes
+ attached_assets/targeted_element_1765114470301.png |   Bin 0 -> 616 bytes
+ attached_assets/targeted_element_1765114527709.png |   Bin 0 -> 721 bytes
+ attached_assets/targeted_element_1765115014506.png |   Bin 0 -> 7245 bytes
+ attached_assets/targeted_element_1765118321915.png |   Bin 0 -> 2041 bytes
+ attached_assets/targeted_element_1765118671525.png |   Bin 0 -> 5267 bytes
+ attached_assets/targeted_element_1765118851779.png |   Bin 0 -> 6074 bytes
+ attached_assets/targeted_element_1765132708181.png |   Bin 0 -> 7825 bytes
+ attached_assets/targeted_element_1765132951227.png |   Bin 0 -> 7246 bytes
+ attached_assets/targeted_element_1765134270260.png |   Bin 0 -> 731 bytes
+ babel.config.js                                    |     7 +
+ backend/.dockerignore                              |    53 +
+ backend/.gitignore                                 |    50 +
+ backend/API_USAGE_GUIDE.md                         |   364 +
+ backend/DATABASE_SCHEMA.md                         |   208 +
+ backend/DOCKER_SETUP.md                            |   412 +
+ backend/DOCUMENTATION_INDEX.md                     |   110 +
+ backend/Dockerfile                                 |    43 +
+ backend/Dockerfile.prod                            |    61 +
+ backend/INTEGRATION_CHECKLIST.md                   |   612 +
+ backend/INTEGRATION_TESTING_GUIDE.md               |   274 +
+ backend/PROJECT_STRUCTURE.md                       |   191 +
+ backend/README.md                                  |   369 +
+ backend/SETUP.md                                   |   135 +
+ backend/TESTING_GUIDE.md                           |   205 +
+ backend/TESTING_SCRIPT.md                          |   787 ++
+ backend/build.gradle                               |   133 +
+ backend/creatorx-api/build.gradle                  |    33 +
+ .../java/com/creatorx/api/CreatorXApplication.java |    23 +
+ .../java/com/creatorx/api/config/CsrfConfig.java   |    42 +
+ .../com/creatorx/api/config/FirebaseConfig.java    |    78 +
+ .../api/config/MethodArgumentResolverConfig.java   |    54 +
+ .../com/creatorx/api/config/OpenApiConfig.java     |   104 +
+ .../creatorx/api/config/RateLimitingConfig.java    |    51 +
+ .../com/creatorx/api/config/SecurityConfig.java    |    74 +
+ .../com/creatorx/api/config/SupabaseConfig.java    |    37 +
+ .../com/creatorx/api/config/WebSocketConfig.java   |    43 +
+ .../api/config/WebSocketSecurityConfig.java        |    30 +
+ .../api/controller/ApplicationController.java      |   226 +
+ .../creatorx/api/controller/AuthController.java    |   145 +
+ .../controller/CampaignAnalyticsController.java    |    58 +
+ .../api/controller/CampaignController.java         |   420 +
+ .../creatorx/api/controller/CreatorController.java |   119 +
+ .../api/controller/DeliverableController.java      |   165 +
+ .../creatorx/api/controller/HealthController.java  |    32 +
+ .../com/creatorx/api/controller/KYCController.java |   127 +
+ .../creatorx/api/controller/MessageController.java |   157 +
+ .../api/controller/NotificationController.java     |   126 +
+ .../creatorx/api/controller/ProfileController.java |   224 +
+ .../creatorx/api/controller/StorageController.java |   175 +
+ .../api/controller/TeamMemberController.java       |    95 +
+ .../creatorx/api/controller/WalletController.java  |   190 +
+ .../controller/exception/AuthExceptionHandler.java |    68 +
+ .../exception/GlobalExceptionHandler.java          |   105 +
+ .../com/creatorx/api/dto/ApplicationRequest.java   |    19 +
+ .../java/com/creatorx/api/dto/AuthResponse.java    |    25 +
+ .../com/creatorx/api/dto/BankAccountRequest.java   |    35 +
+ .../creatorx/api/dto/CampaignCreateRequest.java    |    71 +
+ .../api/dto/CampaignDeliverableCreateRequest.java  |    30 +
+ .../creatorx/api/dto/CampaignFilterRequest.java    |    20 +
+ .../creatorx/api/dto/CampaignUpdateRequest.java    |    53 +
+ .../creatorx/api/dto/DeliverableSubmitRequest.java |    23 +
+ .../java/com/creatorx/api/dto/FCMTokenRequest.java |    19 +
+ .../com/creatorx/api/dto/InviteCreatorRequest.java |    16 +
+ .../java/com/creatorx/api/dto/InviteRequest.java   |    19 +
+ .../com/creatorx/api/dto/KYCSubmitRequest.java     |    20 +
+ .../creatorx/api/dto/LinkSupabaseUserRequest.java  |    30 +
+ .../java/com/creatorx/api/dto/LoginRequest.java    |    16 +
+ .../com/creatorx/api/dto/NotificationRequest.java  |    26 +
+ .../com/creatorx/api/dto/PortfolioItemRequest.java |    19 +
+ .../java/com/creatorx/api/dto/RegisterRequest.java |    26 +
+ .../java/com/creatorx/api/dto/ReviewRequest.java   |    15 +
+ .../com/creatorx/api/dto/StorageUploadRequest.java |    15 +
+ .../com/creatorx/api/dto/TransactionRequest.java   |    23 +
+ .../api/dto/UpdateBrandProfileRequest.java         |    26 +
+ .../api/dto/UpdateCreatorProfileRequest.java       |    28 +
+ .../com/creatorx/api/dto/UpdateProfileRequest.java |    17 +
+ .../com/creatorx/api/dto/UpdateStatusRequest.java  |    17 +
+ .../com/creatorx/api/dto/WithdrawalRequest.java    |    18 +
+ .../api/security/JwtAuthenticationFilter.java      |    80 +
+ .../api/security/JwtChannelInterceptor.java        |   114 +
+ .../security/SupabaseJwtAuthenticationFilter.java  |   105 +
+ .../src/main/resources/application-dev.yml         |    19 +
+ .../src/main/resources/application-prod.yml        |    19 +
+ .../src/main/resources/application-staging.yml     |    14 +
+ .../src/main/resources/application.yml             |   119 +
+ .../main/resources/db/migration/SCHEMA_OVERVIEW.md |   196 +
+ .../db/migration/V10__create_extensions.sql        |    21 +
+ .../db/migration/V11__add_supabase_id_to_users.sql |     9 +
+ .../db/migration/V12__create_saved_campaigns.sql   |    19 +
+ .../V13__create_storage_buckets_and_policies.sql   |   125 +
+ .../db/migration/V15__add_performance_indexes.sql  |    87 +
+ .../resources/db/migration/V1__create_enums.sql    |    99 +
+ .../resources/db/migration/V1__initial_schema.sql  |     4 +
+ .../db/migration/V2__create_users_and_profiles.sql |   150 +
+ .../db/migration/V3__create_campaigns.sql          |    98 +
+ ...1__create_active_campaigns_and_deliverables.sql |    62 +
+ .../V4__create_applications_and_deliverables.sql   |   101 +
+ .../V5__create_wallet_and_transactions.sql         |   127 +
+ .../V6__create_messaging_and_notifications.sql     |   101 +
+ .../migration/V7__create_admin_and_referrals.sql   |   111 +
+ .../db/migration/V7__create_fcm_tokens.sql         |    29 +
+ .../db/migration/V8__add_kyc_document_fields.sql   |    12 +
+ .../resources/db/migration/V8__create_triggers.sql |   205 +
+ ...__create_additional_indexes_and_constraints.sql |   126 +
+ .../api/controller/CampaignControllerTest.java     |   207 +
+ .../integration/ApplicationIntegrationTest.java    |   197 +
+ .../api/integration/BaseIntegrationTest.java       |    38 +
+ .../api/integration/CampaignIntegrationTest.java   |   229 +
+ .../integration/DeliverableIntegrationTest.java    |   302 +
+ .../api/integration/KYCIntegrationTest.java        |   203 +
+ .../integration/NotificationIntegrationTest.java   |   178 +
+ .../api/integration/ProfileIntegrationTest.java    |   276 +
+ .../api/integration/StorageIntegrationTest.java    |   137 +
+ .../creatorx/api/restassured/CampaignApiTest.java  |   123 +
+ .../src/test/resources/application-test.yml        |    50 +
+ backend/creatorx-common/build.gradle               |    15 +
+ .../com/creatorx/common/enums/AdminActionType.java |    14 +
+ .../creatorx/common/enums/ApplicationStatus.java   |    10 +
+ .../creatorx/common/enums/CampaignPlatform.java    |    11 +
+ .../com/creatorx/common/enums/CampaignStatus.java  |    10 +
+ .../com/creatorx/common/enums/CurrencyType.java    |     8 +
+ .../creatorx/common/enums/DeliverableStatus.java   |    17 +
+ .../com/creatorx/common/enums/DisputeStatus.java   |     9 +
+ .../com/creatorx/common/enums/DisputeType.java     |     9 +
+ .../com/creatorx/common/enums/DocumentStatus.java  |     8 +
+ .../com/creatorx/common/enums/DocumentType.java    |    10 +
+ .../creatorx/common/enums/NotificationType.java    |    21 +
+ .../com/creatorx/common/enums/PaymentStatus.java   |    13 +
+ .../com/creatorx/common/enums/ReferralStatus.java  |     8 +
+ .../creatorx/common/enums/SubmissionStatus.java    |     9 +
+ .../creatorx/common/enums/TransactionStatus.java   |     9 +
+ .../com/creatorx/common/enums/TransactionType.java |    10 +
+ .../java/com/creatorx/common/enums/UserRole.java   |    11 +
+ .../java/com/creatorx/common/enums/UserStatus.java |     9 +
+ .../creatorx/common/enums/WithdrawalStatus.java    |    10 +
+ .../exception/ApplicationDeadlineException.java    |     8 +
+ .../common/exception/BusinessException.java        |    28 +
+ .../exception/CampaignNotFoundException.java       |    12 +
+ .../exception/DuplicateApplicationException.java   |     8 +
+ .../creatorx/common/exception/ErrorResponse.java   |    28 +
+ .../common/exception/KYCNotVerifiedException.java  |     8 +
+ .../exception/ResourceNotFoundException.java       |    15 +
+ .../common/exception/UnauthorizedException.java    |    11 +
+ .../java/com/creatorx/common/util/Constants.java   |    26 +
+ backend/creatorx-repository/build.gradle           |    12 +
+ .../creatorx/repository/ApplicationRepository.java |    62 +
+ .../creatorx/repository/BankAccountRepository.java |    27 +
+ .../repository/BrandProfileRepository.java         |    10 +
+ .../repository/CampaignApplicationRepository.java  |    24 +
+ .../repository/CampaignDeliverableRepository.java  |    17 +
+ .../creatorx/repository/CampaignRepository.java    |    84 +
+ .../repository/ConversationRepository.java         |    90 +
+ .../repository/CreatorProfileRepository.java       |    20 +
+ .../creatorx/repository/DeliverableRepository.java |    82 +
+ .../creatorx/repository/FCMTokenRepository.java    |    36 +
+ .../creatorx/repository/KYCDocumentRepository.java |    35 +
+ .../com/creatorx/repository/MessageRepository.java |    55 +
+ .../repository/NotificationRepository.java         |    49 +
+ .../repository/SavedCampaignRepository.java        |    22 +
+ .../creatorx/repository/TransactionRepository.java |    74 +
+ .../creatorx/repository/UserProfileRepository.java |    10 +
+ .../com/creatorx/repository/UserRepository.java    |    22 +
+ .../com/creatorx/repository/WalletRepository.java  |    58 +
+ .../repository/WithdrawalRequestRepository.java    |    28 +
+ .../creatorx/repository/entity/ActiveCampaign.java |    51 +
+ .../creatorx/repository/entity/AdminAction.java    |    54 +
+ .../creatorx/repository/entity/Application.java    |    57 +
+ .../repository/entity/ApplicationFeedback.java     |    54 +
+ .../creatorx/repository/entity/BankAccount.java    |    57 +
+ .../com/creatorx/repository/entity/BaseEntity.java |    31 +
+ .../creatorx/repository/entity/BrandProfile.java   |    63 +
+ .../com/creatorx/repository/entity/Campaign.java   |   106 +
+ .../repository/entity/CampaignApplication.java     |    54 +
+ .../repository/entity/CampaignDeliverable.java     |    62 +
+ .../creatorx/repository/entity/Conversation.java   |    47 +
+ .../creatorx/repository/entity/CreatorProfile.java |    81 +
+ .../creatorx/repository/entity/Deliverable.java    |    66 +
+ .../repository/entity/DeliverableReview.java       |    56 +
+ .../repository/entity/DeliverableSubmission.java   |    51 +
+ .../com/creatorx/repository/entity/Dispute.java    |    64 +
+ .../com/creatorx/repository/entity/FCMToken.java   |    49 +
+ .../creatorx/repository/entity/KYCDocument.java    |    58 +
+ .../com/creatorx/repository/entity/Message.java    |    46 +
+ .../creatorx/repository/entity/Notification.java   |    59 +
+ .../com/creatorx/repository/entity/Referral.java   |    62 +
+ .../creatorx/repository/entity/SavedCampaign.java  |    32 +
+ .../com/creatorx/repository/entity/SocialLink.java |    33 +
+ .../creatorx/repository/entity/Transaction.java    |    75 +
+ .../java/com/creatorx/repository/entity/User.java  |    81 +
+ .../creatorx/repository/entity/UserProfile.java    |    56 +
+ .../com/creatorx/repository/entity/Wallet.java     |    61 +
+ .../repository/entity/WithdrawalRequest.java       |    59 +
+ backend/creatorx-service/build.gradle              |    26 +
+ .../com/creatorx/service/ApplicationService.java   |   578 +
+ .../java/com/creatorx/service/AuthService.java     |   214 +
+ .../com/creatorx/service/BankAccountService.java   |   180 +
+ .../java/com/creatorx/service/CacheService.java    |    26 +
+ .../creatorx/service/CampaignAnalyticsService.java |   181 +
+ .../java/com/creatorx/service/CampaignService.java |   626 +
+ .../com/creatorx/service/ConversationService.java  |   163 +
+ .../creatorx/service/CreatorDiscoveryService.java  |   182 +
+ .../com/creatorx/service/DeliverableService.java   |   568 +
+ .../main/java/com/creatorx/service/FCMService.java |   134 +
+ .../main/java/com/creatorx/service/JwtService.java |    75 +
+ .../main/java/com/creatorx/service/KYCService.java |   327 +
+ .../java/com/creatorx/service/MessageService.java  |   306 +
+ .../com/creatorx/service/NotificationService.java  |   240 +
+ .../java/com/creatorx/service/ProfileService.java  |   503 +
+ .../com/creatorx/service/SupabaseJwtService.java   |   189 +
+ .../com/creatorx/service/TeamMemberService.java    |   109 +
+ .../java/com/creatorx/service/UserService.java     |    61 +
+ .../java/com/creatorx/service/WalletService.java   |   261 +
+ .../com/creatorx/service/WithdrawalService.java    |   253 +
+ .../com/creatorx/service/config/CacheConfig.java   |    36 +
+ .../service/config/RestTemplateConfig.java         |    15 +
+ .../com/creatorx/service/dto/ApplicationDTO.java   |    39 +
+ .../com/creatorx/service/dto/BankAccountDTO.java   |    23 +
+ .../com/creatorx/service/dto/BrandProfileDTO.java  |    22 +
+ .../creatorx/service/dto/CampaignAnalyticsDTO.java |    56 +
+ .../java/com/creatorx/service/dto/CampaignDTO.java |    63 +
+ .../service/dto/CampaignDeliverableDTO.java        |    33 +
+ .../creatorx/service/dto/ChatMessageRequest.java   |    17 +
+ .../com/creatorx/service/dto/ConversationDTO.java  |    28 +
+ .../java/com/creatorx/service/dto/CreatorDTO.java  |    54 +
+ .../creatorx/service/dto/CreatorProfileDTO.java    |    28 +
+ .../com/creatorx/service/dto/DeliverableDTO.java   |    32 +
+ .../service/dto/DeliverableHistoryDTO.java         |    25 +
+ .../creatorx/service/dto/FileUploadResponse.java   |    20 +
+ .../com/creatorx/service/dto/KYCDocumentDTO.java   |    29 +
+ .../com/creatorx/service/dto/KYCStatusDTO.java     |    19 +
+ .../java/com/creatorx/service/dto/MessageDTO.java  |    26 +
+ .../com/creatorx/service/dto/NotificationDTO.java  |    26 +
+ .../com/creatorx/service/dto/PortfolioItem.java    |    26 +
+ .../creatorx/service/dto/SignedUrlResponse.java    |    19 +
+ .../com/creatorx/service/dto/TeamMemberDTO.java    |    27 +
+ .../com/creatorx/service/dto/TransactionDTO.java   |    28 +
+ .../com/creatorx/service/dto/UserProfileDTO.java   |    23 +
+ .../java/com/creatorx/service/dto/WalletDTO.java   |    22 +
+ .../com/creatorx/service/dto/WithdrawalDTO.java    |    25 +
+ .../creatorx/service/mapper/ApplicationMapper.java |    46 +
+ .../creatorx/service/mapper/BankAccountMapper.java |    28 +
+ .../creatorx/service/mapper/CampaignMapper.java    |   100 +
+ .../creatorx/service/mapper/DeliverableMapper.java |    51 +
+ .../creatorx/service/mapper/TransactionMapper.java |    20 +
+ .../service/storage/FileValidationService.java     |   196 +
+ .../service/storage/SupabaseStorageClient.java     |   138 +
+ .../service/storage/SupabaseStorageService.java    |   273 +
+ .../service/util/ProfileValidationUtil.java        |   140 +
+ .../service/util/SearchQuerySanitizer.java         |    71 +
+ .../creatorx/service/ApplicationServiceTest.java   |   369 +
+ .../com/creatorx/service/CampaignServiceTest.java  |   548 +
+ .../creatorx/service/DeliverableServiceTest.java   |   462 +
+ .../java/com/creatorx/service/KYCServiceTest.java  |   307 +
+ .../creatorx/service/NotificationServiceTest.java  |   325 +
+ .../com/creatorx/service/ProfileServiceTest.java   |   333 +
+ .../com/creatorx/service/WalletServiceTest.java    |   319 +
+ .../storage/SupabaseStorageServiceTest.java        |   182 +
+ .../creatorx/service/testdata/TestDataBuilder.java |   240 +
+ backend/db/init/01-init-extensions.sql             |    21 +
+ backend/db/seed/seed-data.sql                      |   330 +
+ backend/docker-compose.yml                         |   162 +
+ backend/docs/adr/ADR-001-supabase-auth-storage.md  |    48 +
+ backend/docs/adr/ADR-002-spring-boot-backend.md    |    75 +
+ backend/docs/adr/ADR-003-websocket-messaging.md    |    81 +
+ backend/docs/adr/ADR-004-razorpay-payments.md      |    81 +
+ backend/docs/adr/README.md                         |    73 +
+ backend/docs/database-schema.md                    |   289 +
+ backend/env.example                                |    26 +
+ backend/gradle.properties                          |     7 +
+ backend/gradle/wrapper/gradle-wrapper.properties   |    11 +
+ backend/gradlew                                    |   252 +
+ backend/gradlew.bat                                |    95 +
+ backend/openapi-applications.yaml                  |  1094 ++
+ backend/openapi-auth.yaml                          |   648 +
+ backend/openapi-campaigns.yaml                     |   848 ++
+ backend/openapi-messaging.yaml                     |   882 ++
+ backend/openapi-profile.yaml                       |   887 ++
+ backend/openapi-wallet-kyc.yaml                    |  1006 ++
+ backend/performance-tests/README.md                |    56 +
+ backend/performance-tests/campaign-load-test.jmx   |   147 +
+ .../websocket-stress-test.gatling.scala            |    59 +
+ .../postman/CreatorX-API.postman_collection.json   |   535 +
+ .../postman/CreatorX-Dev.postman_environment.json  |    44 +
+ .../postman/CreatorX-Prod.postman_environment.json |    44 +
+ .../CreatorX-Staging.postman_environment.json      |    44 +
+ backend/run-integration-tests.sh                   |   331 +
+ backend/settings.gradle                            |    15 +
+ backend/test-data-setup.sql                        |   432 +
+ brand-dashboard/.eslintrc.json                     |     4 +
+ brand-dashboard/.gitignore                         |    37 +
+ brand-dashboard/PROJECT_SUMMARY.md                 |   193 +
+ brand-dashboard/README.md                          |   166 +
+ brand-dashboard/SETUP.md                           |    93 +
+ brand-dashboard/app/(auth)/layout.tsx              |    28 +
+ brand-dashboard/app/(auth)/login/page.tsx          |    97 +
+ brand-dashboard/app/(auth)/register/page.tsx       |   253 +
+ .../(dashboard)/campaigns/[id]/analytics/page.tsx  |   295 +
+ .../campaigns/[id]/applications/page.tsx           |   400 +
+ .../campaigns/[id]/deliverables/page.tsx           |   398 +
+ .../app/(dashboard)/campaigns/new/page.tsx         |   941 ++
+ brand-dashboard/app/(dashboard)/campaigns/page.tsx |   213 +
+ .../app/(dashboard)/creators/[id]/page.tsx         |   247 +
+ brand-dashboard/app/(dashboard)/creators/page.tsx  |   248 +
+ brand-dashboard/app/(dashboard)/layout.tsx         |    65 +
+ brand-dashboard/app/(dashboard)/messages/page.tsx  |   575 +
+ brand-dashboard/app/(dashboard)/payments/page.tsx  |   339 +
+ brand-dashboard/app/(dashboard)/settings/page.tsx  |   520 +
+ brand-dashboard/app/globals.css                    |    60 +
+ brand-dashboard/app/layout.tsx                     |    26 +
+ brand-dashboard/app/page.tsx                       |     6 +
+ brand-dashboard/app/providers.tsx                  |    25 +
+ brand-dashboard/components/layout/header.tsx       |    61 +
+ brand-dashboard/components/layout/sidebar.tsx      |    62 +
+ brand-dashboard/components/ui/alert.tsx            |    60 +
+ brand-dashboard/components/ui/avatar.tsx           |    45 +
+ brand-dashboard/components/ui/badge.tsx            |    37 +
+ brand-dashboard/components/ui/button.tsx           |    57 +
+ brand-dashboard/components/ui/calendar.tsx         |    65 +
+ brand-dashboard/components/ui/card.tsx             |    80 +
+ brand-dashboard/components/ui/checkbox.tsx         |    26 +
+ brand-dashboard/components/ui/date-picker.tsx      |    58 +
+ brand-dashboard/components/ui/dialog.tsx           |   121 +
+ brand-dashboard/components/ui/dropdown-menu.tsx    |    73 +
+ brand-dashboard/components/ui/form.tsx             |   177 +
+ brand-dashboard/components/ui/input.tsx            |    26 +
+ brand-dashboard/components/ui/label.tsx            |    25 +
+ brand-dashboard/components/ui/popover.tsx          |    29 +
+ brand-dashboard/components/ui/select.tsx           |   159 +
+ brand-dashboard/components/ui/slider.tsx           |    24 +
+ brand-dashboard/components/ui/table.tsx            |   118 +
+ brand-dashboard/components/ui/tabs.tsx             |    50 +
+ brand-dashboard/components/ui/textarea.tsx         |    25 +
+ brand-dashboard/lib/api/analytics.ts               |    13 +
+ brand-dashboard/lib/api/applications.ts            |    28 +
+ brand-dashboard/lib/api/auth.ts                    |   191 +
+ brand-dashboard/lib/api/campaigns.ts               |    52 +
+ brand-dashboard/lib/api/client.ts                  |   223 +
+ brand-dashboard/lib/api/creators.ts                |    42 +
+ brand-dashboard/lib/api/deliverables.ts            |    22 +
+ brand-dashboard/lib/api/messages.ts                |    47 +
+ brand-dashboard/lib/api/payments.ts                |    46 +
+ brand-dashboard/lib/api/profile.ts                 |    52 +
+ brand-dashboard/lib/hooks/use-campaigns.ts         |    58 +
+ brand-dashboard/lib/hooks/use-websocket.ts         |    74 +
+ brand-dashboard/lib/services/auth-service.ts       |    63 +
+ brand-dashboard/lib/services/websocket-service.ts  |   260 +
+ brand-dashboard/lib/store/auth-store.ts            |   107 +
+ brand-dashboard/lib/types/index.ts                 |   300 +
+ brand-dashboard/lib/utils/cn.ts                    |     7 +
+ brand-dashboard/next.config.js                     |    10 +
+ brand-dashboard/package.json                       |    54 +
+ brand-dashboard/postcss.config.js                  |     7 +
+ brand-dashboard/tailwind.config.ts                 |    81 +
+ brand-dashboard/tsconfig.json                      |    28 +
+ build.log                                          |   Bin 0 -> 8268 bytes
+ design_guidelines.md                               |   125 +
+ .../web/entry-5b71d7c24b9cb4444f57eb941a02b43f.js  |  1322 ++
+ .../supabase-d41d8cd98f00b204e9800998ecf8427e.js   |     0
+ dist_web/favicon.ico                               |   Bin 0 -> 14510 bytes
+ dist_web/index.html                                |    37 +
+ dist_web/metadata.json                             |     1 +
+ docs/API_GUIDE.md                                  |   674 +
+ docs/ARCHITECTURE.md                               |   495 +
+ docs/CODE_COMMENTS_GUIDE.md                        |   207 +
+ docs/DATABASE.md                                   |   480 +
+ docs/DEPLOYMENT.md                                 |   483 +
+ docs/TROUBLESHOOTING.md                            |   566 +
+ docs/USER_GUIDES/CREATOR_ONBOARDING.md             |   276 +
+ docs/USER_GUIDES/HOW_TO_APPLY.md                   |   316 +
+ docs/USER_GUIDES/HOW_TO_SUBMIT_DELIVERABLES.md     |   335 +
+ docs/USER_GUIDES/HOW_TO_WITHDRAW.md                |   367 +
+ expo-tunnel.js                                     |    10 +
+ metro.config.js                                    |     5 +
+ openapi.yaml                                       |  5079 ++++++++
+ package-lock.json                                  | 12555 +++++++++++++++++++
+ package.json                                       |    51 +
+ replit.md                                          |    99 +
+ run-tests.sh                                       |   170 +
+ scripts/README.md                                  |   199 +
+ scripts/deploy-dev.sh                              |    50 +
+ scripts/deploy-production.sh                       |    81 +
+ scripts/deploy-staging.sh                          |    53 +
+ scripts/e2e-tests.sh                               |   128 +
+ scripts/health-check.sh                            |    64 +
+ scripts/rollback.sh                                |    79 +
+ scripts/run-integration-tests.sh                   |    81 +
+ scripts/smoke-tests.sh                             |   142 +
+ scripts/test-execution-guide.md                    |    95 +
+ setup-local.bat                                    |   131 +
+ setup-local.sh                                     |   139 +
+ simple_server.js                                   |    62 +
+ src/api/README.md                                  |   222 +
+ src/api/README_MIGRATION.md                        |   113 +
+ src/api/adapters/index.ts                          |   388 +
+ src/api/client.ts                                  |   245 +
+ src/api/errorHandler.ts                            |   101 +
+ src/api/errors.ts                                  |   119 +
+ src/api/hooks/useApiData.ts                        |   209 +
+ src/api/index.ts                                   |    10 +
+ src/api/services/applicationService.ts             |    59 +
+ src/api/services/authService.ts                    |   127 +
+ src/api/services/campaignService.ts                |   104 +
+ src/api/services/deliverableService.ts             |    92 +
+ src/api/services/index.ts                          |    15 +
+ src/api/services/kycService.ts                     |    35 +
+ src/api/services/messagingService.ts               |    57 +
+ src/api/services/notificationService.ts            |    43 +
+ src/api/services/profileService.ts                 |    70 +
+ src/api/services/referralService.ts                |    34 +
+ src/api/services/storageService.ts                 |   180 +
+ src/api/services/walletService.ts                  |    54 +
+ src/api/types.ts                                   |   460 +
+ src/api/utils/cache.ts                             |    94 +
+ src/api/utils/transformers.ts                      |   334 +
+ src/components/AnalyticsCard.tsx                   |   282 +
+ src/components/AuthScreen.tsx                      |   384 +
+ src/components/Avatar.tsx                          |    88 +
+ src/components/BackButton.tsx                      |    64 +
+ src/components/Badge.tsx                           |    70 +
+ src/components/Button.tsx                          |   169 +
+ src/components/CampaignApplicationModal.tsx        |   455 +
+ src/components/CampaignCard.tsx                    |   411 +
+ src/components/CampaignDetailModal.tsx             |   527 +
+ src/components/ChatItem.tsx                        |   101 +
+ src/components/CreatorAuthScreen.tsx               |  1166 ++
+ src/components/DraftSubmissionModal.tsx            |   359 +
+ src/components/EmptyState.tsx                      |    68 +
+ src/components/ErrorView.tsx                       |    93 +
+ src/components/FileUpload.tsx                      |   406 +
+ src/components/GlassCard.tsx                       |    38 +
+ src/components/Modal.tsx                           |   149 +
+ src/components/OfflineNotice.tsx                   |    93 +
+ src/components/RatingModal.tsx                     |   205 +
+ src/components/Skeleton.tsx                        |   179 +
+ src/components/SkeletonLoader.tsx                  |    93 +
+ src/components/SplashScreen.tsx                    |   169 +
+ src/components/StatCard.tsx                        |    64 +
+ src/components/TransactionItem.tsx                 |   146 +
+ src/components/WithdrawModal.tsx                   |   352 +
+ src/components/index.ts                            |    24 +
+ src/config/env.ts                                  |   130 +
+ src/config/featureFlags.ts                         |    83 +
+ src/config/supabase.ts                             |    59 +
+ src/context/AppContext.api.tsx                     |  1130 ++
+ src/context/AppContext.migrated.tsx                |   577 +
+ src/context/AppContext.tsx                         |  1196 ++
+ src/context/AuthContext.tsx                        |   305 +
+ src/context/ChatContext.tsx                        |   335 +
+ src/context/index.ts                               |     3 +
+ src/hooks/index.ts                                 |     5 +
+ src/hooks/useApi.ts                                |    87 +
+ src/hooks/useDebounce.ts                           |    17 +
+ src/hooks/useOptimisticCampaign.ts                 |   104 +
+ src/hooks/usePagination.ts                         |   147 +
+ src/hooks/useRefresh.ts                            |    20 +
+ src/hooks/useTheme.ts                              |    19 +
+ src/lib/supabase.ts                                |    67 +
+ src/lib/websocket.ts                               |   231 +
+ src/services/FileUploadService.ts                  |   424 +
+ src/services/NotificationService.ts                |   208 +
+ src/services/WebSocketService.ts                   |   354 +
+ src/theme/colors.ts                                |   101 +
+ src/theme/index.ts                                 |     3 +
+ src/theme/spacing.ts                               |    18 +
+ src/theme/typography.ts                            |    64 +
+ src/types/global.d.ts                              |    13 +
+ src/types/index.ts                                 |   246 +
+ src/utils/optimisticUpdates.ts                     |   134 +
+ start-mobile.sh                                    |     3 +
+ test-results/README.md                             |    58 +
+ tsconfig.json                                      |    20 +
+ userinput.py                                       |     1 +
+ 582 files changed, 104054 insertions(+)

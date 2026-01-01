@@ -1,17 +1,22 @@
 import type { Metadata } from "next"
-import { Manrope, Space_Grotesk } from "next/font/google"
+import { IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" })
-const spaceGrotesk = Space_Grotesk({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-sans",
+})
+const ibmPlexCondensed = IBM_Plex_Sans_Condensed({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-display",
 })
 
 export const metadata: Metadata = {
-  title: "CreatorX Brand Dashboard",
-  description: "Manage your influencer campaigns",
+  title: "CreatorX Admin Console",
+  description: "Operational controls and monitoring",
 }
 
 export default function RootLayout({
@@ -21,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${spaceGrotesk.variable} antialiased`}>
+      <body className={`${ibmPlexSans.variable} ${ibmPlexCondensed.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

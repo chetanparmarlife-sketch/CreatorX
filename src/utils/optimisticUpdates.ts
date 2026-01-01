@@ -19,11 +19,11 @@ export interface OptimisticUpdateResult<T> {
  */
 export function optimisticSaveCampaign(
   campaigns: Campaign[],
-  campaignId: number
+  campaignId: string
 ): OptimisticUpdateResult<Campaign> {
   const previousState = [...campaigns];
   const updatedState = campaigns.map((campaign) =>
-    campaign.id === String(campaignId)
+    campaign.id === campaignId
       ? { ...campaign, isSaved: true }
       : campaign
   );
@@ -40,11 +40,11 @@ export function optimisticSaveCampaign(
  */
 export function optimisticUnsaveCampaign(
   campaigns: Campaign[],
-  campaignId: number
+  campaignId: string
 ): OptimisticUpdateResult<Campaign> {
   const previousState = [...campaigns];
   const updatedState = campaigns.map((campaign) =>
-    campaign.id === String(campaignId)
+    campaign.id === campaignId
       ? { ...campaign, isSaved: false }
       : campaign
   );
@@ -78,11 +78,11 @@ export function optimisticAddApplication(
  */
 export function optimisticRemoveApplication(
   applications: Application[],
-  applicationId: number
+  applicationId: string
 ): OptimisticUpdateResult<Application> {
   const previousState = [...applications];
   const updatedState = applications.filter(
-    (app) => app.id !== String(applicationId)
+    (app) => app.id !== applicationId
   );
 
   return {
@@ -97,12 +97,12 @@ export function optimisticRemoveApplication(
  */
 export function optimisticUpdateApplicationStatus(
   applications: Application[],
-  applicationId: number,
+  applicationId: string,
   status: Application['status']
 ): OptimisticUpdateResult<Application> {
   const previousState = [...applications];
   const updatedState = applications.map((app) =>
-    app.id === String(applicationId) ? { ...app, status } : app
+    app.id === applicationId ? { ...app, status } : app
   );
 
   return {
@@ -131,4 +131,3 @@ export function createOptimisticUpdate<T extends { id: string }>(
     revert: () => previousState,
   };
 }
-

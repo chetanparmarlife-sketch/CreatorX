@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminCampaignManagementService } from '@/lib/api/admin/campaign-management'
 import { adminUserService } from '@/lib/api/admin/users'
+import { useAdminApplications } from '@/lib/hooks/use-admin-applications'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/shared/page-header'
 import { TableSkeleton } from '@/components/shared/skeleton'
+import { EmptyState } from '@/components/shared/empty-state'
 import { UserRole } from '@/lib/types'
 
 const statusToneMap: Record<string, 'approved' | 'needs_action' | 'blocked' | 'pending' | 'info'> = {
@@ -53,16 +55,17 @@ export default function AdminApplicationsPage() {
     [brands]
   )
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-applications', page, brandId, campaignId, status],
-    queryFn: () =>
-      adminCampaignManagementService.listApplicationsAdmin({
-        page,
-        size: 20,
-        brandId: brandId || undefined,
-        campaignId: campaignId || undefined,
-        status: status === 'ALL' ? undefined : status,
-      }),
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useAdminApplications({
+    page,
+    size: 20,
+    brandId: brandId || undefined,
+    campaignId: campaignId || undefined,
+    status: status === 'ALL' ? undefined : status,
   })
 
   const items = (data as any)?.items ?? (data as any)?.content ?? []
@@ -142,15 +145,25 @@ export default function AdminApplicationsPage() {
               </option>
             ))}
           </select>
+          <Button variant="outline" onClick={() => refetch()}>
+            Refresh
+          </Button>
         </div>
 
         {isLoading ? (
           <TableSkeleton rows={6} />
+        ) : isError ? (
+          <EmptyState
+            title="Unable to load applications"
+            description="Refresh to retry loading applications."
+            action={<Button onClick={() => refetch()}>Retry</Button>}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase text-slate-500">
                 <tr>
+                  <th className="py-2 pr-4">Application ID</th>
                   <th className="py-2 pr-4">Creator</th>
                   <th className="py-2 pr-4">Campaign</th>
                   <th className="py-2 pr-4">Status</th>
@@ -162,6 +175,7 @@ export default function AdminApplicationsPage() {
                 {items.length ? (
                   items.map((application: any) => (
                     <tr key={application.id} className="border-t border-slate-100">
+                      <td className="py-3 pr-4 text-xs text-slate-500">{application.id}</td>
                       <td className="py-3 pr-4">
                         <p className="font-medium text-slate-900">
                           {application.creator?.profile?.fullName || application.creator?.email || 'Creator'}
