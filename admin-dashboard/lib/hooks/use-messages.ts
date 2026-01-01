@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { messageService } from '@/lib/api/messages'
+import { useMessagePolling } from '@/lib/hooks/use-message-polling'
 import type { Conversation, Message, Page } from '@/lib/types'
 
 type ConversationResponse =
@@ -13,20 +14,24 @@ const normalizeConversations = (data: ConversationResponse | undefined): Convers
 }
 
 export function useConversations() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['conversations'],
     queryFn: () => messageService.getConversations(),
     select: normalizeConversations,
   })
+  useMessagePolling({ enabled: true, refetch: query.refetch })
+  return query
 }
 
 export function useMessages(conversationId?: string, page = 0, size = 50) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['messages', conversationId, page, size],
     queryFn: () =>
       messageService.getMessages(conversationId as string, page, size),
     enabled: !!conversationId,
   })
+  useMessagePolling({ enabled: Boolean(conversationId), refetch: query.refetch })
+  return query
 }
 
 export function useSendMessage() {

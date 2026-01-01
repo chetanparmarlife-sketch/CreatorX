@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, borderRadius, typography } from '@/src/theme';
 import { Avatar } from '@/src/components';
 import { Message } from '@/src/types';
@@ -45,7 +46,15 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
 export default function ConversationScreen() {
   const router = useRouter();
   const { name, online, chatId: paramChatId } = useLocalSearchParams<{ name: string; online: string; chatId: string }>();
-  const { getConversation, sendMessage, markChatRead, chats, loadMessages } = useApp();
+  const {
+    getConversation,
+    sendMessage,
+    markChatRead,
+    chats,
+    loadMessages,
+    startConversationPolling,
+    stopConversationPolling,
+  } = useApp();
   
   const chatId = paramChatId || '1';
   const messages = getConversation(chatId);
@@ -64,6 +73,15 @@ export default function ConversationScreen() {
   useEffect(() => {
     loadMessages(chatId);
   }, [chatId, loadMessages]);
+
+  useFocusEffect(
+    useCallback(() => {
+      startConversationPolling(chatId);
+      return () => {
+        stopConversationPolling();
+      };
+    }, [chatId, startConversationPolling, stopConversationPolling])
+  );
 
   useEffect(() => {
     markChatRead(chatId);

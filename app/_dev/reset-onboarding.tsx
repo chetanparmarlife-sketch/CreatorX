@@ -7,8 +7,6 @@ import { colors } from '@/src/theme';
 const STORAGE_KEYS = {
   STORAGE_VERSION: '@storage_version',
   ONBOARDING_COMPLETE: '@onboarding_complete_creator',
-  CONNECTED_PLATFORM: '@connected_platform',
-  FOLLOWER_COUNT: '@follower_count',
 };
 
 export default function ResetOnboarding() {
@@ -22,8 +20,6 @@ export default function ResetOnboarding() {
         await AsyncStorage.multiRemove([
           STORAGE_KEYS.STORAGE_VERSION,
           STORAGE_KEYS.ONBOARDING_COMPLETE,
-          STORAGE_KEYS.CONNECTED_PLATFORM,
-          STORAGE_KEYS.FOLLOWER_COUNT,
         ]);
         console.log('Onboarding data cleared successfully');
       } catch (e) {
@@ -32,7 +28,7 @@ export default function ResetOnboarding() {
       
       if (!isMountedRef.current) return;
       timeoutRef.current = setTimeout(() => {
-        router.replace('/(auth)/connect');
+        router.replace('/(auth)/login-otp');
       }, 500);
     };
 

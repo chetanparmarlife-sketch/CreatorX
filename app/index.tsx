@@ -11,16 +11,12 @@ const CURRENT_STORAGE_VERSION = '2';
 const STORAGE_KEYS = {
   STORAGE_VERSION: '@storage_version',
   ONBOARDING_COMPLETE: '@onboarding_complete_creator',
-  CONNECTED_PLATFORM: '@connected_platform',
-  FOLLOWER_COUNT: '@follower_count',
 };
 
 const clearOnboardingData = async () => {
   try {
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.ONBOARDING_COMPLETE,
-      STORAGE_KEYS.CONNECTED_PLATFORM,
-      STORAGE_KEYS.FOLLOWER_COUNT,
     ]);
   } catch (e) {
     console.error('Failed to clear onboarding data:', e);
@@ -75,10 +71,8 @@ export default function Index() {
 
     if (isAuthenticated) {
       router.replace(DEFAULT_APP_ROUTE);
-    } else if (onboardingComplete) {
-      router.replace('/(auth)/login-otp');
     } else {
-      router.replace('/(auth)/connect');
+      router.replace('/(auth)/login-otp');
     }
   }, [initialized, isAuthenticated, onboardingComplete, splashComplete, router]);
 

@@ -4,12 +4,12 @@
 CreatorX is a comprehensive React Native/Expo mobile application for content creators to discover brand collaboration campaigns, manage deliverables, track earnings, and communicate with brands. The app features a premium dark mode design aesthetic inspired by Linear and Stripe.
 
 ## Recent Changes
+- **January 2026**: Simplified auth flow - removed social connect screen, users now login directly with phone/OTP
 - **December 2024**: Added dev preview mode with "Skip for Dev Preview" button on auth screens
 - **December 2024**: Added demo OTP credentials display (Phone: Any 10 digits, OTP: 123456)
 - **December 2024**: Fixed splash screen timer persistence for development environment using sessionStorage
 - **December 2024**: Updated expo-secure-store to version 14.0.1 for Expo compatibility
 - **December 2024**: Added marketing profile screen with rate cards and engagement metrics for influencer onboarding
-- **December 2024**: Rebuilt mobile app auth/onboarding flow with social connect, eligibility gates, and OTP login
 - **December 2024**: Brand Dashboard UI overhaul to match new Figma design (light theme, sky blue primary)
 - **December 2024**: New sidebar navigation with Influencer Discovery section (Instagram/Facebook/YouTube)
 - **December 2024**: New Dashboard home page with stats cards and activity feed
@@ -106,19 +106,17 @@ components/
 
 ### Mobile App
 1. **Splash Screen**: Animated logo with premium branding on app open
-2. **Social Connect Screen**: Connect Instagram/YouTube/LinkedIn to verify eligibility (1,000+ followers)
-3. **Eligibility Screen**: Shows eligible/not eligible status based on follower count
-4. **Phone OTP Login**: For existing users - phone number + OTP verification
-5. **Onboarding Form**: Collect creator profile details after social connect
-6. **Marketing Profile**: Set commercial rates and engagement metrics for brand matching
-7. **Home Dashboard**: Earnings overview, quick stats, active campaigns, quick actions
-8. **Explore**: Browse and filter available brand campaigns
-9. **Upload**: Submit content deliverables for campaigns
-10. **Chat**: Real-time messaging with brands
-11. **Wallet**: Track earnings, pending payments, withdrawal history
-12. **Profile**: User settings, referral system, KYC verification
-13. **Analytics**: Performance metrics, earnings charts, insights
-14. **Saved Campaigns**: Bookmark campaigns for later
+2. **Phone OTP Login**: Direct login with phone number + OTP verification
+3. **Onboarding Form**: Collect creator profile details for new users
+4. **Marketing Profile**: Set commercial rates and engagement metrics for brand matching
+5. **Home Dashboard**: Earnings overview, quick stats, active campaigns, quick actions
+6. **Explore**: Browse and filter available brand campaigns
+7. **Upload**: Submit content deliverables for campaigns
+8. **Chat**: Real-time messaging with brands
+9. **Wallet**: Track earnings, pending payments, withdrawal history
+10. **Profile**: User settings, referral system, KYC verification
+11. **Analytics**: Performance metrics, earnings charts, insights
+12. **Saved Campaigns**: Bookmark campaigns for later
 
 ### Brand Dashboard
 1. **Dashboard**: Lifecycle progress, spend/budget health, deliverables status, quick actions

@@ -14,6 +14,8 @@ export type FeatureFlag =
   | 'USE_API_DELIVERABLES'
   | 'USE_API_WALLET'
   | 'USE_API_MESSAGING'
+  | 'USE_POLLING_MESSAGES'
+  | 'USE_WS_MESSAGES'
   | 'USE_API_NOTIFICATIONS'
   | 'USE_API_PROFILE';
 
@@ -24,6 +26,8 @@ interface FeatureFlags {
   USE_API_DELIVERABLES: boolean;
   USE_API_WALLET: boolean;
   USE_API_MESSAGING: boolean;
+  USE_POLLING_MESSAGES: boolean;
+  USE_WS_MESSAGES: boolean;
   USE_API_NOTIFICATIONS: boolean;
   USE_API_PROFILE: boolean;
 }
@@ -35,6 +39,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
   USE_API_DELIVERABLES: true,
   USE_API_WALLET: true,
   USE_API_MESSAGING: false,
+  USE_POLLING_MESSAGES: true,
+  USE_WS_MESSAGES: false,
   USE_API_NOTIFICATIONS: true,
   USE_API_PROFILE: false,
 };

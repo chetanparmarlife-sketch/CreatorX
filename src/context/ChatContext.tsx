@@ -17,6 +17,7 @@ import { useAuth } from './AuthContext';
 import { messagingService } from '@/src/api/services/messagingService';
 import { Message, Conversation } from '@/src/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { featureFlags } from '@/src/config/featureFlags';
 
 interface ChatContextType {
   // State
@@ -54,6 +55,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // Connect WebSocket when authenticated
   useEffect(() => {
+    if (!featureFlags.isEnabled('USE_WS_MESSAGES')) {
+      disconnect();
+      return;
+    }
     if (isAuthenticated && user) {
       connect();
     } else {
@@ -332,4 +337,3 @@ export function useChat() {
   }
   return context;
 }
-

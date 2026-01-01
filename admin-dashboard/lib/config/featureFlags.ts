@@ -1,0 +1,4 @@
+export const MESSAGE_FEATURE_FLAGS = {
+  USE_POLLING_MESSAGES: true,
+  USE_WS_MESSAGES: false,
+};

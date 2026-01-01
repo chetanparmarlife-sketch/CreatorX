@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshC
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { spacing, borderRadius, typography } from '@/src/theme';
 import { ChatItem, ChatItemSkeleton, EmptyState, Avatar } from '@/src/components';
 import { ChatPreview, Notification } from '@/src/types';
@@ -143,6 +144,8 @@ export default function UpdatesScreen() {
     markNotificationRead,
     unreadNotificationCount,
     refreshData,
+    startMessagesPolling,
+    stopMessagesPolling,
   } = useApp();
   const [selectedTab, setSelectedTab] = useState('messages');
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,6 +160,15 @@ export default function UpdatesScreen() {
   }, [refreshData]);
 
   const { refreshing, handleRefresh: onRefresh } = useRefresh(handleRefresh);
+
+  useFocusEffect(
+    useCallback(() => {
+      startMessagesPolling();
+      return () => {
+        stopMessagesPolling();
+      };
+    }, [startMessagesPolling, stopMessagesPolling])
+  );
 
   const handleChatPress = useCallback((chat: ChatPreview) => {
     markChatRead(chat.id);

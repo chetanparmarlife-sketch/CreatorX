@@ -6,13 +6,10 @@ import { useState } from 'react';
 import { colors } from '@/src/theme';
 import { sendOTP, verifyOTP, formatPhoneNumber } from '@/src/services/otpMock';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { isEligible } from '@/src/services/socialConnectMock';
 import { useAuth } from '@/src/context/AuthContext';
 
 const STORAGE_KEYS = {
   ONBOARDING_COMPLETE: '@onboarding_complete_creator',
-  CONNECTED_PLATFORM: '@connected_platform',
-  FOLLOWER_COUNT: '@follower_count',
 };
 
 export default function LoginOTPScreen() {
@@ -58,17 +55,7 @@ export default function LoginOTPScreen() {
         if (onboardingComplete === '1') {
           router.replace('/(app)/(tabs)/explore');
         } else {
-          const platform = await AsyncStorage.getItem(STORAGE_KEYS.CONNECTED_PLATFORM);
-          const followerCount = await AsyncStorage.getItem(STORAGE_KEYS.FOLLOWER_COUNT);
-          
-          if (platform && followerCount && isEligible(parseInt(followerCount, 10))) {
-            router.replace({
-              pathname: '/(auth)/onboarding-form',
-              params: { platform, followerCount, handle: '' },
-            });
-          } else {
-            router.replace('/(auth)/connect');
-          }
+          router.replace('/(auth)/onboarding-form');
         }
       } else {
         setError(result.message);
@@ -85,8 +72,6 @@ export default function LoginOTPScreen() {
       setStep('phone');
       setOtp('');
       setError('');
-    } else {
-      router.replace('/(auth)/connect');
     }
   };
 
@@ -99,9 +84,11 @@ export default function LoginOTPScreen() {
         end={{ x: 1, y: 1 }}
       />
 
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Feather name="arrow-left" size={24} color={colors.text} />
-      </TouchableOpacity>
+      {step === 'otp' && (
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Feather name="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
+      )}
 
       <KeyboardAvoidingView 
         style={styles.content}

@@ -126,6 +126,10 @@ interface AppContextType {
   markChatRead: (chatId: string) => Promise<void>;
   fetchConversations: () => Promise<void>;
   loadMessages: (conversationId: string, page?: number, size?: number) => Promise<void>;
+  startMessagesPolling: () => void;
+  stopMessagesPolling: () => void;
+  startConversationPolling: (conversationId: string) => void;
+  stopConversationPolling: () => void;
 
   // Actions - Deliverables
   submitDeliverable: (
@@ -232,6 +236,9 @@ const defaultUser: UserProfile = {
   },
 };
 
+const MESSAGE_POLL_INTERVAL = 12000;
+const MESSAGE_POLL_MAX_BACKOFF = 48000;
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -274,6 +281,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [campaignsTotal, setCampaignsTotal] = useState(0);
   const [campaignFilters, setCampaignFilters] = useState<CampaignFilters>({});
   const isMountedRef = useRef(true);
+  const conversationsPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conversationsPollInFlightRef = useRef(false);
+  const conversationsBackoffRef = useRef(MESSAGE_POLL_INTERVAL);
+  const activeConversationRef = useRef<string | null>(null);
+  const messagesPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messagesPollInFlightRef = useRef(false);
+  const messagesBackoffRef = useRef(MESSAGE_POLL_INTERVAL);
 
   useEffect(() => {
     return () => {
@@ -936,6 +950,112 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [user.id]
   );
 
+  const stopMessagesPolling = useCallback(() => {
+    if (conversationsPollRef.current) {
+      clearTimeout(conversationsPollRef.current);
+      conversationsPollRef.current = null;
+    }
+    conversationsPollInFlightRef.current = false;
+  }, []);
+
+  const stopConversationPolling = useCallback(() => {
+    if (messagesPollRef.current) {
+      clearTimeout(messagesPollRef.current);
+      messagesPollRef.current = null;
+    }
+    messagesPollInFlightRef.current = false;
+    activeConversationRef.current = null;
+  }, []);
+
+  const startMessagesPolling = useCallback(() => {
+    if (!featureFlags.isEnabled('USE_POLLING_MESSAGES')) return;
+    if (!featureFlags.isEnabled('USE_API_MESSAGING')) return;
+    if (featureFlags.isEnabled('USE_WS_MESSAGES')) return;
+    if (conversationsPollRef.current) return;
+
+    conversationsBackoffRef.current = MESSAGE_POLL_INTERVAL;
+
+    const poll = async () => {
+      if (!isMountedRef.current) return;
+      if (conversationsPollInFlightRef.current) {
+        conversationsPollRef.current = setTimeout(poll, conversationsBackoffRef.current);
+        return;
+      }
+      conversationsPollInFlightRef.current = true;
+      try {
+        await fetchConversations();
+        conversationsBackoffRef.current = MESSAGE_POLL_INTERVAL;
+      } catch {
+        conversationsBackoffRef.current = Math.min(
+          conversationsBackoffRef.current * 2,
+          MESSAGE_POLL_MAX_BACKOFF
+        );
+      } finally {
+        conversationsPollInFlightRef.current = false;
+        if (!isMountedRef.current) return;
+        conversationsPollRef.current = setTimeout(poll, conversationsBackoffRef.current);
+      }
+    };
+
+    conversationsPollRef.current = setTimeout(poll, 0);
+  }, [fetchConversations]);
+
+  const startConversationPolling = useCallback(
+    (conversationId: string) => {
+      if (!conversationId) return;
+      if (!featureFlags.isEnabled('USE_POLLING_MESSAGES')) return;
+      if (!featureFlags.isEnabled('USE_API_MESSAGING')) return;
+      if (featureFlags.isEnabled('USE_WS_MESSAGES')) return;
+
+      if (activeConversationRef.current !== conversationId) {
+        stopConversationPolling();
+        activeConversationRef.current = conversationId;
+      }
+
+      if (messagesPollRef.current) return;
+
+      messagesBackoffRef.current = MESSAGE_POLL_INTERVAL;
+
+      const poll = async () => {
+        if (!isMountedRef.current) return;
+        if (messagesPollInFlightRef.current) {
+          messagesPollRef.current = setTimeout(poll, messagesBackoffRef.current);
+          return;
+        }
+        messagesPollInFlightRef.current = true;
+        try {
+          await loadMessages(conversationId, 0, 50);
+          messagesBackoffRef.current = MESSAGE_POLL_INTERVAL;
+        } catch {
+          messagesBackoffRef.current = Math.min(
+            messagesBackoffRef.current * 2,
+            MESSAGE_POLL_MAX_BACKOFF
+          );
+        } finally {
+          messagesPollInFlightRef.current = false;
+          if (!isMountedRef.current) return;
+          messagesPollRef.current = setTimeout(poll, messagesBackoffRef.current);
+        }
+      };
+
+      messagesPollRef.current = setTimeout(poll, 0);
+    },
+    [loadMessages, stopConversationPolling]
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        stopMessagesPolling();
+        stopConversationPolling();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [stopMessagesPolling, stopConversationPolling]);
+
   /**
    * Send message
    */
@@ -1373,6 +1493,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     markChatRead,
     fetchConversations,
     loadMessages,
+    startMessagesPolling,
+    stopMessagesPolling,
+    startConversationPolling,
+    stopConversationPolling,
     submitDeliverable,
     approveDeliverable,
     requestDeliverableChanges,
