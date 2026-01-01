@@ -632,18 +632,18 @@ export default function MoreScreen() {
         {selectedTab === 'perks' && (
           <>
             <View style={styles.searchContainer}>
-              <View style={[styles.searchBar, { backgroundColor: '#FFFFFF' }]}>
-                <Feather name="search" size={20} color="#1a1a1a" />
+              <View style={[styles.searchBar, { backgroundColor: isDark ? '#1a1a1a' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]}>
+                <Feather name="search" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#1a1a1a'} />
                 <TextInput
-                  style={[styles.searchInput, { color: '#1a1a1a' }]}
+                  style={[styles.searchInput, { color: isDark ? '#ffffff' : '#1a1a1a' }]}
                   placeholder="Search perks, partners..."
-                  placeholderTextColor="rgba(0,0,0,0.5)"
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)'}
                   value={perkSearch}
                   onChangeText={setPerkSearch}
                 />
                 {perkSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setPerkSearch('')}>
-                    <Feather name="x" size={18} color="#1a1a1a" />
+                    <Feather name="x" size={18} color={isDark ? 'rgba(255,255,255,0.5)' : '#1a1a1a'} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -685,18 +685,18 @@ export default function MoreScreen() {
         {selectedTab === 'news' && (
           <>
             <View style={styles.searchContainer}>
-              <View style={[styles.searchBar, { backgroundColor: '#FFFFFF' }]}>
-                <Feather name="search" size={20} color="#1a1a1a" />
+              <View style={[styles.searchBar, { backgroundColor: isDark ? '#1a1a1a' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]}>
+                <Feather name="search" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#1a1a1a'} />
                 <TextInput
-                  style={[styles.searchInput, { color: '#1a1a1a' }]}
+                  style={[styles.searchInput, { color: isDark ? '#ffffff' : '#1a1a1a' }]}
                   placeholder="Search news, updates..."
-                  placeholderTextColor="rgba(0,0,0,0.5)"
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)'}
                   value={newsSearch}
                   onChangeText={setNewsSearch}
                 />
                 {newsSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setNewsSearch('')}>
-                    <Feather name="x" size={18} color="#1a1a1a" />
+                    <Feather name="x" size={18} color={isDark ? 'rgba(255,255,255,0.5)' : '#1a1a1a'} />
                   </TouchableOpacity>
                 )}
               </View>

@@ -180,15 +180,15 @@ const CampaignCard = memo(function CampaignCard({
   };
 
   const cardStyles = {
-    card: isDark ? colors.card : '#FFFFFF',
-    cardBorder: isDark ? colors.cardBorder : 'rgba(0,0,0,0.06)',
-    middleSection: isDark ? colors.cardElevated : '#F8F8F8',
-    middleBorder: isDark ? colors.cardBorder : '#F0F0F0',
-    tagBg: isDark ? colors.cardElevated : '#FFFFFF',
-    tagBorder: isDark ? colors.cardBorder : '#E5E5E5',
-    paidBg: isDark ? colors.cardElevated : '#F5F5F5',
-    divider: isDark ? colors.cardBorder : '#E5E5E5',
-    shareBorder: isDark ? colors.cardBorder : '#E5E5E5',
+    card: isDark ? '#161616' : '#FFFFFF',
+    cardBorder: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.06)',
+    middleSection: isDark ? '#1c1c1c' : '#F8F8F8',
+    middleBorder: isDark ? 'rgba(255, 255, 255, 0.06)' : '#F0F0F0',
+    tagBg: isDark ? '#222222' : '#FFFFFF',
+    tagBorder: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E5E5',
+    paidBg: isDark ? '#1c1c1c' : '#F5F5F5',
+    divider: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E5E5',
+    shareBorder: isDark ? 'rgba(255, 255, 255, 0.12)' : '#E5E5E5',
   };
   
   const applyLabel = isApplied ? 'Applied' : 'Apply';
@@ -204,7 +204,7 @@ const CampaignCard = memo(function CampaignCard({
         }
       ]} 
       onPress={onPress} 
-      activeOpacity={0.9}
+      activeOpacity={0.95}
     >
       <View style={styles.cardTopSection}>
         <Image 
@@ -215,7 +215,7 @@ const CampaignCard = memo(function CampaignCard({
         <View style={styles.cardTopContent}>
           <View style={styles.cardTopHeader}>
             <View style={styles.brandRow}>
-              <View style={[styles.brandLogo, { backgroundColor: colors.primaryLight }]}>
+              <View style={[styles.brandLogo, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
                 <Text style={[styles.brandInitial, { color: colors.primary }]}>
                   {campaign.brand.charAt(0)}
                 </Text>
@@ -223,10 +223,10 @@ const CampaignCard = memo(function CampaignCard({
               <Text style={[styles.brandNameText, { color: colors.textSecondary }]}>{campaign.brand}</Text>
             </View>
             <TouchableOpacity 
-              style={[styles.shareButton, { borderColor: cardStyles.shareBorder }]} 
+              style={[styles.shareButton, { borderColor: cardStyles.shareBorder, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'transparent' }]} 
               onPress={onSave}
             >
-              <Feather name="share-2" size={16} color={isDark ? colors.textMuted : '#666666'} />
+              <Feather name={isSaved ? 'bookmark' : 'share-2'} size={16} color={isSaved ? colors.primary : (isDark ? colors.textMuted : '#666666')} />
             </TouchableOpacity>
           </View>
           
@@ -295,9 +295,9 @@ const CampaignCard = memo(function CampaignCard({
       
       <View style={styles.cardBottomSection}>
         <View style={[styles.paidBadge, { backgroundColor: cardStyles.paidBg }]}>
-          <Text style={[styles.paidText, { color: colors.text }]}>{isPaid ? 'Paid' : 'Barter'}</Text>
+          <Text style={[styles.paidText, { color: colors.text, fontWeight: '600' }]}>{isPaid ? 'Paid' : 'Barter'}</Text>
           <View style={[styles.paidDivider, { backgroundColor: cardStyles.divider }]} />
-          <Text style={[styles.paidAmount, { color: colors.textSecondary }]}>{campaign.budget}</Text>
+          <Text style={[styles.paidAmount, { color: colors.primary, fontWeight: '600' }]}>{campaign.budget}</Text>
         </View>
         
         <Text style={[styles.endsInText, { color: colors.textSecondary }]}>
@@ -307,12 +307,12 @@ const CampaignCard = memo(function CampaignCard({
         <TouchableOpacity 
           style={[
             styles.applyButton,
-            { backgroundColor: isApplied ? colors.cardBorder : colors.amber },
+            { backgroundColor: isApplied ? 'rgba(255,255,255,0.1)' : colors.amber },
           ]}
           onPress={onApply}
           disabled={isApplied}
         >
-          <Text style={[styles.applyButtonText, { color: isApplied ? colors.textMuted : '#1a1a1a' }]}>
+          <Text style={[styles.applyButtonText, { color: isApplied ? colors.textMuted : '#1a1a1a', fontWeight: '600' }]}>
             {applyLabel}
           </Text>
           {!isApplied && <Feather name="arrow-right" size={14} color="#1a1a1a" />}
@@ -532,22 +532,22 @@ export default function ExploreScreen() {
               <View style={[
                 styles.searchBar, 
                 { 
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: isDark ? '#1a1a1a' : '#FFFFFF',
                   borderWidth: 1,
-                  borderColor: 'rgba(0,0,0,0.08)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
                 }
               ]}>
-                <Feather name="search" size={20} color="#666666" />
+                <Feather name="search" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#666666'} />
                 <TextInput
-                  style={[styles.searchInput, { color: '#1a1a1a' }]}
+                  style={[styles.searchInput, { color: isDark ? '#ffffff' : '#1a1a1a' }]}
                   placeholder="Search campaigns, brands, categories..."
-                  placeholderTextColor="#999999"
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999999'}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Feather name="x" size={18} color="#666666" />
+                    <Feather name="x" size={18} color={isDark ? 'rgba(255,255,255,0.5)' : '#666666'} />
                   </TouchableOpacity>
                 )}
               </View>

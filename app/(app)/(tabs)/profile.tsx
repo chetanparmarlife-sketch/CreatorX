@@ -96,7 +96,7 @@ function ProfileContent() {
 
   return (
     <>
-      <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, marginTop: spacing.md }]}>
+      <View style={[styles.profileCard, { backgroundColor: isDark ? '#161616' : colors.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : colors.cardBorder, marginTop: spacing.md }]}>
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <Avatar size={64} name={user.name} imageUrl={user.avatarUri} showBadge />
@@ -138,17 +138,17 @@ function ProfileContent() {
         </View>
       </View>
 
-      <View style={[styles.statsBar, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      <View style={[styles.statsBar, { backgroundColor: isDark ? '#161616' : colors.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : colors.cardBorder }]}>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.primary }]}>24.5K</Text>
           <Text style={[styles.statLabel, { color: colors.textMuted }]}>Followers</Text>
         </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
+        <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.cardBorder }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.emerald }]}>12</Text>
           <Text style={[styles.statLabel, { color: colors.textMuted }]}>Campaigns</Text>
         </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
+        <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.cardBorder }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.amber }]}>4.8</Text>
           <Text style={[styles.statLabel, { color: colors.textMuted }]}>Rating</Text>
@@ -159,7 +159,7 @@ function ProfileContent() {
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Connect Accounts</Text>
         </View>
-        <View style={[styles.connectAccountsCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <View style={[styles.connectAccountsCard, { backgroundColor: isDark ? '#161616' : colors.card, borderColor: isDark ? 'rgba(255,255,255,0.08)' : colors.cardBorder }]}>
           {user.socialLinks.map((link, index) => (
             <TouchableOpacity
               key={link.platform}
@@ -192,7 +192,7 @@ function ProfileContent() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
         </View>
         
-        <View style={[styles.settingsCard, { borderColor: colors.cardBorder, backgroundColor: colors.card }]}>
+        <View style={[styles.settingsCard, { borderColor: isDark ? 'rgba(255,255,255,0.08)' : colors.cardBorder, backgroundColor: isDark ? '#161616' : colors.card }]}>
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
               <View style={[styles.settingIconWrapper, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
