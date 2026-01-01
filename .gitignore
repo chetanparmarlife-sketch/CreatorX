@@ -8,3 +8,9 @@ vite.config.ts.*
 # Environment files
 .env.local
 .env*.local
+
+# Gradle files (too large for git)
+gradle-8.5/
+gradle-8.5-bin.zip
+gradle-wrapper-tmp/
+*.zip
