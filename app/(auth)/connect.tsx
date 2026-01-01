@@ -43,6 +43,10 @@ export default function ConnectScreen() {
     router.push('/(auth)/login-otp');
   };
 
+  const handleSkipDev = () => {
+    router.replace('/(app)/(tabs)/explore');
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -136,6 +140,10 @@ export default function ConnectScreen() {
             <Text style={styles.loginLink}>Login</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkipDev}>
+          <Text style={styles.skipText}>Skip for Dev Preview</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -238,5 +246,19 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  skipButton: {
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderStyle: 'dashed',
+  },
+  skipText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
