@@ -62,7 +62,8 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       return;
     }
 
-    const elapsed = Date.now() - state.startTime;
+    const startTime = state.startTime ?? Date.now();
+    const elapsed = Date.now() - startTime;
     const remaining = Math.max(0, SPLASH_DURATION - elapsed);
 
     if (remaining <= 0) {

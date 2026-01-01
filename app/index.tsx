@@ -7,8 +7,40 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/hooks';
 
 const DEFAULT_APP_ROUTE = '/(app)/(tabs)/explore';
+const CURRENT_STORAGE_VERSION = '2';
 const STORAGE_KEYS = {
+  STORAGE_VERSION: '@storage_version',
   ONBOARDING_COMPLETE: '@onboarding_complete_creator',
+  CONNECTED_PLATFORM: '@connected_platform',
+  FOLLOWER_COUNT: '@follower_count',
+};
+
+const clearOnboardingData = async () => {
+  try {
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.ONBOARDING_COMPLETE,
+      STORAGE_KEYS.CONNECTED_PLATFORM,
+      STORAGE_KEYS.FOLLOWER_COUNT,
+    ]);
+  } catch (e) {
+    console.error('Failed to clear onboarding data:', e);
+  }
+};
+
+const checkAndMigrateStorage = async (): Promise<boolean> => {
+  try {
+    const storedVersion = await AsyncStorage.getItem(STORAGE_KEYS.STORAGE_VERSION);
+    if (storedVersion !== CURRENT_STORAGE_VERSION) {
+      console.log(`Storage version changed (${storedVersion} -> ${CURRENT_STORAGE_VERSION}), clearing onboarding data`);
+      await clearOnboardingData();
+      await AsyncStorage.setItem(STORAGE_KEYS.STORAGE_VERSION, CURRENT_STORAGE_VERSION);
+      return false;
+    }
+    const value = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE);
+    return value === '1';
+  } catch {
+    return false;
+  }
 };
 
 export default function Index() {
@@ -20,9 +52,7 @@ export default function Index() {
   const hasNavigated = useRef(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE)
-      .then(value => setOnboardingComplete(value === '1'))
-      .catch(() => setOnboardingComplete(false));
+    checkAndMigrateStorage().then(setOnboardingComplete);
   }, []);
 
   useEffect(() => {
