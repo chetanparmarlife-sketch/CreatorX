@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: 'rgba(19, 55, 236, 0.1)',
     borderRadius: 8,
     padding: 8,
     justifyContent: 'space-around',
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: 'rgba(19, 55, 236, 0.2)',
   },
   bottomSection: {
     paddingHorizontal: 24,

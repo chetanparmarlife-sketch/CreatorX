@@ -83,16 +83,16 @@ export default function ProfileScreen() {
   };
 
   const profileGradientColors = isDark 
-    ? ['#1a1a1a', '#141414', 'rgba(139, 92, 246, 0.1)'] as const
-    : ['#ffffff', '#f8f8f8', 'rgba(139, 92, 246, 0.08)'] as const;
+    ? ['#1a1a1a', '#121212', 'rgba(19, 55, 236, 0.1)'] as const
+    : ['#ffffff', '#f8f8f8', 'rgba(19, 55, 236, 0.08)'] as const;
 
   const referralGradientColors = isDark
-    ? ['rgba(139, 92, 246, 0.2)', 'rgba(139, 92, 246, 0.1)', 'rgba(124, 58, 237, 0.05)'] as const
-    : ['rgba(139, 92, 246, 0.15)', 'rgba(139, 92, 246, 0.08)', 'rgba(124, 58, 237, 0.03)'] as const;
+    ? ['rgba(19, 55, 236, 0.2)', 'rgba(19, 55, 236, 0.1)', 'rgba(19, 55, 236, 0.05)'] as const
+    : ['rgba(19, 55, 236, 0.15)', 'rgba(19, 55, 236, 0.08)', 'rgba(19, 55, 236, 0.03)'] as const;
 
   const kycGradientColors = isDark
-    ? [colors.primaryLight, 'rgba(139, 92, 246, 0.05)'] as const
-    : [colors.primaryLight, 'rgba(139, 92, 246, 0.03)'] as const;
+    ? [colors.primaryLight, 'rgba(19, 55, 236, 0.05)'] as const
+    : [colors.primaryLight, 'rgba(19, 55, 236, 0.03)'] as const;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>

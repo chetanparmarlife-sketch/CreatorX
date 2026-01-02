@@ -88,7 +88,7 @@ const NotificationItem = memo(function NotificationItem({
     <TouchableOpacity
       style={[
         styles.notificationItem,
-        !notification.read && { backgroundColor: colors.isDark ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.05)' },
+        !notification.read && { backgroundColor: colors.isDark ? 'rgba(19, 55, 236, 0.08)' : 'rgba(19, 55, 236, 0.05)' },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#1337ec',
   },
   tabBadgeText: {
     color: '#FFFFFF',

@@ -295,7 +295,7 @@ export default function ActiveCampaignsScreen() {
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { borderColor: colors.primaryBorder }]}>
           <LinearGradient
-            colors={['rgba(139, 92, 246, 0.15)', 'rgba(139, 92, 246, 0.05)']}
+            colors={['rgba(19, 55, 236, 0.15)', 'rgba(19, 55, 236, 0.05)']}
             style={styles.statGradient}
           >
             <Text style={styles.statValue}>{inProgressCampaigns.length}</Text>

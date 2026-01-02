@@ -462,7 +462,7 @@ const NewsCard = memo(function NewsCard({
       case 'Campaign':
         return { bg: colors.emeraldLight, text: colors.emerald };
       case 'Industry':
-        return { bg: 'rgba(139, 92, 246, 0.15)', text: '#8B5CF6' };
+        return { bg: 'rgba(19, 55, 236, 0.15)', text: '#1337ec' };
       default:
         return { bg: colors.card, text: colors.textSecondary };
     }

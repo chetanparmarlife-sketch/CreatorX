@@ -270,8 +270,8 @@ function ReferEarnContent() {
   };
 
   const referralGradientColors = isDark
-    ? ['rgba(139, 92, 246, 0.2)', 'rgba(139, 92, 246, 0.1)', 'rgba(124, 58, 237, 0.05)'] as const
-    : ['rgba(139, 92, 246, 0.15)', 'rgba(139, 92, 246, 0.08)', 'rgba(124, 58, 237, 0.03)'] as const;
+    ? ['rgba(19, 55, 236, 0.2)', 'rgba(19, 55, 236, 0.1)', 'rgba(19, 55, 236, 0.05)'] as const
+    : ['rgba(19, 55, 236, 0.15)', 'rgba(19, 55, 236, 0.08)', 'rgba(19, 55, 236, 0.03)'] as const;
 
   const rewardTiers = [
     { tier: 'Bronze', referrals: '1-5', reward: '₹500 per referral', icon: 'award' },
@@ -385,7 +385,7 @@ function ReferEarnContent() {
                 backgroundColor: tier.tier === 'Bronze' ? 'rgba(205, 127, 50, 0.15)' :
                                 tier.tier === 'Silver' ? 'rgba(192, 192, 192, 0.15)' :
                                 tier.tier === 'Gold' ? 'rgba(255, 215, 0, 0.15)' :
-                                'rgba(139, 92, 246, 0.15)'
+                                'rgba(19, 55, 236, 0.15)'
               }]}>
                 <Feather 
                   name={tier.icon as any} 

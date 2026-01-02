@@ -494,8 +494,22 @@ export default function ExploreScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.push('/profile')} activeOpacity={0.7}>
-          <Avatar size={30} name="User" />
+          <Avatar size={36} name="User" />
         </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Discover</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={[styles.headerActionButton, { backgroundColor: isDark ? colors.card : '#F5F5F5' }]}
+            onPress={() => router.push('/notifications')}
+          >
+            <Feather name="bell" size={18} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      <View style={styles.headerTabsWrapper}>
         <View style={styles.headerTabsContainer}>
           {headerTabs.map((tab) => (
             <HeaderTabButton
@@ -532,22 +546,22 @@ export default function ExploreScreen() {
               <View style={[
                 styles.searchBar, 
                 { 
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: isDark ? colors.card : '#FFFFFF',
                   borderWidth: 1,
-                  borderColor: 'rgba(0,0,0,0.08)',
+                  borderColor: isDark ? colors.cardBorder : 'rgba(0,0,0,0.08)',
                 }
               ]}>
-                <Feather name="search" size={20} color="#666666" />
+                <Feather name="search" size={20} color={isDark ? colors.textMuted : '#666666'} />
                 <TextInput
-                  style={[styles.searchInput, { color: '#1a1a1a' }]}
-                  placeholder="Search campaigns, brands, categories..."
-                  placeholderTextColor="#999999"
+                  style={[styles.searchInput, { color: colors.text }]}
+                  placeholder="Search campaigns, brands..."
+                  placeholderTextColor={isDark ? colors.textMuted : '#999999'}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Feather name="x" size={18} color="#666666" />
+                    <Feather name="x" size={18} color={isDark ? colors.textMuted : '#666666'} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -730,10 +744,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     paddingBottom: spacing.sm,
-    gap: spacing.md,
     zIndex: 100,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTabsWrapper: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   headerTabsContainer: {
     flexDirection: 'row',

@@ -487,7 +487,7 @@ export default function MoneyScreen() {
       <>
         <View style={[styles.balanceCard, { borderColor: colors.primaryBorder }]}>
           <LinearGradient
-            colors={['rgba(139, 92, 246, 0.4)', 'rgba(139, 92, 246, 0.2)', 'rgba(124, 58, 237, 0.15)']}
+            colors={['rgba(19, 55, 236, 0.3)', 'rgba(19, 55, 236, 0.15)', 'rgba(19, 55, 236, 0.08)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.balanceGradient}

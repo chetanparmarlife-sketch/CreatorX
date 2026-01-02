@@ -174,7 +174,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
       <Animated.View style={[styles.glowRing, { opacity: glowOpacity }]}>
         <LinearGradient
-          colors={['transparent', 'rgba(139, 92, 246, 0.15)', 'transparent']}
+          colors={['transparent', 'rgba(19, 55, 236, 0.15)', 'transparent']}
           style={styles.glowRingGradient}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
@@ -221,7 +221,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
       <Animated.View style={[styles.bottomGlow, { opacity: glowOpacity }]}>
         <LinearGradient
-          colors={['transparent', 'rgba(139, 92, 246, 0.12)', 'rgba(139, 92, 246, 0.05)']}
+          colors={['transparent', 'rgba(19, 55, 236, 0.12)', 'rgba(19, 55, 236, 0.05)']}
           style={styles.glowGradient}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     right: -10,
     bottom: -10,
     borderRadius: 42,
-    backgroundColor: 'rgba(139, 92, 246, 0.25)',
+    backgroundColor: 'rgba(19, 55, 236, 0.25)',
     zIndex: -1,
   },
   title: {

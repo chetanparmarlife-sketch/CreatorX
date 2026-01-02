@@ -202,7 +202,7 @@ export default function HelpScreen() {
       >
         <View style={styles.contactCard}>
           <LinearGradient
-            colors={['rgba(139, 92, 246, 0.2)', 'rgba(139, 92, 246, 0.05)']}
+            colors={['rgba(19, 55, 236, 0.2)', 'rgba(19, 55, 236, 0.05)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.contactGradient}

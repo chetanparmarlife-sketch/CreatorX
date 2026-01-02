@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   unreadItem: {
-    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+    backgroundColor: 'rgba(19, 55, 236, 0.05)',
   },
   iconContainer: {
     width: 44,
