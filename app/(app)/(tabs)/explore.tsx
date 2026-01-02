@@ -1,356 +1,86 @@
-import { useState, useCallback, memo, useMemo, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  Alert,
+  Dimensions,
+  Image,
+  RefreshControl,
   ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  Dimensions,
-  RefreshControl,
-  Alert,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { spacing, borderRadius } from '@/src/theme';
+import { Avatar, CampaignApplicationModal, CampaignCardSkeleton, CampaignDetailModal, ErrorView } from '@/src/components';
 import { useTheme } from '@/src/hooks';
-import { Avatar, CampaignDetailModal, CampaignApplicationModal, CampaignCardSkeleton, ErrorView } from '@/src/components';
-import { ApplicationFormData } from '@/src/components/CampaignApplicationModal';
 import { useApp } from '@/src/context';
-import { Campaign } from '@/src/types';
 import { useRefresh } from '@/src/hooks';
+import { Campaign } from '@/src/types';
+import { ApplicationFormData } from '@/src/components/CampaignApplicationModal';
 import { handleAPIError } from '@/src/api/errors';
 import { useAuth } from '@/src/context/AuthContext';
 
 const { width: screenWidth } = Dimensions.get('window');
-const quickFilterCardWidth = 100;
+const primaryBlue = '#1337EC';
 
-const platformFilters = [
-  { id: 'all', label: 'All', icon: 'grid' },
-  { id: 'instagram', label: 'Instagram', icon: 'instagram' },
-  { id: 'youtube', label: 'YouTube', icon: 'youtube' },
-  { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' },
+const categoryFilters = [
+  { id: 'all', label: 'All' },
+  { id: 'beauty', label: 'Beauty' },
+  { id: 'tech', label: 'Tech' },
+  { id: 'fashion', label: 'Fashion' },
+  { id: 'gifting', label: 'Gifting Only' },
 ];
 
-const headerTabs = [
-  { id: 'explore', label: 'SocialX' },
-  { id: 'gigx', label: 'GigX' },
-  { id: 'performancex', label: 'PerformanceX' },
+const featuredFallbacks = [
+  {
+    id: 'featured-1',
+    badge: 'High Ticket',
+    title: 'Samsung Galaxy Ultra Review Series',
+    payout: '$2,500',
+    meta: '3 Videos',
+    image:
+      'https://images.unsplash.com/photo-1523475472560-d2df97ec485c?w=900',
+  },
+  {
+    id: 'featured-2',
+    badge: 'Trending',
+    title: 'Zara Summer Collection Haul',
+    payout: '$1,200',
+    meta: '1 Reel + 2 Stories',
+    image:
+      'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900',
+  },
 ];
 
-const HeaderTabButton = memo(function HeaderTabButton({
-  label,
-  isActive,
-  onPress,
-  colors,
-  isDark,
-}: {
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-  colors: any;
-  isDark: boolean;
-}) {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.headerTabButton,
-        {
-          backgroundColor: isActive 
-            ? 'transparent' 
-            : (isDark ? '#2a2a2a' : colors.card),
-          borderWidth: 1.5,
-          borderColor: isActive 
-            ? (isDark ? 'rgba(255, 255, 255, 0.8)' : colors.text) 
-            : (isDark ? '#2a2a2a' : colors.cardBorder),
-        },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Text style={[
-        styles.headerTabButtonText,
-        { color: isActive ? colors.text : colors.textSecondary },
-      ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-});
+const categoryImages: Record<string, string> = {
+  fashion: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800',
+  tech: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800',
+  food: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
+  fitness: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800',
+  travel: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800',
+  beauty: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800',
+  lifestyle: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=800',
+};
 
-const FilterChip = memo(function FilterChip({
-  label,
-  icon,
-  isActive,
-  onPress,
-  colors,
-}: {
-  label: string;
-  icon: string;
-  isActive: boolean;
-  onPress: () => void;
-  colors: any;
-}) {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.filterChip,
-        { backgroundColor: colors.card, borderColor: colors.cardBorder },
-        isActive && { backgroundColor: colors.primaryLight, borderColor: colors.primaryBorder },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Feather 
-        name={icon as any} 
-        size={14} 
-        color={isActive ? colors.primary : colors.textMuted} 
-      />
-      <Text style={[
-        styles.filterChipText,
-        { color: colors.textSecondary },
-        isActive && { color: colors.primary, fontWeight: '500' },
-      ]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-});
+const getCampaignImage = (campaign: Campaign) => {
+  if (campaign.image) return campaign.image;
+  return categoryImages[campaign.category?.toLowerCase()] ||
+    'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=800';
+};
 
-const CampaignCard = memo(function CampaignCard({
-  campaign,
-  onPress,
-  onApply,
-  onSave,
-  isSaved,
-  isApplied,
-  colors,
-  isDark,
-}: {
-  campaign: Campaign;
-  onPress: () => void;
-  onApply: () => void;
-  onSave: () => void;
-  isSaved: boolean;
-  isApplied: boolean;
-  colors: any;
-  isDark: boolean;
-}) {
-  const categoryImages: Record<string, string> = {
-    fashion: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-    tech: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400',
-    food: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
-    fitness: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
-    travel: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400',
-    beauty: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400',
-    lifestyle: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=400',
-  };
-  
-  const defaultImage = categoryImages[campaign.category?.toLowerCase()] || 
-    'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400';
+const getPlatforms = (campaign: Campaign) => {
+  if (campaign.platforms && campaign.platforms.length > 0) return campaign.platforms;
+  if (campaign.platform) return [campaign.platform];
+  return [];
+};
 
-  const tags = campaign.tags || [campaign.category];
-  const contentTypes = campaign.contentTypes || ['Stories', 'Long video'];
-  const platforms = campaign.platforms || [campaign.platform];
-  const ageGroup = campaign.ageGroup || '18-24';
-  const followersRange = campaign.followersRange || '10K-100K';
-  const gender = campaign.gender || 'All';
-  const isPaid = campaign.isPaid !== false;
-  
-  const getPlatformIcon = (platform: string) => {
-    switch (platform) {
-      case 'instagram': return 'instagram';
-      case 'youtube': return 'youtube';
-      case 'linkedin': return 'linkedin';
-      case 'facebook': return 'facebook';
-      default: return 'globe';
-    }
-  };
-
-  const getPlatformColor = (platform: string) => {
-    switch (platform) {
-      case 'instagram': return '#E4405F';
-      case 'youtube': return '#FF0000';
-      case 'linkedin': return '#0A66C2';
-      case 'facebook': return '#1877F2';
-      default: return colors.textMuted;
-    }
-  };
-
-  const cardStyles = {
-    card: isDark ? colors.card : '#FFFFFF',
-    cardBorder: isDark ? colors.cardBorder : 'rgba(0,0,0,0.06)',
-    middleSection: isDark ? colors.cardElevated : '#F8F8F8',
-    middleBorder: isDark ? colors.cardBorder : '#F0F0F0',
-    tagBg: isDark ? colors.cardElevated : '#FFFFFF',
-    tagBorder: isDark ? colors.cardBorder : '#E5E5E5',
-    paidBg: isDark ? colors.cardElevated : '#F5F5F5',
-    divider: isDark ? colors.cardBorder : '#E5E5E5',
-    shareBorder: isDark ? colors.cardBorder : '#E5E5E5',
-  };
-  
-  const applyLabel = isApplied ? 'Applied' : 'Apply';
-
-  return (
-    <TouchableOpacity 
-      style={[
-        styles.campaignCard, 
-        { 
-          backgroundColor: cardStyles.card,
-          borderWidth: 1,
-          borderColor: cardStyles.cardBorder,
-        }
-      ]} 
-      onPress={onPress} 
-      activeOpacity={0.9}
-    >
-      <View style={styles.cardTopSection}>
-        <Image 
-          source={{ uri: campaign.image || defaultImage }} 
-          style={styles.cardImage} 
-        />
-        
-        <View style={styles.cardTopContent}>
-          <View style={styles.cardTopHeader}>
-            <View style={styles.brandRow}>
-              <View style={[styles.brandLogo, { backgroundColor: colors.primaryLight }]}>
-                <Text style={[styles.brandInitial, { color: colors.primary }]}>
-                  {campaign.brand.charAt(0)}
-                </Text>
-              </View>
-              <Text style={[styles.brandNameText, { color: colors.textSecondary }]}>{campaign.brand}</Text>
-            </View>
-            <TouchableOpacity 
-              style={[styles.shareButton, { borderColor: cardStyles.shareBorder }]} 
-              onPress={onSave}
-            >
-              <Feather name="share-2" size={16} color={isDark ? colors.textMuted : '#666666'} />
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
-            {campaign.title}
-          </Text>
-          
-          <View style={styles.tagsRow}>
-            {tags.slice(0, 2).map((tag, index) => (
-              <View 
-                key={index} 
-                style={[
-                  styles.tagChip, 
-                  { backgroundColor: cardStyles.tagBg, borderColor: cardStyles.tagBorder }
-                ]}
-              >
-                <Text style={[styles.tagText, { color: colors.textSecondary }]}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-          
-          <View style={styles.contentTypeRow}>
-            <Text style={[styles.contentTypeText, { color: colors.textMuted }]}>{contentTypes.join(' | ')}</Text>
-            <View style={styles.platformIcons}>
-              {platforms.map((platform, index) => (
-                <View 
-                  key={index} 
-                  style={[
-                    styles.platformIconCircle, 
-                    { 
-                      backgroundColor: getPlatformColor(platform),
-                      borderColor: cardStyles.card,
-                    }
-                  ]}
-                >
-                  <Feather name={getPlatformIcon(platform) as any} size={10} color="#fff" />
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      </View>
-      
-      <View style={[
-        styles.cardMiddleSection, 
-        { 
-          backgroundColor: cardStyles.middleSection,
-          borderTopColor: cardStyles.middleBorder,
-        }
-      ]}>
-        <View style={styles.statsColumn}>
-          <Text style={[styles.statsLabel, { color: colors.textMuted }]}>Age group</Text>
-          <Text style={[styles.statsValue, { color: colors.text }]}>{ageGroup}</Text>
-        </View>
-        <View style={[styles.statsDivider, { backgroundColor: cardStyles.divider }]} />
-        <View style={styles.statsColumn}>
-          <Text style={[styles.statsLabel, { color: colors.textMuted }]}>Followers range</Text>
-          <Text style={[styles.statsValue, { color: colors.text }]}>{followersRange}</Text>
-        </View>
-        <View style={[styles.statsDivider, { backgroundColor: cardStyles.divider }]} />
-        <View style={styles.statsColumn}>
-          <Text style={[styles.statsLabel, { color: colors.textMuted }]}>Gender</Text>
-          <Text style={[styles.statsValue, { color: colors.text }]}>{gender}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.cardBottomSection}>
-        <View style={[styles.paidBadge, { backgroundColor: cardStyles.paidBg }]}>
-          <Text style={[styles.paidText, { color: colors.text }]}>{isPaid ? 'Paid' : 'Barter'}</Text>
-          <View style={[styles.paidDivider, { backgroundColor: cardStyles.divider }]} />
-          <Text style={[styles.paidAmount, { color: colors.textSecondary }]}>{campaign.budget}</Text>
-        </View>
-        
-        <Text style={[styles.endsInText, { color: colors.textSecondary }]}>
-          Ends in <Text style={[styles.endsInBold, { color: colors.text }]}>{campaign.daysRemaining || 4} days</Text>
-        </Text>
-        
-        <TouchableOpacity 
-          style={[
-            styles.applyButton,
-            { backgroundColor: isApplied ? colors.cardBorder : colors.amber },
-          ]}
-          onPress={onApply}
-          disabled={isApplied}
-        >
-          <Text style={[styles.applyButtonText, { color: isApplied ? colors.textMuted : '#1a1a1a' }]}>
-            {applyLabel}
-          </Text>
-          {!isApplied && <Feather name="arrow-right" size={14} color="#1a1a1a" />}
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-});
-
-const SectionHeader = memo(function SectionHeader({
-  title,
-  subtitle,
-  actionLabel,
-  onAction,
-  colors,
-}: {
-  title: string;
-  subtitle?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  colors: any;
-}) {
-  return (
-    <View style={styles.sectionHeader}>
-      <View>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
-        {subtitle && (
-          <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
-        )}
-      </View>
-      {actionLabel && onAction && (
-        <TouchableOpacity onPress={onAction}>
-          <Text style={[styles.sectionAction, { color: colors.primary }]}>{actionLabel}</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-});
+const formatBudget = (campaign: Campaign) => {
+  if (campaign.budget) return campaign.budget;
+  return campaign.isPaid === false ? 'Product' : '$0';
+};
 
 export default function ExploreScreen() {
   const { colors, isDark } = useTheme();
@@ -369,17 +99,14 @@ export default function ExploreScreen() {
     fetchApplications,
   } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState('all');
-  const [selectedHeaderTab, setSelectedHeaderTab] = useState('explore');
+  const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [recommendedSectionY, setRecommendedSectionY] = useState(0);
   const isAuthReady = initialized && !authLoading && !!session?.access_token;
-  const apiFilters = useMemo(() => ({
-    platform: selectedPlatform === 'all' ? undefined : selectedPlatform,
-  }), [selectedPlatform]);
+
+  const apiFilters = useMemo(() => ({}), []);
+
   const { refreshing, handleRefresh } = useRefresh(async () => {
     if (!isAuthReady) return;
     await fetchCampaigns(apiFilters, true);
@@ -390,43 +117,34 @@ export default function ExploreScreen() {
     fetchCampaigns(apiFilters, true);
   }, [fetchCampaigns, apiFilters, isAuthReady]);
 
-  const scrollToRecommended = useCallback(() => {
-    if (scrollViewRef.current && recommendedSectionY > 0) {
-      scrollViewRef.current.scrollTo({ y: recommendedSectionY - 10, animated: true });
-    }
-  }, [recommendedSectionY]);
-
   const openCampaigns = useMemo(() => {
     return campaigns.filter(c => c.status === 'ACTIVE');
   }, [campaigns]);
 
   const filteredCampaigns = useMemo(() => {
     let result = openCampaigns;
-    
-    if (selectedPlatform !== 'all') {
-      result = result.filter(c => c.platform === selectedPlatform);
+
+    if (selectedFilter === 'gifting') {
+      result = result.filter(c => c.isPaid === false);
+    } else if (selectedFilter !== 'all') {
+      result = result.filter(c => (c.category || '').toLowerCase() === selectedFilter);
     }
-    
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(c => 
+      result = result.filter(c =>
         c.title.toLowerCase().includes(query) ||
         c.brand.toLowerCase().includes(query) ||
-        c.category.toLowerCase().includes(query)
+        (c.category || '').toLowerCase().includes(query)
       );
     }
-    
+
     return result;
-  }, [openCampaigns, selectedPlatform, searchQuery]);
+  }, [openCampaigns, selectedFilter, searchQuery]);
 
-  const recommendedCampaigns = useMemo(() => {
-    return filteredCampaigns.slice(0, 3);
-  }, [filteredCampaigns]);
-
-  const closingSoonCampaigns = useMemo(() => {
-    return [...filteredCampaigns]
-      .sort((a, b) => (a.daysRemaining || 99) - (b.daysRemaining || 99))
-      .slice(0, 3);
+  const featuredCampaigns = useMemo(() => {
+    if (filteredCampaigns.length >= 2) return filteredCampaigns.slice(0, 2);
+    return [];
   }, [filteredCampaigns]);
 
   const handleCampaignPress = useCallback((campaign: Campaign) => {
@@ -490,219 +208,205 @@ export default function ExploreScreen() {
     }
   }, [isCampaignSaved, saveCampaign, unsaveCampaign]);
 
+  const backgroundColor = isDark ? '#050505' : '#F6F6F8';
+  const cardBackground = isDark ? '#121212' : '#FFFFFF';
+  const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const mutedText = isDark ? 'rgba(255,255,255,0.62)' : 'rgba(15, 23, 42, 0.6)';
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
-        <TouchableOpacity onPress={() => router.push('/profile')} activeOpacity={0.7}>
-          <Avatar size={36} name="User" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
+    <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor }]}> 
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => router.push('/profile')} activeOpacity={0.7}>
+            <Avatar size={36} name="User" />
+          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Discover</Text>
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={[styles.headerActionButton, { backgroundColor: isDark ? colors.card : '#F5F5F5' }]}
-            onPress={() => router.push('/notifications')}
-          >
-            <Feather name="bell" size={18} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      <View style={styles.headerTabsWrapper}>
-        <View style={styles.headerTabsContainer}>
-          {headerTabs.map((tab) => (
-            <HeaderTabButton
-              key={tab.id}
-              label={tab.label}
-              isActive={selectedHeaderTab === tab.id}
-              onPress={() => setSelectedHeaderTab(tab.id)}
-              colors={colors}
-              isDark={isDark}
-            />
-          ))}
-        </View>
+        <TouchableOpacity
+          style={[styles.headerBell, { backgroundColor: isDark ? '#0C0C0C' : '#FFFFFF' }]}
+          onPress={() => router.push('/notifications')}
+        >
+          <Feather name="bell" size={18} color={colors.text} />
+          <View style={styles.headerDot} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        {selectedHeaderTab === 'explore' && (
-          <>
-            {!isAuthReady ? (
-              <View style={styles.authPendingCard}>
-                <Text style={[styles.authPendingTitle, { color: colors.text }]}>Signing you in...</Text>
-                <Text style={[styles.authPendingSubtitle, { color: colors.textSecondary }]}>
-                  We're getting your session ready.
-                </Text>
-              </View>
-            ) : (
-              <>
-            <View style={styles.searchContainer}>
-              <View style={[
-                styles.searchBar, 
-                { 
-                  backgroundColor: isDark ? colors.card : '#FFFFFF',
-                  borderWidth: 1,
-                  borderColor: isDark ? colors.cardBorder : 'rgba(0,0,0,0.08)',
-                }
-              ]}>
-                <Feather name="search" size={20} color={isDark ? colors.textMuted : '#666666'} />
-                <TextInput
-                  style={[styles.searchInput, { color: colors.text }]}
-                  placeholder="Search campaigns, brands..."
-                  placeholderTextColor={isDark ? colors.textMuted : '#999999'}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Feather name="x" size={18} color={isDark ? colors.textMuted : '#666666'} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            <TouchableOpacity 
-              style={[
-                styles.campaignsBanner,
-                {
-                  backgroundColor: isDark ? '#1a2e2a' : colors.emeraldLight,
-                  borderColor: isDark ? '#2a3f3a' : colors.emeraldBorder,
-                }
-              ]}
-              activeOpacity={0.8}
-              onPress={scrollToRecommended}
-            >
-              <View style={[
-                styles.bannerIconContainer,
-                { backgroundColor: isDark ? '#1f3d36' : 'rgba(5, 150, 105, 0.2)' }
-              ]}>
-                <Feather name="star" size={20} color={colors.emerald} />
-              </View>
-              <View style={styles.bannerContent}>
-                <Text style={[styles.bannerTitle, { color: colors.text }]}>New Campaigns Available</Text>
-                <Text style={[styles.bannerSubtitle, { color: colors.textSecondary }]}>
-                  {filteredCampaigns.length} campaigns match your profile
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={colors.textMuted} />
+        <View style={styles.searchSection}>
+          <View style={[styles.searchBar, { backgroundColor: cardBackground, borderColor: cardBorder }]}>
+            <Feather name="search" size={18} color={mutedText} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search campaigns, brands..."
+              placeholderTextColor={mutedText}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            <TouchableOpacity style={styles.searchFilterButton}>
+              <Feather name="sliders" size={16} color={mutedText} />
             </TouchableOpacity>
-
-            <View style={styles.section}>
-              <SectionHeader
-                title="All Campaigns"
-                subtitle={`${filteredCampaigns.length} opportunities available`}
-                colors={colors}
-              />
-              <View style={styles.filtersContainer}>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.filtersScroll}
-                >
-                  {platformFilters.map((filter) => (
-                    <FilterChip
-                      key={filter.id}
-                      label={filter.label}
-                      icon={filter.icon}
-                      isActive={selectedPlatform === filter.id}
-                      onPress={() => setSelectedPlatform(filter.id)}
-                      colors={colors}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-              {loadingCampaigns && filteredCampaigns.length === 0 ? (
-                <>
-                  <CampaignCardSkeleton />
-                  <CampaignCardSkeleton />
-                  <CampaignCardSkeleton />
-                </>
-              ) : error ? (
-                <ErrorView error={error} onRetry={() => fetchCampaigns(apiFilters, true)} />
-              ) : (
-                filteredCampaigns.map((campaign) => {
-                  const isApplied = campaign.userState === 'APPLIED' || !!getApplication(campaign.id);
-                  return (
-                    <CampaignCard
-                      key={campaign.id}
-                      campaign={campaign}
-                      onPress={() => handleCampaignPress(campaign)}
-                      onApply={() => handleApply(campaign.id)}
-                      onSave={() => handleSave(campaign.id)}
-                      isSaved={isCampaignSaved(campaign.id)}
-                      isApplied={isApplied}
-                      colors={colors}
-                      isDark={isDark}
-                    />
-                  );
-                })
-              )}
-            </View>
-
-            <View 
-              style={styles.section}
-              onLayout={(event) => {
-                const { y } = event.nativeEvent.layout;
-                setRecommendedSectionY(y);
-              }}
-            >
-              <SectionHeader
-                title="Recommended For You"
-                subtitle="Based on your profile and interests"
-                colors={colors}
-              />
-              {recommendedCampaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onPress={() => handleCampaignPress(campaign)}
-                  onApply={() => handleApply(campaign.id)}
-                  onSave={() => handleSave(campaign.id)}
-                  isSaved={isCampaignSaved(campaign.id)}
-                  isApplied={campaign.userState === 'APPLIED' || !!getApplication(campaign.id)}
-                  colors={colors}
-                  isDark={isDark}
-                />
-              ))}
-            </View>
-            </>
-            )}
-          </>
-        )}
-
-        {selectedHeaderTab === 'gigx' && (
-          <View style={styles.tabContentContainer}>
-            <View style={styles.tabContentIcon}>
-              <Feather name="briefcase" size={48} color={colors.primary} />
-            </View>
-            <Text style={[styles.tabContentTitle, { color: colors.text }]}>GigX Campaigns</Text>
-            <Text style={[styles.tabContentSubtitle, { color: colors.textSecondary }]}>
-              Find gig task-based campaigns and short-term opportunities
-            </Text>
-            <View style={[styles.comingSoonBadge, { backgroundColor: colors.primaryLight }]}>
-              <Text style={[styles.comingSoonText, { color: colors.primary }]}>Coming Soon</Text>
-            </View>
           </View>
-        )}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
+            {categoryFilters.map((filter) => {
+              const isActive = selectedFilter === filter.id;
+              return (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: isActive ? primaryBlue : cardBackground,
+                      borderColor: isActive ? primaryBlue : cardBorder,
+                    },
+                  ]}
+                  onPress={() => setSelectedFilter(filter.id)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      { color: isActive ? '#FFFFFF' : colors.text },
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
-        {selectedHeaderTab === 'performancex' && (
-          <View style={styles.tabContentContainer}>
-            <View style={styles.tabContentIcon}>
-              <Feather name="trending-up" size={48} color={colors.primary} />
-            </View>
-            <Text style={[styles.tabContentTitle, { color: colors.text }]}>PerformanceX Campaigns</Text>
-            <Text style={[styles.tabContentSubtitle, { color: colors.textSecondary }]}>
-              Discover performance marketing campaigns with measurable results
-            </Text>
-            <View style={[styles.comingSoonBadge, { backgroundColor: colors.primaryLight }]}>
-              <Text style={[styles.comingSoonText, { color: colors.primary }]}>Coming Soon</Text>
-            </View>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Opportunities</Text>
+          <TouchableOpacity>
+            <Text style={[styles.sectionAction, { color: primaryBlue }]}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.featuredRow}
+          snapToInterval={screenWidth * 0.75 + 16}
+          decelerationRate="fast"
+        >
+          {(featuredCampaigns.length > 0 ? featuredCampaigns : featuredFallbacks).map((item) => {
+            const featured = 'id' in item && typeof (item as Campaign).brand !== 'undefined';
+            const campaign = featured ? (item as Campaign) : null;
+            const title = campaign?.title || (item as typeof featuredFallbacks[number]).title;
+            const payout = campaign?.budget || (item as typeof featuredFallbacks[number]).payout;
+            const meta = campaign?.contentTypes?.join(' + ') || (item as typeof featuredFallbacks[number]).meta;
+            const badge = (item as typeof featuredFallbacks[number]).badge || 'Featured';
+            const image = campaign ? getCampaignImage(campaign) : (item as typeof featuredFallbacks[number]).image;
+
+            return (
+              <TouchableOpacity
+                key={featured ? campaign!.id : (item as typeof featuredFallbacks[number]).id}
+                style={styles.featuredCard}
+                activeOpacity={0.9}
+                onPress={() => campaign && handleCampaignPress(campaign)}
+              >
+                <Image source={{ uri: image }} style={styles.featuredImage} />
+                <View style={styles.featuredOverlay} />
+                <View style={styles.featuredContent}>
+                  <View style={styles.featuredBadge}>
+                    <Text style={styles.featuredBadgeText}>{badge}</Text>
+                  </View>
+                  <Text style={styles.featuredTitle} numberOfLines={2}>{title}</Text>
+                  <Text style={styles.featuredPayout}>{payout} <Text style={styles.featuredMeta}>• {meta}</Text></Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>For You</Text>
+        </View>
+
+        {!isAuthReady ? (
+          <View style={[styles.authCard, { backgroundColor: cardBackground, borderColor: cardBorder }]}
+          >
+            <Text style={[styles.authTitle, { color: colors.text }]}>Signing you in...</Text>
+            <Text style={[styles.authSubtitle, { color: mutedText }]}>We’re getting your session ready.</Text>
+          </View>
+        ) : loadingCampaigns && filteredCampaigns.length === 0 ? (
+          <View style={styles.cardsColumn}>
+            <CampaignCardSkeleton />
+            <CampaignCardSkeleton />
+          </View>
+        ) : error ? (
+          <ErrorView error={error} onRetry={() => fetchCampaigns(apiFilters, true)} />
+        ) : (
+          <View style={styles.cardsColumn}>
+            {filteredCampaigns.map((campaign) => {
+              const isApplied = campaign.userState === 'APPLIED' || !!getApplication(campaign.id);
+              const platforms = getPlatforms(campaign);
+              return (
+                <TouchableOpacity
+                  key={campaign.id}
+                  style={[styles.campaignCard, { backgroundColor: cardBackground, borderColor: cardBorder }]}
+                  activeOpacity={0.92}
+                  onPress={() => handleCampaignPress(campaign)}
+                >
+                  <View style={styles.cardHeaderRow}>
+                    <View style={styles.cardBrandRow}>
+                      <View style={styles.brandLogo}>
+                        <Text style={styles.brandInitial}>{campaign.brand.charAt(0)}</Text>
+                      </View>
+                      <View>
+                        <Text style={[styles.brandName, { color: colors.text }]}>{campaign.brand}</Text>
+                        <Text style={[styles.postedText, { color: mutedText }]}>Posted recently</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.budgetText, { color: primaryBlue }]}>{formatBudget(campaign)}</Text>
+                  </View>
+
+                  <View style={styles.cardImageWrapper}>
+                    <Image source={{ uri: getCampaignImage(campaign) }} style={styles.cardImage} />
+                    <View style={styles.cardImageOverlay} />
+                    {platforms.length > 0 && (
+                      <View style={styles.platformTagRow}>
+                        {platforms.slice(0, 2).map((platform, index) => (
+                          <View key={`${platform}-${index}`} style={styles.platformTag}>
+                            <Text style={styles.platformTagText}>{platform}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.cardFooterRow}>
+                    <View style={styles.cardFooterText}>
+                      <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+                        {campaign.title}
+                      </Text>
+                      <Text style={[styles.cardSubtitle, { color: mutedText }]} numberOfLines={1}>
+                        {campaign.description || 'Create content featuring this brand.'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.cardAction,
+                        { backgroundColor: isApplied ? 'rgba(19,55,236,0.2)' : primaryBlue },
+                      ]}
+                      onPress={() => handleApply(campaign.id)}
+                      disabled={isApplied}
+                    >
+                      <Feather name="arrow-right" size={16} color={isApplied ? primaryBlue : '#FFFFFF'} />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -734,375 +438,278 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  headerBell: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerDot: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: primaryBlue,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 90,
   },
-  stickyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    zIndex: 100,
-  },
-  headerTitleContainer: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  headerActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTabsWrapper: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTabsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  headerTabButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTabButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  searchContainer: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
+  searchSection: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
-    marginLeft: spacing.sm,
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  authPendingCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-  },
-  authPendingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  authPendingSubtitle: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  filtersContainer: {
-    marginBottom: spacing.md,
-  },
-  filtersScroll: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-  },
-  filterChipText: {
-    fontSize: 13,
-  },
-  campaignsBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    gap: spacing.md,
-  },
-  bannerIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bannerContent: {
-    flex: 1,
-  },
-  bannerTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  bannerSubtitle: {
-    fontSize: 13,
-  },
-  section: {
-    marginBottom: spacing.xl,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  sectionAction: {
     fontSize: 14,
     fontWeight: '500',
   },
-  campaignCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+  searchFilterButton: {
+    padding: 6,
+    borderRadius: 10,
   },
-  cardTopSection: {
+  chipRow: {
+    paddingTop: 14,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  sectionHeaderRow: {
+    marginTop: 18,
+    paddingHorizontal: 20,
     flexDirection: 'row',
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  cardImage: {
-    width: 100,
-    height: 120,
-    borderRadius: borderRadius.md,
-    resizeMode: 'cover',
-  },
-  cardTopContent: {
-    flex: 1,
-  },
-  cardTopHeader: {
-    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
   },
-  brandRow: {
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  sectionAction: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  featuredRow: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 14,
+  },
+  featuredCard: {
+    width: screenWidth * 0.75,
+    height: 160,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  featuredImage: {
+    width: '100%',
+    height: '100%',
+  },
+  featuredOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  featuredContent: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 14,
+  },
+  featuredBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  featuredBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  featuredTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  featuredPayout: {
+    color: primaryBlue,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  featuredMeta: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  cardsColumn: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    gap: 14,
+  },
+  campaignCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+  },
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  cardBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   brandLogo: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   brandInitial: {
+    color: '#111827',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  brandName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  postedText: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  budgetText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  cardImageWrapper: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  cardImage: {
+    width: '100%',
+    height: 140,
+  },
+  cardImageOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 50,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  platformTagRow: {
+    position: 'absolute',
+    left: 10,
+    bottom: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  platformTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  platformTagText: {
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
   },
-  brandNameText: {
-    fontSize: 13,
-    fontWeight: '400',
-  },
-  shareButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    justifyContent: 'center',
+  cardFooterRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  cardFooterText: {
+    flex: 1,
   },
   cardTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-    lineHeight: 20,
+    fontSize: 14,
+    fontWeight: '700',
   },
-  tagsRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  tagChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-  },
-  tagText: {
+  cardSubtitle: {
     fontSize: 11,
-    fontWeight: '400',
+    marginTop: 4,
   },
-  contentTypeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  contentTypeText: {
-    fontSize: 12,
-    fontWeight: '400',
-  },
-  platformIcons: {
-    flexDirection: 'row',
-    gap: -4,
-  },
-  platformIconCircle: {
-    width: 20,
-    height: 20,
+  cardAction: {
+    width: 32,
+    height: 32,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-  },
-  cardMiddleSection: {
-    flexDirection: 'row',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderTopWidth: 1,
-  },
-  statsColumn: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  statsLabel: {
-    fontSize: 11,
-    marginBottom: 2,
-    fontWeight: '400',
-  },
-  statsValue: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  statsDivider: {
-    width: 1,
-    marginHorizontal: spacing.sm,
-  },
-  cardBottomSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  paidBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: borderRadius.sm,
-    gap: spacing.xs,
-  },
-  paidText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  paidDivider: {
-    width: 1,
-    height: 12,
-  },
-  paidAmount: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  endsInText: {
-    fontSize: 12,
-    flex: 1,
-    textAlign: 'center',
-  },
-  endsInBold: {
-    fontWeight: '600',
-  },
-  applyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    gap: spacing.xs,
-  },
-  applyButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  tabContentContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl * 3,
   },
-  tabContentIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  authCard: {
+    marginHorizontal: 20,
+    marginTop: 14,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
   },
-  tabContentTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  tabContentSubtitle: {
+  authTitle: {
     fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: spacing.lg,
-  },
-  comingSoonBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-  },
-  comingSoonText: {
-    fontSize: 13,
     fontWeight: '600',
+    marginBottom: 6,
+  },
+  authSubtitle: {
+    fontSize: 12,
+    textAlign: 'center',
   },
 });
