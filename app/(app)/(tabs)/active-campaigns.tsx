@@ -687,9 +687,11 @@ const styles = StyleSheet.create({
   },
   thumbnailCheck: {
     position: 'absolute',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 4,
-    padding: 4,
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.9)',
+    borderRadius: 10,
+    padding: 2,
   },
   thumbnailImage: {
     width: '100%',
