@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet, Animated, Dimensions, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '@/src/theme';
 
 const { width, height } = Dimensions.get('window');
 const useNativeDriver = Platform.OS !== 'web';
-const SPLASH_DURATION = 1500;
+const SPLASH_DURATION = 2500;
 const SPLASH_SESSION_TIMEOUT = 30000;
 
 const getSplashState = () => {
@@ -42,16 +42,13 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ onFinish }: SplashScreenProps) {
-  const logoScale = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoRotation = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
-  const textTranslate = useRef(new Animated.Value(30)).current;
-  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const spinnerOpacity = useRef(new Animated.Value(0)).current;
+  const spinnerRotation = useRef(new Animated.Value(0)).current;
   const glowOpacity = useRef(new Animated.Value(0)).current;
-  const pulseScale = useRef(new Animated.Value(1)).current;
   const onFinishRef = useRef(onFinish);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   onFinishRef.current = onFinish;
 
   useEffect(() => {
@@ -72,73 +69,37 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       return;
     }
 
-    timerRef.current = setTimeout(() => {
+    const timer = setTimeout(() => {
       markSplashComplete();
       onFinishRef.current();
     }, remaining);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseScale, {
-          toValue: 1.05,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver,
-        }),
-        Animated.timing(pulseScale, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver,
-        }),
-      ])
+    const spinAnimation = Animated.loop(
+      Animated.timing(spinnerRotation, {
+        toValue: 1,
+        duration: 1500,
+        easing: Easing.linear,
+        useNativeDriver,
+      })
     );
 
     const mainAnimation = Animated.sequence([
-      Animated.delay(200),
+      Animated.delay(100),
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 500,
+          duration: 400,
           easing: Easing.out(Easing.cubic),
           useNativeDriver,
         }),
         Animated.spring(logoScale, {
           toValue: 1,
-          friction: 6,
-          tension: 50,
-          useNativeDriver,
-        }),
-        Animated.timing(logoRotation, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.out(Easing.back(1.5)),
-          useNativeDriver,
-        }),
-      ]),
-      Animated.delay(200),
-      Animated.parallel([
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver,
-        }),
-        Animated.spring(textTranslate, {
-          toValue: 0,
           friction: 8,
-          tension: 40,
-          useNativeDriver,
-        }),
-      ]),
-      Animated.delay(150),
-      Animated.parallel([
-        Animated.timing(taglineOpacity, {
-          toValue: 1,
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
+          tension: 60,
           useNativeDriver,
         }),
         Animated.timing(glowOpacity, {
@@ -147,86 +108,90 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           useNativeDriver,
         }),
       ]),
+      Animated.delay(200),
+      Animated.timing(textOpacity, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver,
+      }),
+      Animated.delay(200),
+      Animated.timing(spinnerOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver,
+      }),
     ]);
 
-    pulseAnimation.start();
+    spinAnimation.start();
     mainAnimation.start();
 
     return () => {
       mainAnimation.stop();
-      pulseAnimation.stop();
+      spinAnimation.stop();
     };
   }, []);
 
-  const rotateInterpolate = logoRotation.interpolate({
+  const spinInterpolate = spinnerRotation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-10deg', '0deg'],
+    outputRange: ['0deg', '360deg'],
   });
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0a0a0a', '#12121f', '#0a0a0a']}
+        colors={['#0a1628', '#050d1a', '#020810']}
         style={styles.background}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
       />
 
-      <Animated.View style={[styles.glowRing, { opacity: glowOpacity }]}>
-        <LinearGradient
-          colors={['transparent', 'rgba(19, 55, 236, 0.15)', 'transparent']}
-          style={styles.glowRingGradient}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-        />
+      <Animated.View style={[styles.glowContainer, { opacity: glowOpacity }]}>
+        <View style={styles.glowEffect} />
       </Animated.View>
-      
+
       <View style={styles.content}>
         <Animated.View
           style={[
             styles.logoContainer,
             {
               opacity: logoOpacity,
-              transform: [
-                { scale: Animated.multiply(logoScale, pulseScale) },
-                { rotate: rotateInterpolate },
-              ],
+              transform: [{ scale: logoScale }],
             },
           ]}
         >
-          <LinearGradient
-            colors={[colors.primary, colors.violet, '#9333ea']}
-            style={styles.logoGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Feather name="zap" size={52} color={colors.text} />
-          </LinearGradient>
-          <View style={styles.logoGlow} />
+          <View style={styles.logoBox}>
+            <View style={styles.xIconContainer}>
+              <Feather name="x" size={48} color="#1337ec" />
+            </View>
+          </View>
         </Animated.View>
 
-        <Animated.View
-          style={{
-            opacity: textOpacity,
-            transform: [{ translateY: textTranslate }],
-          }}
-        >
-          <Text style={styles.title}>CreatorX</Text>
-        </Animated.View>
-
-        <Animated.View style={{ opacity: taglineOpacity }}>
-          <Text style={styles.tagline}>Earn with Your Influence</Text>
+        <Animated.View style={[styles.textContainer, { opacity: textOpacity }]}>
+          <Text style={styles.title}>
+            <Text style={styles.titleCreator}>Creator</Text>
+            <Text style={styles.titleX}>X</Text>
+          </Text>
         </Animated.View>
       </View>
 
-      <Animated.View style={[styles.bottomGlow, { opacity: glowOpacity }]}>
-        <LinearGradient
-          colors={['transparent', 'rgba(19, 55, 236, 0.12)', 'rgba(19, 55, 236, 0.05)']}
-          style={styles.glowGradient}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-        />
-      </Animated.View>
+      <View style={styles.bottomSection}>
+        <Animated.View
+          style={[
+            styles.spinnerContainer,
+            {
+              opacity: spinnerOpacity,
+              transform: [{ rotate: spinInterpolate }],
+            },
+          ]}
+        >
+          <View style={styles.spinner} />
+        </Animated.View>
+
+        <Animated.Text style={[styles.version, { opacity: spinnerOpacity }]}>
+          v1.0.2
+        </Animated.Text>
+      </View>
     </View>
   );
 }
@@ -234,70 +199,111 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#020810',
   },
   background: {
     ...StyleSheet.absoluteFillObject,
   },
-  glowRing: {
+  glowContainer: {
     position: 'absolute',
-    top: height * 0.25,
-    left: -width * 0.5,
-    right: -width * 0.5,
-    height: height * 0.5,
+    top: height * 0.3,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
-  glowRingGradient: {
-    flex: 1,
+  glowEffect: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(19, 55, 236, 0.12)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1337ec',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 50,
+      },
+      android: {},
+      web: {
+        boxShadow: '0 0 100px 50px rgba(19, 55, 236, 0.15)',
+      },
+    }),
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 80,
   },
   logoContainer: {
-    marginBottom: 28,
-    position: 'relative',
+    marginBottom: 24,
   },
-  logoGradient: {
-    width: 110,
-    height: 110,
-    borderRadius: 32,
+  logoBox: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    backgroundColor: '#0f1419',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(19, 55, 236, 0.2)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 12,
+      },
+      web: {
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 40px rgba(19, 55, 236, 0.1)',
+      },
+    }),
+  },
+  xIconContainer: {
+    width: 60,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoGlow: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    borderRadius: 42,
-    backgroundColor: 'rgba(19, 55, 236, 0.25)',
-    zIndex: -1,
+  textContainer: {
+    alignItems: 'center',
   },
   title: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: colors.text,
-    textAlign: 'center',
-    letterSpacing: -1.5,
+    fontSize: 36,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
-  tagline: {
-    fontSize: 17,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 12,
-    fontWeight: '500',
-    letterSpacing: 0.5,
+  titleCreator: {
+    color: '#ffffff',
   },
-  bottomGlow: {
+  titleX: {
+    color: '#1337ec',
+  },
+  bottomSection: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 60,
     left: 0,
     right: 0,
-    height: 250,
+    alignItems: 'center',
   },
-  glowGradient: {
-    flex: 1,
+  spinnerContainer: {
+    marginBottom: 12,
+  },
+  spinner: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: 'transparent',
+    borderTopColor: '#1337ec',
+    borderRightColor: '#1337ec',
+  },
+  version: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '500',
   },
 });
