@@ -4,6 +4,9 @@
 CreatorX is a comprehensive React Native/Expo mobile application for content creators to discover brand collaboration campaigns, manage deliverables, track earnings, and communicate with brands. The app features a premium dark mode design aesthetic inspired by Linear and Stripe.
 
 ## Recent Changes
+- **January 2026**: Updated UI design system with new primary color (#1337ec blue), darker backgrounds (#050505), and modernized gradients across all screens
+- **January 2026**: Redesigned Explore screen header with "Discover" title, avatar, and notification bell
+- **January 2026**: Updated all gradient colors and accent highlights to match new blue color scheme
 - **January 2026**: Redesigned auth flow with 3 screens: Splash (branded gradient) -> Welcome (app preview) -> Phone OTP verification
 - **January 2026**: Simplified auth flow - removed social connect screen, users now login directly with phone/OTP
 - **December 2024**: Added dev preview mode with "Skip for Dev Preview" button on auth screens
@@ -90,11 +93,13 @@ components/
 ## Design Guidelines
 
 ### Mobile App (Creator App)
-- Background: #0a0a0a (near black)
-- Primary: #8b5cf6 (violet/purple)
-- Glass morphism effects with subtle gradients
+- Background: #050505 (deep black)
+- Card Background: #121212
+- Primary: #1337ec (blue)
+- Glass morphism effects with subtle blue gradients
 - Consistent border radius (8-24px)
 - Card-based layouts with subtle borders
+- Modern minimal aesthetic inspired by Linear
 
 ### Brand Dashboard
 - Background: #F7F9FC (light gray)
