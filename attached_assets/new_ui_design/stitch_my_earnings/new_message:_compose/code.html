@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>New Message: Compose - CreatorX</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#050505", // Deep black for premium feel
+                        "surface-dark": "#121212",
+                        "border-dark": "#27272a"
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for a clean mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased h-screen overflow-hidden flex flex-col">
+<!-- Header -->
+<header class="flex items-center justify-between px-4 py-3 bg-white/5 dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark shrink-0 backdrop-blur-md sticky top-0 z-50">
+<button class="text-base font-medium text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-white transition-colors">
+            Cancel
+        </button>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">New Message</h2>
+<div class="w-[50px]"></div> <!-- Spacer to balance Cancel button -->
+</header>
+<!-- Recipient Selection -->
+<div class="px-4 py-3 border-b border-gray-200 dark:border-border-dark shrink-0">
+<div class="flex items-center gap-3">
+<span class="text-gray-500 dark:text-gray-400 text-base font-medium">To:</span>
+<!-- Recipient Chip -->
+<div class="flex items-center gap-2 bg-primary/10 dark:bg-[#1a1d2d] pl-1 pr-3 py-1 rounded-full border border-primary/20">
+<div class="w-6 h-6 rounded-full bg-cover bg-center shrink-0" data-alt="Nike brand logo icon" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCywxxmfNOJbPA-Wk97G703x4VX0lHxuV1P8JVj6VketOMGbLwfdImRJ19GavqLUBajKxDbIo9xiqLCbvXqgy079wYHlO1V3MKK_k9nFQn-fh-ckEjcXGIsaoTotOByoiDU7CLz2vrym9n6kP2qcw67QKNj52fHHulTWs9ONFrFWokom8-UcmR8o0Iq61iJ4gwwub1z4rIt98hCSImgjvenxpkEPZ3hz49NxhuR3MhQOtlpzIqb3mcqPYP57APWI5l7zcu1eLiQ-h0");'>
+</div>
+<span class="text-sm font-semibold text-primary dark:text-white">Nike</span>
+<button class="flex items-center justify-center text-primary/60 hover:text-primary dark:text-gray-400 dark:hover:text-white transition-colors ml-1">
+<span class="material-symbols-outlined text-lg" style="font-size: 16px;">close</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Main Composition Area -->
+<main class="flex-1 flex flex-col relative w-full max-w-md mx-auto h-full">
+<!-- Text Input -->
+<div class="flex-1 w-full p-4">
+<textarea autofocus="" class="w-full h-full bg-transparent text-lg text-slate-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 border-none focus:ring-0 resize-none p-0 leading-relaxed font-normal caret-primary" placeholder="Start a conversation about a campaign..."></textarea>
+</div>
+<!-- Composer / Keyboard Accessory View -->
+<!-- Simulating the toolbar that sits above keyboard on mobile -->
+<div class="w-full bg-white dark:bg-surface-dark border-t border-gray-200 dark:border-border-dark p-3 pb-8 shrink-0">
+<div class="flex items-end justify-between gap-4">
+<!-- Utilities -->
+<div class="flex items-center gap-1">
+<button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors group">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">add_photo_alternate</span>
+</button>
+<button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors group">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">attach_file</span>
+</button>
+<button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors group relative">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">bolt</span>
+<!-- Pro feature indicator dot -->
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full ring-2 ring-white dark:ring-surface-dark"></span>
+</button>
+</div>
+<!-- Send Button -->
+<button class="flex items-center gap-2 bg-primary hover:bg-blue-700 text-white pl-4 pr-5 py-2.5 rounded-full font-medium transition-all shadow-lg shadow-primary/25 active:scale-95">
+<span class="text-sm">Send</span>
+<span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+<!-- Simulated Keyboard Spacer for Visualizing layout (iOS Home Indicator area) -->
+<div class="h-1 w-full"></div>
+</div>
+<!-- Simulated Keyboard Area (Visual placeholder for design context) -->
+<div class="w-full bg-[#d1d5db] dark:bg-[#282828] hidden sm:block h-[300px] relative overflow-hidden">
+<!-- Abstract representation of a keyboard -->
+<div class="absolute inset-0 flex flex-col gap-1.5 p-1.5 opacity-50">
+<div class="h-10 w-full flex gap-1.5">
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+</div>
+<div class="h-10 w-full flex gap-1.5 px-4">
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+</div>
+<div class="h-10 w-full flex gap-1.5 px-10">
+<div class="bg-gray-400 dark:bg-gray-600 rounded h-full w-10"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-gray-400 dark:bg-gray-600 rounded h-full w-10"></div>
+</div>
+<div class="h-10 w-full flex gap-1.5 px-1 pt-1">
+<div class="bg-gray-400 dark:bg-gray-600 rounded h-full w-24"></div>
+<div class="bg-white dark:bg-white/10 rounded h-full flex-1"></div>
+<div class="bg-gray-400 dark:bg-gray-600 rounded h-full w-24"></div>
+</div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<span class="text-sm font-medium text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-black/80 px-3 py-1 rounded-full backdrop-blur-sm">Keyboard Area</span>
+</div>
+</div>
+</main>
+</body></html>

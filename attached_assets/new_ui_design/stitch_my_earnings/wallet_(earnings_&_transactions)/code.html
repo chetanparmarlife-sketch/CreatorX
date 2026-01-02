@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX Wallet</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#ffffff",
+                        "background-dark": "#050505", // Deep black for premium feel
+                        "surface-dark": "#121212", // Slightly lighter for cards
+                        "surface-light": "#f6f6f8",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased overflow-hidden selection:bg-primary/30">
+<div class="relative flex h-full max-h-screen w-full flex-col overflow-hidden">
+<!-- Header -->
+<div class="flex items-center px-4 pt-4 pb-2 justify-between z-10 shrink-0">
+<button class="flex h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-white text-[24px]">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Wallet</h2>
+<button class="flex h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-white text-[24px]">settings</span>
+</button>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto no-scrollbar pb-24"> <!-- pb-24 for fixed button space -->
+<!-- Balance Section -->
+<div class="flex flex-col items-center pt-6 pb-6">
+<div class="flex items-center gap-2">
+<p class="text-slate-500 dark:text-[#9da1b9] text-sm font-medium leading-normal">Available Balance</p>
+<button class="text-slate-400 dark:text-[#555] hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+<h1 class="text-slate-900 dark:text-white tracking-tight text-[40px] font-extrabold leading-tight mt-1 mb-6">$12,450.00</h1>
+<!-- Stats Cards -->
+<div class="flex w-full px-4 gap-3">
+<div class="flex flex-1 flex-col gap-1 rounded-2xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-white/5 p-4 items-center text-center">
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/10 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-[18px]">hourglass_empty</span>
+</div>
+<p class="text-slate-900 dark:text-white text-lg font-bold leading-tight">$1,200.00</p>
+<p class="text-slate-500 dark:text-[#9da1b9] text-xs font-medium">Pending</p>
+</div>
+<div class="flex flex-1 flex-col gap-1 rounded-2xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-white/5 p-4 items-center text-center">
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 mb-1">
+<span class="material-symbols-outlined text-green-500 text-[18px]">payments</span>
+</div>
+<p class="text-slate-900 dark:text-white text-lg font-bold leading-tight">$45,200.00</p>
+<p class="text-slate-500 dark:text-[#9da1b9] text-xs font-medium">Total Earned</p>
+</div>
+</div>
+</div>
+<!-- Chart Section -->
+<div class="px-4 mt-2 mb-6">
+<div class="flex justify-between items-end mb-4 px-1">
+<h3 class="text-slate-900 dark:text-white text-base font-bold">Earnings</h3>
+<p class="text-slate-400 dark:text-[#9da1b9] text-xs font-medium">Last 30 Days</p>
+</div>
+<!-- Simplified Chart Visualization -->
+<div class="w-full h-40 bg-slate-50 dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 p-4 relative overflow-hidden group">
+<!-- Interactive tooltip placeholder -->
+<div class="absolute top-2 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        $850.00 on Oct 12
+                    </div>
+<!-- Bars -->
+<div class="flex items-end justify-between h-full gap-1 pt-4">
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[30%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[50%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[40%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[70%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[45%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[60%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[30%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[80%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[55%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[40%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[90%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[65%]"></div>
+<div class="w-full bg-primary/20 hover:bg-primary transition-colors rounded-t-sm h-[40%]"></div>
+<div class="w-full bg-primary hover:bg-primary/80 transition-colors rounded-t-sm h-[75%] relative">
+<!-- Active indicator -->
+<div class="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_rgba(19,55,236,0.8)]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Transactions Section -->
+<div class="px-4 pb-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-slate-900 dark:text-white text-base font-bold pl-1">Recent Transactions</h3>
+<button class="text-primary text-xs font-bold px-2 py-1">View All</button>
+</div>
+<!-- Filters -->
+<div class="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1 pl-1">
+<button class="bg-primary text-white px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-lg shadow-primary/25">All</button>
+<button class="bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-transparent dark:border-white/10 hover:border-primary/50 transition-colors">Incoming</button>
+<button class="bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-transparent dark:border-white/10 hover:border-primary/50 transition-colors">Withdrawals</button>
+</div>
+<!-- Transaction List -->
+<div class="flex flex-col gap-3">
+<!-- Item 1 -->
+<div class="group flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[20px]">north_east</span>
+</div>
+<div class="flex flex-col">
+<p class="text-slate-900 dark:text-white text-sm font-bold">Nike Campaign Payout</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Today, 10:23 AM</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<p class="text-emerald-500 dark:text-emerald-400 text-sm font-bold">+$500.00</p>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<p class="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Completed</p>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="group flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[20px]">south_west</span>
+</div>
+<div class="flex flex-col">
+<p class="text-slate-900 dark:text-white text-sm font-bold">Withdrawal to Chase</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Yesterday, 4:15 PM</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<p class="text-slate-900 dark:text-white text-sm font-bold">-$2,000.00</p>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+<p class="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Processing</p>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="group flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[20px]">north_east</span>
+</div>
+<div class="flex flex-col">
+<p class="text-slate-900 dark:text-white text-sm font-bold">Skincare Reel Collab</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Oct 24, 2023</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<p class="text-slate-400 dark:text-slate-500 text-sm font-bold">+$1,200.00</p>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+<p class="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Pending</p>
+</div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="group flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[20px]">north_east</span>
+</div>
+<div class="flex flex-col">
+<p class="text-slate-900 dark:text-white text-sm font-bold">Tech Unboxing Video</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Oct 20, 2023</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<p class="text-emerald-500 dark:text-emerald-400 text-sm font-bold">+$3,500.00</p>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<p class="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Completed</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Action Button Area (Sticky Bottom) -->
+<div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-light via-background-light to-transparent dark:from-background-dark dark:via-background-dark dark:to-transparent pt-10">
+<button class="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-14 bg-primary text-white text-lg font-bold leading-normal tracking-[0.015em] hover:bg-blue-600 active:scale-[0.98] transition-all shadow-lg shadow-blue-900/40">
+<span class="mr-2 material-symbols-outlined">account_balance_wallet</span>
+<span>Withdraw Funds</span>
+</button>
+<div class="h-1 w-full flex justify-center mt-2">
+<div class="w-1/3 h-1 bg-slate-300 dark:bg-slate-800 rounded-full"></div>
+</div>
+</div>
+</div>
+</body></html>

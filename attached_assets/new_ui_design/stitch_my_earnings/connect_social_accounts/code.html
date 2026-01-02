@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Connect Social Accounts - CreatorX</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101322",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-white selection:bg-primary/30">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light dark:bg-background-dark">
+<!-- Top Navigation -->
+<div class="sticky top-0 z-10 flex items-center justify-between p-4 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-white" style="font-size: 24px;">arrow_back</span>
+</button>
+<div class="flex items-center gap-2">
+<div class="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+<div class="h-1.5 w-6 rounded-full bg-primary"></div>
+<div class="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+</div>
+<button class="flex h-10 items-center justify-center px-2 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors">
+                Skip
+            </button>
+</div>
+<!-- Main Content -->
+<div class="flex flex-col flex-1 px-6 pt-4 pb-24">
+<!-- Headlines -->
+<div class="mb-8">
+<h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-3">
+                    Link your profiles
+                </h1>
+<p class="text-base font-normal leading-relaxed text-slate-500 dark:text-slate-400">
+                    Connect your social accounts to verify your audience and unlock exclusive campaigns suited for you.
+                </p>
+</div>
+<!-- List Items -->
+<div class="flex flex-col gap-4">
+<!-- Instagram Card -->
+<div class="group flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#1A1D2D] border border-slate-200 dark:border-white/5 shadow-sm hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-300">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-12 rounded-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white shadow-lg shrink-0">
+<span class="material-symbols-outlined" style="font-size: 26px;">camera_alt</span>
+</div>
+<div class="flex flex-col">
+<p class="text-base font-bold text-slate-900 dark:text-white">Instagram</p>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Not connected</p>
+</div>
+</div>
+<button class="flex items-center justify-center h-9 px-5 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white text-sm font-semibold hover:bg-slate-200 dark:hover:bg-white/20 transition-colors">
+                        Connect
+                    </button>
+</div>
+<!-- TikTok Card -->
+<div class="group flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#1A1D2D] border border-slate-200 dark:border-white/5 shadow-sm hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-300">
+<div class="flex items-center justify-center size-12 rounded-xl bg-black dark:bg-black text-white shadow-lg shrink-0 border border-slate-100 dark:border-white/10">
+<span class="material-symbols-outlined" style="font-size: 26px;">music_note</span>
+</div>
+<div class="flex flex-col">
+<p class="text-base font-bold text-slate-900 dark:text-white">TikTok</p>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Not connected</p>
+</div>
+<button class="flex items-center justify-center h-9 px-5 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white text-sm font-semibold hover:bg-slate-200 dark:hover:bg-white/20 transition-colors">
+                        Connect
+                    </button>
+</div>
+<!-- YouTube Card (Connected State Example) -->
+<div class="group flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#1A1D2D] border border-primary dark:border-primary/50 shadow-sm transition-all duration-300 ring-1 ring-primary/20 dark:ring-primary/20">
+<div class="flex items-center gap-4">
+<div class="relative flex items-center justify-center size-12 rounded-xl bg-[#FF0000] text-white shadow-lg shrink-0">
+<span class="material-symbols-outlined" style="font-size: 26px;">smart_display</span>
+<div class="absolute -bottom-1 -right-1 bg-green-500 rounded-full border-2 border-white dark:border-[#1A1D2D] p-0.5">
+<span class="material-symbols-outlined text-white block" style="font-size: 10px; font-weight: 900;">check</span>
+</div>
+</div>
+<div class="flex flex-col">
+<p class="text-base font-bold text-slate-900 dark:text-white">YouTube</p>
+<p class="text-sm font-medium text-primary">@creator_official</p>
+</div>
+</div>
+<button aria-label="Disconnect" class="flex items-center justify-center size-9 rounded-full text-slate-400 dark:text-slate-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+</button>
+</div>
+<!-- Twitter/X Card -->
+<div class="group flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-[#1A1D2D] border border-slate-200 dark:border-white/5 shadow-sm hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-300">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-12 rounded-xl bg-slate-900 dark:bg-slate-800 text-white shadow-lg shrink-0">
+<span class="material-symbols-outlined" style="font-size: 26px;">alternate_email</span>
+</div>
+<div class="flex flex-col">
+<p class="text-base font-bold text-slate-900 dark:text-white">Twitter</p>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Not connected</p>
+</div>
+</div>
+<button class="flex items-center justify-center h-9 px-5 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white text-sm font-semibold hover:bg-slate-200 dark:hover:bg-white/20 transition-colors">
+                        Connect
+                    </button>
+</div>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-6 bg-gradient-to-t from-background-light via-background-light to-transparent dark:from-background-dark dark:via-background-dark dark:to-transparent z-20 pointer-events-none flex flex-col items-center">
+<div class="pointer-events-auto w-full flex flex-col gap-4">
+<p class="text-xs text-center text-slate-400 dark:text-slate-500">
+                    We never post without your permission. <a class="underline hover:text-slate-600 dark:hover:text-slate-300" href="#">Read Data Policy</a>.
+                </p>
+<button class="w-full flex items-center justify-center h-14 rounded-xl bg-primary hover:bg-blue-700 active:scale-[0.98] transition-all text-white font-bold text-lg shadow-lg shadow-primary/25">
+                    Continue
+                </button>
+</div>
+</div>
+</div>
+</body></html>

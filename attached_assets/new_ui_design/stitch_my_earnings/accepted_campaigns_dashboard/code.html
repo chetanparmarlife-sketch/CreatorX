@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Creator Profile &amp; Settings</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#000000",
+                        "card-dark": "#121212", 
+                        "surface-dark": "#1E1E1E",
+                        "border-dark": "#272727",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem", 
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    .toggle-checkbox:checked {
+        right: 0;
+        border-color: #1337ec;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+        background-color: #1337ec;
+    }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-white dark:bg-background-dark">
+<header class="flex items-center px-4 py-4 justify-between bg-white dark:bg-background-dark sticky top-0 z-50 border-b border-slate-100 dark:border-border-dark">
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+</div>
+<h1 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-2">Profile &amp; Settings</h1>
+<div class="flex items-center justify-end gap-2">
+<button class="text-primary font-semibold text-sm px-2">Save</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto pb-24">
+<section class="flex flex-col items-center pt-8 pb-6 px-4">
+<div class="relative mb-4 group">
+<div class="size-24 rounded-full p-1 bg-gradient-to-br from-primary to-purple-500">
+<div class="size-full rounded-full bg-white dark:bg-card-dark overflow-hidden border-2 border-white dark:border-background-dark">
+<img alt="Creator profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI5wpt3VVTr0f_ypHKyXPkIdN4VOTxRbl0hFVFVkZT4Hu85bc0UYNeouW30zQA9aZrKmGWssudljjdbMvdwkBBd_5DIIbiThyKvzwv-CqAFl7WuUxH0xzTQ5nisEBk7T59xgcLOar0CssWucPkyYCyIjz0R04j1ZsHqn9TK08wwX7jPJqKPDZ_ivkqfwvyteIZZGnQlAOOFurNI6054Z_M3Kb7zvK6GOCzqCRHcXsn7FyH5va77gSRoPzNJ6-3qc6bzGqFT3oymSQ"/>
+</div>
+</div>
+<button class="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg border-2 border-white dark:border-background-dark hover:bg-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white">Alex Morgan</h2>
+<p class="text-sm text-slate-500 dark:text-slate-400">@alexcreators</p>
+</section>
+<section class="px-4 mb-2">
+<div class="bg-white dark:bg-card-dark rounded-2xl p-4 border border-slate-200 dark:border-border-dark shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Personal Info</h3>
+</div>
+<div class="space-y-4">
+<div class="group">
+<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
+<input class="w-full bg-slate-50 dark:bg-surface-dark border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary placeholder-slate-400 text-slate-900 dark:text-white" type="text" value="Alex Morgan"/>
+</div>
+<div class="group">
+<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Bio</label>
+<textarea class="w-full bg-slate-50 dark:bg-surface-dark border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary placeholder-slate-400 text-slate-900 dark:text-white resize-none" rows="3">Digital creator focused on lifestyle, tech, and modern living. Creating content that inspires.</textarea>
+</div>
+<div class="group">
+<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 text-[18px]">mail</span>
+</span>
+<input class="w-full pl-10 bg-slate-50 dark:bg-surface-dark border-none rounded-xl py-3 text-sm font-medium focus:ring-2 focus:ring-primary placeholder-slate-400 text-slate-900 dark:text-white" type="email" value="alex@creatorx.com"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="px-4 my-6">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">Connected Accounts</h3>
+<div class="bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
+<div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-border-dark">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-[1px]">
+<div class="size-full rounded-full bg-white dark:bg-card-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px] bg-clip-text text-transparent bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 font-bold">camera_alt</span>
+</div>
+</div>
+<div>
+<p class="font-semibold text-sm">Instagram</p>
+<p class="text-xs text-slate-500">Connected as @alexcreators</p>
+</div>
+</div>
+<button class="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">Disconnect</button>
+</div>
+<div class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-border-dark">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black">
+<span class="font-bold text-xs">Tk</span>
+</div>
+<div>
+<p class="font-semibold text-sm">TikTok</p>
+<p class="text-xs text-slate-500">Connected as @alexcreators</p>
+</div>
+</div>
+<button class="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">Disconnect</button>
+</div>
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-red-600 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[20px]">play_arrow</span>
+</div>
+<div>
+<p class="font-semibold text-sm">YouTube</p>
+<p class="text-xs text-slate-500">Not connected</p>
+</div>
+</div>
+<button class="text-xs font-bold text-primary hover:text-blue-600">Connect</button>
+</div>
+</div>
+</section>
+<section class="px-4 mb-6">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">Creator Toolkit</h3>
+<div class="bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-border-dark">
+<button class="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors text-left group">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
+<span class="material-symbols-outlined text-[20px]">redeem</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-sm text-slate-900 dark:text-white">Refer and Earn</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">Invite creators &amp; earn bonuses</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-[20px] group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<button class="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors text-left group">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-orange-500/10 text-orange-500">
+<span class="material-symbols-outlined text-[20px]">bookmark</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-sm text-slate-900 dark:text-white">Saved Campaigns</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">View your bookmarked briefs</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-[20px] group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<button class="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors text-left group">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-cyan-500/10 text-cyan-500">
+<span class="material-symbols-outlined text-[20px]">folder_open</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-sm text-slate-900 dark:text-white">My Docs</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">Contracts, Tax forms &amp; Invoices</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-[20px] group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+</div>
+</section>
+<section class="px-4 mb-6">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">App Preferences</h3>
+<div class="bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-border-dark">
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-sm">Push Notifications</span>
+<span class="text-xs text-slate-500">Campaign updates &amp; messages</span>
+</div>
+</div>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 dark:border-slate-600 transition-all duration-300 ease-in-out" id="toggle1" name="toggle1" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 dark:bg-slate-700 cursor-pointer transition-colors duration-300 ease-in-out" for="toggle1"></label>
+</div>
+</div>
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-sm">Email Digest</span>
+<span class="text-xs text-slate-500">Weekly earnings summary</span>
+</div>
+</div>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 dark:border-slate-600 transition-all duration-300 ease-in-out right-auto left-0" id="toggle2" name="toggle2" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 dark:bg-slate-700 cursor-pointer transition-colors duration-300 ease-in-out" for="toggle2"></label>
+</div>
+</div>
+<div class="flex items-center justify-between p-4">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-sm">Profile Visibility</span>
+<span class="text-xs text-slate-500">Visible to brands</span>
+</div>
+</div>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 dark:border-slate-600 transition-all duration-300 ease-in-out" id="toggle3" name="toggle3" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 dark:bg-slate-700 cursor-pointer transition-colors duration-300 ease-in-out" for="toggle3"></label>
+</div>
+</div>
+</div>
+</section>
+<section class="px-4 mb-8">
+<div class="bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-border-dark">
+<button class="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors text-left">
+<span class="font-medium text-sm">Payment Methods</span>
+<span class="material-symbols-outlined text-slate-400 text-[20px]">chevron_right</span>
+</button>
+<button class="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors text-left">
+<span class="font-medium text-sm">Help &amp; Support</span>
+<span class="material-symbols-outlined text-slate-400 text-[20px]">chevron_right</span>
+</button>
+<button class="w-full flex items-center justify-between p-4 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left group">
+<span class="font-medium text-sm text-red-500 group-hover:text-red-600">Log Out</span>
+<span class="material-symbols-outlined text-red-400 text-[20px]">logout</span>
+</button>
+</div>
+<div class="mt-6 text-center">
+<p class="text-xs text-slate-400">Version 2.4.0 (Build 1024)</p>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 w-full max-w-md bg-white/90 dark:bg-background-dark/95 backdrop-blur-lg border-t border-slate-200 dark:border-border-dark pb-safe pt-2 px-2 z-50">
+<div class="flex justify-around items-center h-16">
+<button class="flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+<span class="material-symbols-outlined text-[24px]">explore</span>
+<span class="text-[10px] font-medium">Explore</span>
+</button>
+<button class="flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<span class="text-[10px] font-medium">Dashboard</span>
+</button>
+<button class="relative flex items-center justify-center w-14 h-14 rounded-full bg-primary text-white -mt-6 shadow-lg shadow-primary/30 border-4 border-white dark:border-background-dark">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+<button class="flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+<span class="material-symbols-outlined text-[24px]">chat_bubble_outline</span>
+<span class="text-[10px] font-medium">Messages</span>
+</button>
+<button class="flex flex-col items-center justify-center w-full h-full gap-1 text-primary">
+<div class="size-6 rounded-full bg-slate-300 dark:bg-slate-700 overflow-hidden ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-background-dark">
+<img class="w-full h-full object-cover" data-alt="User profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI5wpt3VVTr0f_ypHKyXPkIdN4VOTxRbl0hFVFVkZT4Hu85bc0UYNeouW30zQA9aZrKmGWssudljjdbMvdwkBBd_5DIIbiThyKvzwv-CqAFl7WuUxH0xzTQ5nisEBk7T59xgcLOar0CssWucPkyYCyIjz0R04j1ZsHqn9TK08wwX7jPJqKPDZ_ivkqfwvyteIZZGnQlAOOFurNI6054Z_M3Kb7zvK6GOCzqCRHcXsn7FyH5va77gSRoPzNJ6-3qc6bzGqFT3oymSQ"/>
+</div>
+<span class="text-[10px] font-bold">Profile</span>
+</button>
+</div>
+</nav>
+</div>
+</body></html>

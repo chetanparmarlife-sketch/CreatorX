@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX Onboarding</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101322",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white transition-colors duration-200">
+<div class="relative flex h-full min-h-screen w-full flex-col justify-between overflow-hidden">
+<!-- Top Navigation -->
+<div class="flex items-center w-full p-6 pt-12 justify-end z-20">
+<button class="text-slate-500 dark:text-slate-400 text-base font-bold leading-normal tracking-wide hover:text-primary transition-colors">
+                Skip
+            </button>
+</div>
+<!-- Main Content -->
+<div class="flex flex-1 flex-col items-center justify-center w-full max-w-md mx-auto px-6">
+<!-- Central Visual Area -->
+<div class="relative w-full aspect-square max-h-[400px] mb-8 flex items-center justify-center">
+<!-- Ambient Glow -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-primary/20 blur-[80px] rounded-full pointer-events-none"></div>
+<!-- Illustration Container -->
+<div class="relative z-10 w-full h-full rounded-3xl overflow-hidden shadow-2xl shadow-black/50 border border-white/5 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-[#1A1D2D] dark:to-[#101322]" data-alt="Abstract phone screen showing a checkmark and an upload progress bar glowing blue">
+<!-- Placeholder for actual illustration content described in prompt -->
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&amp;w=1000&amp;auto=format&amp;fit=crop')] bg-cover bg-center opacity-90 mix-blend-overlay"></div>
+<!-- Stylized UI Mockup inside image container -->
+<div class="absolute inset-0 flex flex-col items-center justify-center p-8">
+<div class="w-16 h-16 rounded-full bg-primary flex items-center justify-center mb-6 shadow-lg shadow-primary/40">
+<span class="material-symbols-outlined text-white text-3xl">cloud_upload</span>
+</div>
+<div class="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden mb-2">
+<div class="h-full bg-primary w-3/4 rounded-full"></div>
+</div>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">Uploading Deliverable...</p>
+</div>
+</div>
+</div>
+<!-- Typography -->
+<div class="flex flex-col items-center text-center space-y-4 max-w-xs">
+<h1 class="text-3xl font-extrabold leading-tight tracking-tight text-[#111418] dark:text-white">
+                    Submit in Seconds
+                </h1>
+<p class="text-slate-500 dark:text-slate-400 text-base font-medium leading-relaxed">
+                    Upload your content directly to brand campaigns. Track approvals and feedback in real-time.
+                </p>
+</div>
+</div>
+<!-- Footer / Controls -->
+<div class="flex flex-col items-center w-full px-6 pb-12 pt-4 gap-8 z-20">
+<!-- Pagination Indicators -->
+<div class="flex flex-row items-center gap-3">
+<div class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+<div class="h-2 w-6 rounded-full bg-primary transition-all duration-300"></div> <!-- Active -->
+<div class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+</div>
+<!-- Primary Action Button -->
+<button class="w-full bg-primary hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-lg h-14 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/25">
+                Next
+                <span class="material-symbols-outlined text-[20px] font-bold">arrow_forward</span>
+</button>
+</div>
+</div>
+</body></html>

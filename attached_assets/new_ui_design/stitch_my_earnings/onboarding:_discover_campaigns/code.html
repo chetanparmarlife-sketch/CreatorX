@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX Onboarding</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101322",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white selection:bg-primary selection:text-white">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-hidden">
+<!-- Background Gradient/Glow Effect -->
+<div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-primary/20 blur-[100px] pointer-events-none"></div>
+<!-- Top Bar -->
+<div class="relative z-10 flex items-center p-6 pt-12 justify-end">
+<button class="group flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-200 dark:hover:bg-white/10">
+                Skip
+            </button>
+</div>
+<!-- Main Content Area -->
+<div class="relative z-10 flex flex-1 flex-col justify-end px-6 pb-8">
+<!-- Hero Visual -->
+<div class="flex-1 flex flex-col items-center justify-center w-full mb-8">
+<div class="relative w-full max-w-sm aspect-[4/5] max-h-[50vh]">
+<!-- Decorative elements representing card stack -->
+<div class="absolute top-4 left-4 right-4 bottom-0 bg-white/5 border border-white/10 rounded-2xl transform rotate-3 opacity-60"></div>
+<div class="absolute top-2 left-2 right-2 bottom-2 bg-white/10 border border-white/10 rounded-2xl transform -rotate-2 opacity-80"></div>
+<!-- Main Card Image -->
+<div class="absolute inset-0 bg-center bg-no-repeat bg-cover rounded-2xl shadow-2xl border border-white/10 overflow-hidden" data-alt="Abstract 3D shapes representing modern digital marketing and premium opportunities" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAP_XM7Zk5UPHZhAxi2eYwj1lARft3ON9vcIBbwKbXwwcu_XXMrAKQBf8aT2k3GhwLi_Cm8JXrJqMKBG-MvaUMlQFLqiYt1H6vEELTBHrLfC5WikN4qarJImBF4e0TCMnnFEKRG6iorpytoZpUDquavDI-sEP6TonnxowkeSDvdNPdc-iSa2_Yc782BF3QVwEMus4IgVaoQbsyVQxGx_fYvyBHHIInjVdK4sZYwHdvJEPecJlnasLcitjszUQIZhgn8qucmyhc7oMQ");'>
+<!-- Overlay Gradient for text readability if image is busy, though mostly aesthetic here -->
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
+<!-- Mock UI Element inside the card -->
+<div class="absolute bottom-6 left-6 right-6">
+<div class="flex items-center gap-3 mb-2">
+<div class="h-8 w-8 rounded-full bg-white flex items-center justify-center">
+<span class="material-symbols-outlined text-black text-sm">verified</span>
+</div>
+<span class="text-white font-bold text-lg">Brand Deal</span>
+</div>
+<div class="h-1.5 w-2/3 bg-white/30 rounded-full mb-2"></div>
+<div class="h-1.5 w-1/2 bg-white/30 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Text Content -->
+<div class="mb-8 space-y-4">
+<h1 class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                    Find Your <br/>
+<span class="text-primary">Perfect Match</span>
+</h1>
+<p class="text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed max-w-sm">
+                    Access a curated feed of premium campaigns from world-class brands, filtered just for you.
+                </p>
+</div>
+<!-- Footer Navigation -->
+<div class="flex items-center justify-between mt-auto pt-4">
+<!-- Pagination Indicators -->
+<div class="flex items-center gap-2">
+<!-- Active Dot (Pill) -->
+<div class="h-2 w-8 rounded-full bg-primary transition-all duration-300"></div>
+<!-- Inactive Dots -->
+<div class="h-2 w-2 rounded-full bg-slate-300 dark:bg-white/20 transition-all duration-300"></div>
+<div class="h-2 w-2 rounded-full bg-slate-300 dark:bg-white/20 transition-all duration-300"></div>
+</div>
+<!-- Next Button -->
+<button class="flex items-center justify-center h-14 w-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition-transform active:scale-95 hover:bg-primary/90">
+<span class="material-symbols-outlined text-[28px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

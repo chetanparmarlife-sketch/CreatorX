@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX - Active Campaigns</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#050505", // Deep black for OLED feel
+                        "surface-dark": "#121212",
+                        "surface-light": "#1c1c1e",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.375rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for cleaner mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-20 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 pt-12 pb-2 border-b border-gray-200 dark:border-white/5">
+<div class="flex items-center justify-between">
+<h1 class="text-gray-900 dark:text-white text-2xl font-bold leading-tight tracking-tight">My Campaigns</h1>
+<button class="group flex h-10 w-10 items-center justify-center rounded-full bg-transparent hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-gray-900 dark:text-white group-hover:text-primary transition-colors">notifications</span>
+<span class="absolute top-13 right-5 h-2 w-2 rounded-full bg-primary border-2 border-background-dark"></span>
+</button>
+</div>
+</header>
+<!-- Segmented Control -->
+<div class="px-4 py-4">
+<div class="flex h-11 w-full items-center rounded-lg bg-gray-200 dark:bg-[#1c1c1e] p-1">
+<label class="group flex h-full flex-1 cursor-pointer items-center justify-center rounded-md px-3 text-sm font-semibold transition-all has-[:checked]:bg-white dark:has-[:checked]:bg-[#2c2c2e] has-[:checked]:text-primary has-[:checked]:shadow-sm">
+<span class="text-gray-500 dark:text-gray-400 group-has-[:checked]:text-primary">Active</span>
+<input checked="" class="hidden" name="status" type="radio" value="active"/>
+</label>
+<label class="group flex h-full flex-1 cursor-pointer items-center justify-center rounded-md px-3 text-sm font-semibold transition-all has-[:checked]:bg-white dark:has-[:checked]:bg-[#2c2c2e] has-[:checked]:text-primary has-[:checked]:shadow-sm">
+<span class="text-gray-500 dark:text-gray-400 group-has-[:checked]:text-primary">Pending</span>
+<input class="hidden" name="status" type="radio" value="pending"/>
+</label>
+<label class="group flex h-full flex-1 cursor-pointer items-center justify-center rounded-md px-3 text-sm font-semibold transition-all has-[:checked]:bg-white dark:has-[:checked]:bg-[#2c2c2e] has-[:checked]:text-primary has-[:checked]:shadow-sm">
+<span class="text-gray-500 dark:text-gray-400 group-has-[:checked]:text-primary">History</span>
+<input class="hidden" name="status" type="radio" value="history"/>
+</label>
+</div>
+</div>
+<!-- Attention Needed Section -->
+<div class="flex flex-col gap-3 py-2">
+<div class="flex items-center justify-between px-4">
+<h2 class="text-gray-900 dark:text-white text-lg font-bold tracking-tight">Attention Needed</h2>
+<a class="text-sm font-medium text-primary hover:text-primary/80" href="#">See All</a>
+</div>
+<!-- Horizontal Scroll Cards -->
+<div class="flex gap-4 overflow-x-auto px-4 pb-4 no-scrollbar snap-x snap-mandatory">
+<!-- Priority Card 1 -->
+<div class="snap-center shrink-0 w-[280px] rounded-xl bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 shadow-sm p-3 flex flex-col gap-3 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div> <!-- Urgent Indicator -->
+<div class="flex items-start justify-between pl-2">
+<div class="flex items-center gap-2">
+<div class="h-8 w-8 rounded-full bg-cover bg-center border border-white/10" data-alt="Nike logo on a red shoe" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB5gNEGXCTPRwXusaqzzzQTlVjr57ok8XB0rmMluPTPKfEFxVrWXY1R55916LrVtzsoSDyPWIRMrOxmAxLioEXuNAYQq9B6MTAqSB4cISk2o37r9yWeQiJ37ZBLwgsBTgw9QisFcc6uueJzIdYw4zoGIel0l5cpwhdG49yQeK2_HanDDDznF19crQku0vCsioYuYPDkPWzovt5wBAt3DgWXs3T4Wy9_IKZXT9PW4nnx9niowy6buxOgBu-H8caOYxtQhS4lUAlhNuM');"></div>
+<span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nike</span>
+</div>
+<span class="flex items-center gap-1 rounded bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500 uppercase">
+<span class="material-symbols-outlined text-[12px]">schedule</span> 2 Days Left
+                        </span>
+</div>
+<div class="pl-2">
+<h3 class="text-base font-bold text-gray-900 dark:text-white leading-tight mb-1">Summer Run: Story Draft</h3>
+<p class="text-xs text-gray-500 dark:text-gray-400">Please upload the raw video file for approval before editing.</p>
+</div>
+<button class="ml-2 mt-1 flex items-center justify-center rounded-lg bg-gray-900 dark:bg-white text-white dark:text-black py-2 text-sm font-bold transition-transform active:scale-95">
+                        Upload Content
+                    </button>
+</div>
+<!-- Priority Card 2 -->
+<div class="snap-center shrink-0 w-[280px] rounded-xl bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 shadow-sm p-3 flex flex-col gap-3 relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div> <!-- Warning Indicator -->
+<div class="flex items-start justify-between pl-2">
+<div class="flex items-center gap-2">
+<div class="h-8 w-8 rounded-full bg-cover bg-center border border-white/10" data-alt="Gymshark abstract logo representation" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDtzNseR7YZZBEQcoetTHOh4VxAf4yhUqoS7SkcoXJL83X0yGTUPdTC_UtF2ec1ejAjEUKy-mFSD0c_-xbDJLHGDHqBMiYyZgquZW6GTm2J8zdd7zBlV6RpSnN2K8ND1ACgtPBgf4ly1CQFUVY2OrF9ON4ZKalOD2-mT2nQpuYXsXJE-9MoAgUREsGMyrmWcDxdvQe1TgFs56lxB7W1hliZ1mIFBygKNCZ8xDUEnE9rgh3OqzG2ehyJyqH5LaaiD2p9pkWr8Qb95RQ');"></div>
+<span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Gymshark</span>
+</div>
+<span class="flex items-center gap-1 rounded bg-yellow-500/10 px-2 py-0.5 text-[10px] font-bold text-yellow-500 uppercase">
+                            Action
+                        </span>
+</div>
+<div class="pl-2">
+<h3 class="text-base font-bold text-gray-900 dark:text-white leading-tight mb-1">Contract: Signatures</h3>
+<p class="text-xs text-gray-500 dark:text-gray-400">Review and sign the updated terms for the Winter Collection campaign.</p>
+</div>
+<button class="ml-2 mt-1 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-[#2c2c2e] text-gray-900 dark:text-white py-2 text-sm font-bold transition-transform active:scale-95">
+                        Review PDF
+                    </button>
+</div>
+</div>
+</div>
+<!-- Active Campaigns List -->
+<div class="flex flex-col gap-4 px-4 pt-4">
+<h2 class="text-gray-900 dark:text-white text-lg font-bold tracking-tight">Active Campaigns</h2>
+<!-- Card 1 -->
+<div class="flex flex-col rounded-xl bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
+<!-- Header -->
+<div class="flex items-center justify-between p-4 pb-2">
+<div class="flex items-center gap-3">
+<div class="relative h-12 w-12 rounded-full border border-gray-200 dark:border-white/10 p-0.5">
+<div class="h-full w-full rounded-full bg-cover bg-center" data-alt="Sephora logo conceptual makeup" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCzHIriIrJvKZrgFV7Vqv7nD8PwbEveMAiMyvCsX1kB1aOfXaNNEz9lSBKvh4vpqmQGpMXFvNHe31ha3EmtTm295h7JDdcdSulmqDPrrNbTPIffm7HdCiDcqXq5Z-y-biZkEKFtzVbszwp2zUoQcOX7NBrAvbVIaw5wtTn9sWKlcbD73Q0YCkP4WLhqAqfPT_A_Y2B9INh9Bvl4rFmfOhKgSu_QSjExz_LuwNWNqOG2PUf-mFMndUK1s9Cftv6gpJ9RU4yANH0uTJQ');"></div>
+<div class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black border border-gray-800">
+<span class="text-[10px] text-white material-symbols-outlined">play_arrow</span> <!-- TikTok Icon replacement -->
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-gray-900 dark:text-white">Sephora</span>
+<span class="text-xs text-gray-500">TikTok Reel • $1,200</span>
+</div>
+</div>
+<div class="rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-500">
+                        In Progress
+                    </div>
+</div>
+<!-- Body -->
+<div class="px-4 py-2">
+<h3 class="text-xl font-bold text-gray-900 dark:text-white">Glow Up Challenge</h3>
+<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a 30s transition video using the new foundation line.</p>
+</div>
+<!-- Thumbnails/Progress -->
+<div class="px-4 py-3">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Deliverables</span>
+<span class="text-xs font-bold text-primary">1/2 Submitted</span>
+</div>
+<!-- Progress Bar -->
+<div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-800">
+<div class="h-1.5 w-1/2 rounded-full bg-primary"></div>
+</div>
+<!-- Thumbnails Area -->
+<div class="mt-4 flex gap-3">
+<div class="relative h-16 w-12 overflow-hidden rounded-md border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-gray-800 group cursor-pointer">
+<div class="h-full w-full bg-cover bg-center opacity-70 group-hover:opacity-100 transition-opacity" data-alt="Makeup tutorial thumbnail" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCRhME-3P1di4Tcjt1w1yJ-varvCbBZAiAqf10hjqFxOP3ntjKKDlcw44oeBno0H7U937XM4Du9_nC3VrwtgO5N99RCXp-rLzmcHGz30eI4Oz6qQeq7O32565GN2fks1wOm77PVAYZlYwBy11m_d-6o9md4MF453a0WiBvUdZQwud8PJhxcDKOdYDm2usKBXGNvd69Ha1qUfyxseAnEkjDI_TYpBr6zsEIoViIxlMRDBhKQSnc4MkqKReYFlREo4it4GCGu8Qvek0Q');"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-lg drop-shadow-md">check_circle</span>
+</div>
+</div>
+<button class="flex h-16 w-12 flex-col items-center justify-center rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-gray-400 text-lg">add</span>
+</button>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="p-4 pt-2">
+<button class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-transform active:scale-[0.98]">
+<span class="material-symbols-outlined text-lg">upload</span>
+                        Upload Deliverable
+                    </button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="flex flex-col rounded-xl bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
+<!-- Header -->
+<div class="flex items-center justify-between p-4 pb-2">
+<div class="flex items-center gap-3">
+<div class="relative h-12 w-12 rounded-full border border-gray-200 dark:border-white/10 p-0.5">
+<div class="h-full w-full rounded-full bg-cover bg-center" data-alt="Generic tech brand logo gradient" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZ9Sk_zVb8NgBVwsEiiV2DHlvPwUUsPvQ-vu1r5XkXqRRxQ_VFZJhOsqDEC4exfTnLxNekgKWemb7NWCXQxGvF8oZmXHzo5nSIxHFYmamcANoqBt24LfsnSmQBQJJoi6VFN8j9VIFeBOhHEbnTxFqcTWzwxB6gif_hRxEQgrxS9tSvbEV3MfazFsEW5ZnuuFzfwZ-BIxRE8XciSsAVAeNxsESQhxK56ErgytCGNw0VSfMlJOYXw66cTbZKkqR1piaO3zfdQL-7OIw');"></div>
+<div class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-tr from-yellow-500 to-pink-500 border border-gray-800">
+<span class="text-[10px] text-white material-symbols-outlined">photo_camera</span> <!-- IG Icon replacement -->
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-gray-900 dark:text-white">Spotify</span>
+<span class="text-xs text-gray-500">Instagram Story • $800</span>
+</div>
+</div>
+<div class="rounded-full bg-yellow-500/10 px-2.5 py-1 text-xs font-bold text-yellow-500">
+                        Reviewing
+                    </div>
+</div>
+<!-- Body -->
+<div class="px-4 py-2">
+<h3 class="text-xl font-bold text-gray-900 dark:text-white">Wrapped 2024 Launch</h3>
+<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Share your top songs and reaction to your wrapped list.</p>
+</div>
+<!-- Thumbnails/Progress -->
+<div class="px-4 py-3">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Deliverables</span>
+<span class="text-xs font-bold text-yellow-500">Under Review</span>
+</div>
+<!-- Progress Bar -->
+<div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-800">
+<div class="h-1.5 w-full rounded-full bg-yellow-500"></div>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="p-4 pt-2 flex gap-3">
+<button class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-[#2c2c2e] py-3 text-sm font-bold text-gray-900 dark:text-white transition-colors">
+                        View Details
+                    </button>
+<button class="flex items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-[#2c2c2e] px-4 py-3 text-sm font-bold text-gray-900 dark:text-white transition-colors">
+<span class="material-symbols-outlined">chat</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full bg-background-light dark:bg-background-dark/95 backdrop-blur-xl border-t border-gray-200 dark:border-white/10 pb-5 pt-2 z-50">
+<div class="flex justify-around items-center">
+<a class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">grid_view</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-primary" href="#">
+<span class="material-symbols-outlined text-2xl fill-1">layers</span>
+<span class="text-[10px] font-medium">Campaigns</span>
+</a>
+<!-- Middle FAB (Optional for upload, but kept simple here as requested) -->
+<a class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-white transition-colors" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-2xl">chat_bubble</span>
+<span class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-background-dark"></span>
+</div>
+<span class="text-[10px] font-medium">Chat</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">attach_money</span>
+<span class="text-[10px] font-medium">Earnings</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

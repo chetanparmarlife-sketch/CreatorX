@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chat Thread - CreatorX</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#050505", /* Overriding to darker black for premium feel as requested */
+                        "surface-dark": "#121212",
+                        "bubble-received": "#1E1E1E",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary/30">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-hidden max-w-md mx-auto shadow-2xl border-x border-white/5">
+<!-- Header -->
+<header class="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-white/5">
+<button class="flex items-center justify-center w-10 h-10 -ml-2 text-gray-500 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px;">arrow_back_ios_new</span>
+</button>
+<div class="flex flex-1 items-center gap-3 ml-1">
+<div class="relative">
+<div class="w-10 h-10 rounded-full bg-cover bg-center border border-gray-200 dark:border-white/10" data-alt="Nike red shoe product shot as brand avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDS4bMfzaiQnTA13x_KNa4OaV5E_XdHJX6yHh7O6AEaMWtYpBnWCvves3kTCxyc_COm94TButInH0QXLlwjgoR6UjY77GldxlBzBrICw1AWnlP_2mSXx837hqPo3sWd5zjAiunjeTViY5LzX-lAYmRGhzgcHy2UIPwKlztYaU6RygPFmBaIIy1n_Crj6axei9U-riaKh7aYycnoRW92M4p_diB9GxYqEFVr051IBdTNL_UmC5_e31LMQ3E8NKoXP5nsGWF5lmYRjP8');">
+</div>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-background-dark"></div>
+</div>
+<div class="flex flex-col">
+<h1 class="text-sm font-bold text-gray-900 dark:text-white leading-tight">Nike Sportswear</h1>
+<span class="text-xs text-primary font-medium">Active now</span>
+</div>
+</div>
+<button class="flex items-center justify-center w-10 h-10 text-gray-400 dark:text-gray-400 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">info</span>
+</button>
+</header>
+<!-- Chat Content -->
+<main class="flex-1 overflow-y-auto p-4 pb-24 flex flex-col gap-4">
+<!-- Timestamp -->
+<div class="flex justify-center py-2">
+<span class="text-[11px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full">Today</span>
+</div>
+<!-- System Message -->
+<div class="flex justify-center mb-2">
+<p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-[80%]">
+                    Campaign <span class="text-gray-800 dark:text-white font-semibold">"Summer Run"</span> accepted. Chat started.
+                </p>
+</div>
+<!-- Received Message (Brand) -->
+<div class="flex items-end gap-3 group">
+<div class="w-8 h-8 rounded-full bg-cover bg-center shrink-0 mb-1" data-alt="Nike brand avatar small" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDdIgihPuS8NI744K9oxfHnM3w1bMApyB7clVO3z8FTl3EkoUYLxnY8oRRgCWF9mesg2rCh5Onidb0QcvLUHkX1WIy4vnTvOdWhO1tGzn_tYpWTZm82cIgfzG0wZfD08N7R5X5_RX-ty7zt5OU8rIt-UNKbjhXrxjQcyaWM4U0JYarVlSvXnILKZsE8F0175LnrSGr8e-B1YLAOW3F5bFc9C3K0SGpN-xK6QJiko21KY3_ddUFlIggeZL7gP_ZREZj_5ZJ8K6HS61w');">
+</div>
+<div class="flex flex-col gap-1 max-w-[75%]">
+<div class="bg-gray-200 dark:bg-bubble-received p-3.5 rounded-2xl rounded-bl-sm shadow-sm">
+<p class="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200">
+                            Hey Alex! Excited to work with you on the Summer Run campaign. 🏃‍♂️ Can you share the draft by Friday?
+                        </p>
+</div>
+<span class="text-[10px] text-gray-400 dark:text-gray-600 ml-1">10:23 AM</span>
+</div>
+</div>
+<!-- Sent Message (Creator) -->
+<div class="flex items-end justify-end gap-3 group">
+<div class="flex flex-col gap-1 items-end max-w-[75%]">
+<div class="bg-primary p-3.5 rounded-2xl rounded-br-sm shadow-md shadow-primary/10">
+<p class="text-[15px] leading-relaxed text-white">
+                            Hi! Absolutely. I'll have the video draft uploaded here by Thursday evening.
+                        </p>
+</div>
+<div class="flex items-center gap-1 mr-1">
+<span class="text-[10px] text-gray-400 dark:text-gray-500">10:25 AM</span>
+<span class="material-symbols-outlined text-primary text-[14px]">done_all</span>
+</div>
+</div>
+</div>
+<!-- Received Message (Brand) -->
+<div class="flex items-end gap-3 group">
+<div class="w-8 h-8 rounded-full bg-cover bg-center shrink-0 mb-1" data-alt="Nike brand avatar small" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCg6CFlfwxUQumfQJYwLuDQApP3mKN458Rrc3bGBlkCy7LlyjsJDwV1QMXn8JalC_pCUL9mGv3pedqBX_-JKEs4CVUUuIzTKD3WE6C-LQmOL_w85i8NU3Op4FAE8RJExiBgv48zMPOtGzG4J-6qxLonAt8cj3wfBzAKf9Fe2kUedJR0usHJ26iDw6rMXDkAVBJ9Om04a-i53l_Z-OVhujdXDmQNRn2dRa_w3Rx5I4yq4A5sarztF4H4qb2RLXtx-JERzAP_Nxa9sbg');">
+</div>
+<div class="flex flex-col gap-1 max-w-[75%]">
+<div class="bg-gray-200 dark:bg-bubble-received p-3.5 rounded-2xl rounded-bl-sm shadow-sm">
+<p class="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200">
+                            Perfect, looking forward to it. Let us know if you need any assets from our side.
+                        </p>
+</div>
+<span class="text-[10px] text-gray-400 dark:text-gray-600 ml-1">10:45 AM</span>
+</div>
+</div>
+<!-- Sent Message (Creator) - Attachment Placeholder -->
+<div class="flex items-end justify-end gap-3 group">
+<div class="flex flex-col gap-1 items-end max-w-[75%]">
+<div class="bg-primary/10 border border-primary/20 p-3 rounded-2xl rounded-br-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined">movie</span>
+</div>
+<div class="flex flex-col pr-2">
+<span class="text-sm font-medium text-white">Draft_v1.mp4</span>
+<span class="text-[10px] text-white/60">14.2 MB • Uploading...</span>
+</div>
+<div class="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin"></div>
+</div>
+<div class="flex items-center gap-1 mr-1">
+<span class="text-[10px] text-gray-400 dark:text-gray-500">Just now</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Input Area -->
+<footer class="absolute bottom-0 w-full bg-white dark:bg-background-dark border-t border-gray-200 dark:border-white/5 px-4 py-3 pb-6">
+<div class="flex items-end gap-2">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors shrink-0">
+<span class="material-symbols-outlined">add</span>
+</button>
+<div class="flex-1 bg-gray-100 dark:bg-[#1A1A1A] rounded-2xl flex items-center min-h-[44px] px-4 py-2 border border-transparent focus-within:border-primary/50 transition-colors">
+<input class="bg-transparent border-none focus:ring-0 w-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 text-[15px] p-0" placeholder="Type a message..." type="text"/>
+<button class="ml-2 text-gray-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">sentiment_satisfied</span>
+</button>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all shrink-0">
+<span class="material-symbols-outlined" style="font-size: 20px; margin-left: 2px;">send</span>
+</button>
+</div>
+</footer>
+</div>
+</body></html>

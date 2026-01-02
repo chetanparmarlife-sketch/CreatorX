@@ -389,19 +389,19 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   iconGlowActive: {
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    backgroundColor: 'rgba(19, 55, 236, 0.12)',
     ...Platform.select({
       ios: {
-        shadowColor: '#8B5CF6',
+        shadowColor: '#1337ec',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.4,
         shadowRadius: 8,
       },
       android: {
         elevation: 4,
       },
       web: {
-        boxShadow: '0 0 16px rgba(139, 92, 246, 0.5)',
+        boxShadow: '0 0 16px rgba(19, 55, 236, 0.4)',
       },
     }),
   },

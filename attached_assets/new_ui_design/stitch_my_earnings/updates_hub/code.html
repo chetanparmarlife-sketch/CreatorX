@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX Updates</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101322", // Using theme provided dark background
+                        "surface-dark": "#1C1C1E", // Custom surface color for cards
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Mobile safe area spacing */
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased selection:bg-primary/30">
+<!-- Mobile Container -->
+<div class="relative flex min-h-screen w-full flex-col mx-auto max-w-[480px] overflow-x-hidden bg-background-light dark:bg-background-dark shadow-2xl">
+<!-- Header -->
+<header class="sticky top-0 z-30 flex items-center justify-between bg-background-light/95 dark:bg-background-dark/95 px-5 pt-4 pb-2 backdrop-blur-xl">
+<h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Updates</h1>
+<button class="group flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-surface-dark transition active:scale-95">
+<span class="material-symbols-outlined text-slate-600 dark:text-white group-hover:text-primary transition-colors" style="font-size: 24px;">edit_square</span>
+</button>
+</header>
+<!-- Search Bar -->
+<div class="px-5 py-3 sticky top-[60px] z-20 bg-background-light dark:bg-background-dark">
+<div class="relative flex w-full items-center rounded-xl bg-white dark:bg-surface-dark shadow-sm ring-1 ring-slate-900/5 dark:ring-white/10">
+<div class="flex h-12 w-12 items-center justify-center text-slate-400">
+<span class="material-symbols-outlined" style="font-size: 22px;">search</span>
+</div>
+<input class="h-full w-full border-none bg-transparent py-3 pr-4 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0" placeholder="Search messages &amp; alerts"/>
+</div>
+</div>
+<!-- Segmented Control -->
+<div class="px-5 pb-6">
+<div class="flex h-12 w-full rounded-xl bg-slate-200 dark:bg-surface-dark p-1 relative">
+<!-- Active Indicator Background (visually simulated for 'Messages') -->
+<div class="absolute left-1 top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-white dark:bg-primary shadow-sm"></div>
+<button class="relative z-10 flex flex-1 items-center justify-center rounded-lg text-sm font-semibold text-slate-900 dark:text-white">
+                    Messages
+                </button>
+<button class="relative z-10 flex flex-1 items-center justify-center rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+                    Notifications
+                    <!-- Badge for Notifications -->
+<span class="ml-2 flex h-2 w-2 rounded-full bg-red-500"></span>
+</button>
+</div>
+</div>
+<!-- Messages List -->
+<main class="flex-1 flex flex-col gap-1 px-5 pb-24">
+<!-- Item 1: Unread -->
+<div class="group flex items-center gap-4 rounded-xl p-3 -mx-3 hover:bg-slate-100 dark:hover:bg-surface-dark/50 transition-colors cursor-pointer relative">
+<!-- Unread Indicator (Blue Dot) -->
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-end gap-1">
+<span class="text-xs font-medium text-primary">2m</span>
+<div class="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(19,55,236,0.5)]"></div>
+</div>
+<div class="relative shrink-0">
+<div class="h-14 w-14 overflow-hidden rounded-full ring-2 ring-slate-100 dark:ring-white/10" data-alt="Nike logo abstract representation" style="background: linear-gradient(135deg, #111 0%, #333 100%); display: flex; align-items: center; justify-content: center;">
+<span class="text-white font-bold text-xs tracking-widest">NIKE</span>
+</div>
+<div class="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white dark:border-background-dark bg-green-500"></div>
+</div>
+<div class="flex flex-col justify-center pr-8">
+<p class="text-base font-bold text-slate-900 dark:text-white">Nike</p>
+<p class="line-clamp-1 text-sm font-medium text-slate-900 dark:text-white/90">Hey! Just checking in on the reels draft. We need the raw files by EOD.</p>
+</div>
+</div>
+<!-- Item 2: Unread -->
+<div class="group flex items-center gap-4 rounded-xl p-3 -mx-3 hover:bg-slate-100 dark:hover:bg-surface-dark/50 transition-colors cursor-pointer relative">
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-end gap-1">
+<span class="text-xs font-medium text-slate-500">1h</span>
+<div class="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(19,55,236,0.5)]"></div>
+</div>
+<div class="relative shrink-0">
+<img alt="Sephora brand avatar" class="h-14 w-14 rounded-full object-cover ring-2 ring-slate-100 dark:ring-white/10" data-alt="Sephora logo on black background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3dzIh_KiIob4-JxpATiBjmJYhoszS5oHc3s7ghPKW7a6ucBFUfDiYMuBqar7Y8vGX4BtsG2z4N_ERXck6y4216gd9KE4YKfOLef3GkUwQW4VQEWxTSSSp_qkgPj2Fd7KAlNpvNdQ5syPCJpDgOHFHTPMzu5c2sPtleqJxvcNqDaMkW5QLdYswIplzTNF5fwtGPgv-V2XRjtuiyG7kYKLd9fY_VDmM0AcjLsy-PGUX8taE4ZjCmFDxeO4sXFYk57-7al-kCjAxyIk"/>
+</div>
+<div class="flex flex-col justify-center pr-8">
+<p class="text-base font-bold text-slate-900 dark:text-white">Sephora</p>
+<p class="line-clamp-1 text-sm font-medium text-slate-900 dark:text-white/90">Proposal accepted! 🎉 Please sign the contract attached.</p>
+</div>
+</div>
+<!-- Item 3: Read -->
+<div class="group flex items-center gap-4 rounded-xl p-3 -mx-3 hover:bg-slate-100 dark:hover:bg-surface-dark/50 transition-colors cursor-pointer relative">
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-end gap-1">
+<span class="text-xs font-medium text-slate-400">1d</span>
+</div>
+<div class="relative shrink-0">
+<div class="h-14 w-14 overflow-hidden rounded-full bg-primary flex items-center justify-center ring-2 ring-slate-100 dark:ring-white/10">
+<span class="material-symbols-outlined text-white" style="font-size: 28px;">verified</span>
+</div>
+</div>
+<div class="flex flex-col justify-center pr-8">
+<div class="flex items-center gap-1">
+<p class="text-base font-bold text-slate-900 dark:text-white">CreatorX Support</p>
+<span class="material-symbols-outlined text-blue-400" style="font-size: 16px;">verified</span>
+</div>
+<p class="line-clamp-1 text-sm font-normal text-slate-500 dark:text-slate-400">Your payment of $500 has been processed to your wallet.</p>
+</div>
+</div>
+<!-- Item 4: Read -->
+<div class="group flex items-center gap-4 rounded-xl p-3 -mx-3 hover:bg-slate-100 dark:hover:bg-surface-dark/50 transition-colors cursor-pointer relative opacity-80 hover:opacity-100">
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-end gap-1">
+<span class="text-xs font-medium text-slate-400">2d</span>
+</div>
+<div class="relative shrink-0">
+<div class="h-14 w-14 overflow-hidden rounded-full ring-2 ring-slate-100 dark:ring-white/10" data-alt="Adidas logo abstract representation" style="background: linear-gradient(45deg, #000 0%, #444 100%); display: flex; align-items: center; justify-content: center;">
+<span class="material-symbols-outlined text-white" style="font-size: 24px;">sports_handball</span>
+</div>
+</div>
+<div class="flex flex-col justify-center pr-8">
+<p class="text-base font-bold text-slate-900 dark:text-white">Adidas</p>
+<p class="line-clamp-1 text-sm font-normal text-slate-500 dark:text-slate-400">Thanks for the update. Let's schedule a call next week.</p>
+</div>
+</div>
+<!-- Item 5: Read -->
+<div class="group flex items-center gap-4 rounded-xl p-3 -mx-3 hover:bg-slate-100 dark:hover:bg-surface-dark/50 transition-colors cursor-pointer relative opacity-80 hover:opacity-100">
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-end gap-1">
+<span class="text-xs font-medium text-slate-400">1w</span>
+</div>
+<div class="relative shrink-0">
+<img alt="Gymshark brand avatar" class="h-14 w-14 rounded-full object-cover ring-2 ring-slate-100 dark:ring-white/10" data-alt="Red shoe on white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKmoOikdPQuUgrqHqtUwZZYECD6AHakAkjOajwlrbX8Y1veYy4gt_uf6EYP2kTExR3u90-QZqdN0vHpqdvd5eMj2NO35qpy71nuGkK8X78wslzbKkaDPGegr4vedJb55XtJCvkqe637o8ATvvndoM7pI7pNX-0lJ4HzXaY7oegymk5f2PMjnwPiF8Q_jzr9lLehAdTrJ3n4btBoRrNzky7tIm3RjkxBh_00N-lTy9pd3BY2yxD0hP4uiXipP22C_sA3-46sgYSW18"/>
+</div>
+<div class="flex flex-col justify-center pr-8">
+<p class="text-base font-bold text-slate-900 dark:text-white">Gymshark</p>
+<p class="line-clamp-1 text-sm font-normal text-slate-500 dark:text-slate-400">Looking forward to seeing the content!</p>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full max-w-[480px] bg-background-light/90 dark:bg-background-dark/95 border-t border-slate-200 dark:border-white/5 backdrop-blur-lg safe-pb">
+<div class="flex justify-around items-end h-[60px] pb-2">
+<a class="flex flex-col items-center justify-center w-full gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" style="font-size: 24px;">home</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" style="font-size: 24px;">rocket_launch</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">Campaigns</span>
+</a>
+<!-- Active Tab -->
+<a class="flex flex-col items-center justify-center w-full gap-1" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-primary fill-current" style="font-size: 24px; font-variation-settings: 'FILL' 1;">forum</span>
+<span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-white dark:ring-background-dark"></span>
+</div>
+<span class="text-[10px] font-bold text-primary">Updates</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" style="font-size: 24px;">account_balance_wallet</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">Wallet</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full gap-1 group" href="#">
+<div class="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-transparent group-hover:ring-slate-300 dark:group-hover:ring-slate-600 transition-all">
+<img alt="User profile" class="h-full w-full object-cover" data-alt="Profile picture of a woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqkxuzwjrWNOuchSCdftbY8XqYctuP6KkFUp0PW3kBv4RedpSxEs_CuWbpcc4yrRJ8C-QgUIKCTtsgcGDXmiWjmfYMpzKnnTtmrIUpIunnSuFDL2hy36GXQM2n429rIAQvs7z0wh4V-OKdP45YYgeGcH4zuNf9K_OVDkVuUk2nbhtwDuQ_T1-h--UG-FulNIUBE-Ve2axXN7-6-FWD8Kd_x6CDTuiF9Zbdl8wodiAQP6I_A1QxyBNXsF24RiCrpI6VnyGQEgTGDGI"/>
+</div>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">Profile</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

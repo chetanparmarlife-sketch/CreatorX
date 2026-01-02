@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX - Refer &amp; Earn</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#050505", /* Deep black as requested */
+                        "surface-dark": "#121212",    /* Slightly lighter for cards */
+                        "surface-highlight": "#1E1E1E",
+                        "text-secondary": "#9da1b9",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white">
+<div class="relative flex h-full min-h-screen w-full max-w-md mx-auto flex-col overflow-x-hidden border-x border-white/5">
+<!-- Ambient Background Glow -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[400px] bg-primary/10 blur-[100px] rounded-full pointer-events-none z-0"></div>
+<!-- TopAppBar -->
+<div class="relative z-10 flex items-center p-4 pb-2 justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full active:bg-white/10 cursor-pointer">
+<span class="material-symbols-outlined text-white">arrow_back</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Refer &amp; Earn</h2>
+<div class="flex w-12 items-center justify-end cursor-pointer">
+<p class="text-text-secondary text-sm font-bold leading-normal tracking-[0.015em] shrink-0 hover:text-white transition-colors">Terms</p>
+</div>
+</div>
+<!-- Main Scrollable Content -->
+<div class="relative z-10 flex-1 flex flex-col gap-6 p-4">
+<!-- Hero Section -->
+<div class="flex flex-col items-center text-center gap-6 pt-2">
+<!-- Illustration Placeholder -->
+<div class="size-32 rounded-full bg-gradient-to-br from-surface-highlight to-black border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(19,55,236,0.15)] relative overflow-hidden">
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&amp;w=2564&amp;auto=format&amp;fit=crop')] bg-cover opacity-60 mix-blend-overlay" data-alt="Abstract 3D blue and black shapes representing network"></div>
+<span class="material-symbols-outlined text-primary text-5xl relative z-10">loyalty</span>
+</div>
+<div class="flex flex-col gap-2 max-w-[300px]">
+<h1 class="text-white text-4xl font-extrabold leading-tight tracking-tight">
+                        Get $50. Give $50.
+                    </h1>
+<p class="text-text-secondary text-sm font-medium leading-relaxed">
+                        Invite fellow creators to CreatorX. You both get paid when they complete their first campaign.
+                    </p>
+</div>
+</div>
+<!-- Referral Card -->
+<div class="flex flex-col gap-4">
+<div class="relative flex flex-col gap-3 rounded-2xl bg-surface-dark border border-white/5 p-5 shadow-lg">
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-bold text-primary uppercase tracking-wider">Your Referral Code</span>
+<span class="material-symbols-outlined text-text-secondary text-lg">qr_code_2</span>
+</div>
+<div class="flex items-center justify-between gap-3 bg-black/50 rounded-xl p-3 border border-white/10 border-dashed">
+<p class="text-white text-xl font-mono font-bold tracking-wider select-all">CREATOR-X-2024</p>
+<button class="flex items-center justify-center size-10 rounded-lg bg-white/5 hover:bg-white/10 text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</div>
+</div>
+<button class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl h-14 px-5 bg-primary hover:bg-blue-600 active:scale-[0.98] transition-all text-white shadow-[0_0_20px_rgba(19,55,236,0.4)]">
+<span class="material-symbols-outlined">ios_share</span>
+<span class="text-base font-bold tracking-wide">Share Referral Link</span>
+</button>
+</div>
+<!-- Stats Section -->
+<div class="grid grid-cols-3 gap-3">
+<div class="flex flex-col items-center justify-center gap-1 rounded-2xl p-4 bg-surface-dark border border-white/5">
+<p class="text-text-secondary text-xs font-semibold uppercase">Earned</p>
+<p class="text-white text-xl font-bold">$150</p>
+</div>
+<div class="flex flex-col items-center justify-center gap-1 rounded-2xl p-4 bg-surface-dark border border-white/5">
+<p class="text-text-secondary text-xs font-semibold uppercase">Sent</p>
+<p class="text-white text-xl font-bold">12</p>
+</div>
+<div class="flex flex-col items-center justify-center gap-1 rounded-2xl p-4 bg-surface-dark border border-white/5">
+<p class="text-text-secondary text-xs font-semibold uppercase">Pending</p>
+<p class="text-white text-xl font-bold">1</p>
+</div>
+</div>
+<!-- How it works -->
+<div class="flex flex-col gap-4 pt-4">
+<h3 class="text-white text-lg font-bold">How it works</h3>
+<div class="flex flex-col gap-4">
+<!-- Step 1 -->
+<div class="flex gap-4 items-start">
+<div class="flex-none size-10 rounded-full bg-surface-highlight flex items-center justify-center border border-white/5 text-white font-bold">
+<span class="material-symbols-outlined text-sm">group_add</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-white text-sm font-bold">Invite friends</p>
+<p class="text-text-secondary text-xs leading-relaxed">Share your unique link via SMS, Email, or Social Media.</p>
+</div>
+</div>
+<!-- Line connector -->
+<div class="ml-5 w-px h-4 bg-white/10 -my-2"></div>
+<!-- Step 2 -->
+<div class="flex gap-4 items-start">
+<div class="flex-none size-10 rounded-full bg-surface-highlight flex items-center justify-center border border-white/5 text-white font-bold">
+<span class="material-symbols-outlined text-sm">verified</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-white text-sm font-bold">They join &amp; complete a campaign</p>
+<p class="text-text-secondary text-xs leading-relaxed">Your friend signs up and submits their first deliverable.</p>
+</div>
+</div>
+<!-- Line connector -->
+<div class="ml-5 w-px h-4 bg-white/10 -my-2"></div>
+<!-- Step 3 -->
+<div class="flex gap-4 items-start">
+<div class="flex-none size-10 rounded-full bg-surface-highlight flex items-center justify-center border border-primary/30 text-primary font-bold shadow-[0_0_10px_rgba(19,55,236,0.2)]">
+<span class="material-symbols-outlined text-sm">monetization_on</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-white text-sm font-bold">You get paid</p>
+<p class="text-text-secondary text-xs leading-relaxed">We deposit $50 directly into your CreatorX wallet.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Activity List (Bonus for structure) -->
+<div class="flex flex-col gap-3 pt-4 pb-8">
+<div class="flex items-center justify-between">
+<h3 class="text-white text-lg font-bold">Recent Invites</h3>
+<span class="text-primary text-xs font-bold cursor-pointer">View All</span>
+</div>
+<!-- Item 1 -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-dark border border-white/5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-center bg-cover" data-alt="Portrait of a female creator" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBIYaVMfwqgyNjQcqmyjw9Dy2DTvEEICgUk-6i3VjH0QI6dUgaE2q-AyDtbjPCIKB8Vfez6QzZ3_UDhYok0vUe3n3E9vjCWz80hTTejIGyVwZOXtWhIsAZY0mff-75znLr1emLlaRSMTaZDlLiIjdir2n0qKwHQg4Uw5C_4oqBwwausRFnB2DU3UqCP9fOEe_vmyQGSql-Isjdvm0JifYvhKbPuJnDW722uBa1hDWl-VCzSl4rD244lgVFh7ymb5mWDP3kaeIJVE5M')"></div>
+<div class="flex flex-col">
+<p class="text-white text-sm font-bold">Sarah Jenkins</p>
+<p class="text-text-secondary text-[10px]">Joined 2 days ago</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wide">
+                        Success
+                    </div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-dark border border-white/5">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-surface-highlight flex items-center justify-center text-text-secondary text-xs font-bold">MJ</div>
+<div class="flex flex-col">
+<p class="text-white text-sm font-bold">Mike Johnson</p>
+<p class="text-text-secondary text-[10px]">Invite sent</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[10px] font-bold uppercase tracking-wide">
+                        Pending
+                    </div>
+</div>
+</div>
+</div>
+<!-- Bottom padding for safe area -->
+<div class="h-6 w-full"></div>
+</div>
+</body></html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX - New Message</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101322",
+                        "surface-dark": "#1c1f2e",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        /* Hide scrollbar for standard */
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden h-screen w-full flex flex-col items-center justify-center">
+<!-- Mobile Container -->
+<div class="relative flex flex-col h-full w-full max-w-md mx-auto bg-background-light dark:bg-background-dark overflow-hidden shadow-2xl border-x border-gray-200 dark:border-gray-800">
+<!-- Header -->
+<header class="flex items-center justify-between px-4 pt-12 pb-4 bg-background-light dark:bg-background-dark z-10 sticky top-0">
+<h2 class="text-xl font-bold leading-tight tracking-[-0.015em]">New Message</h2>
+<button class="flex items-center justify-center size-10 rounded-full bg-gray-200 dark:bg-surface-dark hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-900 dark:text-white text-xl">close</span>
+</button>
+</header>
+<!-- Search Bar -->
+<div class="px-4 pb-2">
+<div class="relative flex items-center w-full h-12 rounded-xl bg-gray-200 dark:bg-surface-dark overflow-hidden group focus-within:ring-1 focus-within:ring-primary transition-all duration-300">
+<div class="grid place-items-center h-full w-12 text-gray-500">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="peer h-full w-full outline-none text-sm text-gray-700 dark:text-gray-200 pr-2 bg-transparent border-none placeholder-gray-500 font-medium" id="search" placeholder="Search brands..." type="text"/>
+</div>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto pb-6">
+<!-- Section: Recent -->
+<div class="pt-6">
+<h3 class="px-4 text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent</h3>
+<!-- List Item -->
+<button class="w-full text-left group">
+<div class="flex items-center gap-4 px-4 py-3 hover:bg-gray-200 dark:hover:bg-surface-dark transition-colors">
+<div class="relative shrink-0">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-12 w-12 border border-gray-200 dark:border-gray-700" data-alt="Logo for Nike showing the swoosh on black background" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAZrpomo2BGtnQB3YzFSFvD3nMrPDC1im3Y9IDg4tlHugN9uKSF_GoFo1TQBmyJakliOHLFhG0lA6dAmGupuDVsqcXmCCyWV3TkBaAYLp6MQa-0JKtdhLh6A8TTxt8sjo0EN85lbHa3mWdh9JbFtPWFOAkXLgW45LMLBQo7ZnBDJttAqyFWS3A4htGLIkXUSNyjB6gAEf_-kTQg86fYPeajj9PFHnGFjsmLw-AP0HB8WzsCHNmqLXxwtIzgFaJRyzywppG29VLyKmg");'>
+</div>
+<!-- Online Indicator -->
+<span class="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-background-dark"></span>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Nike</p>
+<span class="text-xs text-gray-500">2m ago</span>
+</div>
+<p class="text-sm text-gray-500 truncate dark:text-gray-400">Summer Run Campaign</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-600 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</button>
+<!-- List Item -->
+<button class="w-full text-left group">
+<div class="flex items-center gap-4 px-4 py-3 hover:bg-gray-200 dark:hover:bg-surface-dark transition-colors">
+<div class="relative shrink-0">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-12 w-12 border border-gray-200 dark:border-gray-700" data-alt="Logo for Adidas showing 3 stripes" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCM5d4akIbaai4j3IneT7UCxWrWRRUwvlBlKgBiU2AOZMtCaeiXYgdzv3Sxu2Vnsp9nRYKW6SddPfkg6DyUWx2DiHA0pesgtB9nsfPPlH-tWnYSmqrVuqPjByfG5wiGB4u_ChtqHYBJLvloSvXTYOyunfDOw-qF68Crc69GyjDjgHfGRtnD13R9QgMzdbyJBENV__hDOOBLiYDID_mEGBYNl-WuNb_gBSZIQDun4Zgc4swcOaf15dYFyOH5T-2lxfbUj6YKE7aMlf0");'>
+</div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex justify-between items-baseline">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Adidas Originals</p>
+<span class="text-xs text-gray-500">1h ago</span>
+</div>
+<p class="text-sm text-gray-500 truncate dark:text-gray-400">Sent an offer for Fall '24</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-600 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</button>
+</div>
+<!-- Section: Active Collaborations -->
+<div class="pt-6">
+<h3 class="px-4 text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Collaborations</h3>
+<!-- List Item -->
+<button class="w-full text-left group">
+<div class="flex items-center gap-4 px-4 py-3 hover:bg-gray-200 dark:hover:bg-surface-dark transition-colors">
+<div class="relative shrink-0">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-12 w-12 border border-gray-200 dark:border-gray-700" data-alt="Abstract colorful makeup palette texture for Sephora" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAGWHRtr_c3d8T1thdIAxcAEszE-7SGFjEkJIKFgNHXa0hYHG-ckAQRFurc7PTeU6gUYPckIsBfh9x8BREJRSl1y-OPCeqlAEwMjjxXWdAciKgAHVNNQokXsJZN8YKwvls8C5vQgjw3cbqKO99pB_VEcnMZeP9mKF6yGNNt8OTYX31c5qii2QVlf8cUiMi5FPIRoizVgFGcdOrrnmJ-Td7-zX2pLi9E2a9idqS-HhDfLnveyQgstmibHZBTUYOkemfkIFVSgDwy5Eg");'>
+</div>
+<span class="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-background-dark"></span>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Sephora</p>
+<p class="text-sm text-primary truncate font-medium">Draft Due in 2 days</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-600 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</button>
+<!-- List Item -->
+<button class="w-full text-left group">
+<div class="flex items-center gap-4 px-4 py-3 hover:bg-gray-200 dark:hover:bg-surface-dark transition-colors">
+<div class="relative shrink-0">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-12 w-12 border border-gray-200 dark:border-gray-700" data-alt="Modern tech gadget close up for GoPro" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD8Kz2OICACjhKPN_jKVOCmpdidbUm2tbal946rBScMr8YAp5ejzu2_YzXXvJGZM77BgDJ7jBbTJg9aGT-aernZ4QrB4evQpbD8SFlUHKt2Y_avZgoUxnSG20mMAShuSkLEwmikXL508Ecld5X0Sdtd1f5_CGYSJz5c4oT9l9zog9kkXes2oWA-zjQ-LTFS_4XaXq1ttMmK5eaTQh8FrlNbhLxw5C8b1WD1qmuMec6jHoIFWLVVidSyw0No8Ex7ETZmrY3HErEXn3c");'>
+</div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">GoPro</p>
+<p class="text-sm text-gray-500 truncate dark:text-gray-400">Content Approval Pending</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-600 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</button>
+</div>
+<!-- Section: Suggested -->
+<div class="pt-6">
+<h3 class="px-4 text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Suggested</h3>
+<!-- List Item -->
+<button class="w-full text-left group">
+<div class="flex items-center gap-4 px-4 py-3 hover:bg-gray-200 dark:hover:bg-surface-dark transition-colors opacity-70 hover:opacity-100">
+<div class="relative shrink-0">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-12 w-12 border border-gray-200 dark:border-gray-700 grayscale" data-alt="Minimalist coffee cup art for Starbucks" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC_fjqkfKzwHZs_g7uzQaHwuaLlRBg0ZRzNfT__tyyk-178ubk9nJQLgTIUPMvi2UKMWc3u5bh1_BxoMZob3cUizXBElW8Ts2e3KsWiBgItYZ6NO0wnmauzMv4bPMEx7ukGrTyktNnIclkXU_I4NwV-O24OudUIli69SdXv12THj8WAmLdJLJ90_sYTTlW-a21kSDcNzlhBX7-Zf8_pLDg_oSGMBWfTTazY6qmj_6op1-1zVffX8VRGVGQq1PnslVsVxHWDRudM4K0");'>
+</div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Starbucks</p>
+<p class="text-sm text-gray-500 truncate dark:text-gray-400">Apply to 'Fall Seasonal'</p>
+</div>
+<div class="bg-primary/10 text-primary rounded-full p-1.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">add</span>
+</div>
+</div>
+</button>
+<!-- List Item -->
+<button class="w-full text-left group">
+<div class="flex items-center gap-4 px-4 py-3 hover:bg-gray-200 dark:hover:bg-surface-dark transition-colors opacity-70 hover:opacity-100">
+<div class="relative shrink-0">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-12 w-12 border border-gray-200 dark:border-gray-700 grayscale" data-alt="Close up of a premium watch face for Rolex" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkC-JuhMRNCmaxdorctplY-j5MMZ_daa40GATLcvX_fIMOGvOrJdQp8e6e8kz7FVMCwZv-QIDTaEtmR0xK2tnenQZR7NsCFeudZwtLXgNbluyK7mLsewl-ME0oH3HDjss7HQt2R18FfUuypLHqkxkAZqgzByVShKJhFubFDKQXv_g5wj07w5pHfc-78tSxFLyJG3b7U7obVTLZlo2FpTroqt28kd_FY7WH2K705KGu2Mqv9s7QxL5Dd0gjvn2EpdO8IwCKtrBDbo8");'>
+</div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Rolex</p>
+<p class="text-sm text-gray-500 truncate dark:text-gray-400">Invitation to apply</p>
+</div>
+<div class="bg-primary/10 text-primary rounded-full p-1.5 flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">add</span>
+</div>
+</div>
+</button>
+</div>
+<div class="h-10"></div> <!-- Spacer for bottom safety area -->
+</div>
+<!-- Optional: Bottom Gradient Fade for infinite scroll feel -->
+<div class="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent pointer-events-none"></div>
+</div>
+</body></html>

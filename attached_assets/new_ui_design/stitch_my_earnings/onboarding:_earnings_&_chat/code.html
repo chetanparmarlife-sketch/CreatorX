@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CreatorX Onboarding</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1337ec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101322",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hide for cleaner UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased selection:bg-primary/30 selection:text-primary">
+<!-- Main Container -->
+<div class="relative flex h-screen w-full flex-col overflow-hidden max-w-md mx-auto shadow-2xl bg-background-light dark:bg-background-dark">
+<!-- Top Navigation / Brand (Subtle) -->
+<div class="absolute top-0 left-0 w-full z-20 px-6 pt-12 pb-4 flex justify-between items-center">
+<!-- Logo Mark -->
+<div class="flex items-center gap-2 opacity-80">
+<div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">auto_awesome</span>
+</div>
+<span class="text-sm font-bold tracking-widest uppercase text-slate-900 dark:text-white">CreatorX</span>
+</div>
+<!-- Skip button (optional, but good UX) -->
+<button class="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors">
+                Skip
+            </button>
+</div>
+<!-- Main Visual Area -->
+<div class="relative flex-1 flex flex-col items-center justify-center w-full px-6 pt-10">
+<!-- Background Glow Effect -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/30 rounded-full blur-[80px] pointer-events-none"></div>
+<!-- Hero Image Component -->
+<div class="@container w-full max-w-[320px]">
+<div class="w-full aspect-[4/5] bg-center bg-no-repeat bg-contain flex flex-col justify-end transition-transform duration-700 hover:scale-105" data-alt="3D illustration of a floating revenue graph going up and a chat bubble icon" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC9-n8uK_vWkxZoixGqLnU1RDc91sCBwZYfcjr81rBeA0wfd3zACy_1FLX5hvuH5zgHqzkpYBwPgy9Dq0ajiSwRp5xB-JzdZIp0GmuTY7OzXHVLJb-xD3a_FS7GQYXGBL2tER4sSCwGK2fX4TevadIfttH5qrJBdCl3IUWVm1fOPEnyXjrYP2jDPBrOIX6iroqslbmqV_kv-vq1mX4OyZ2qO5FzbRuLelmshdZZtxvgoTANIPgKzmwgxxkt90U1Vz3Iatxuw-1PJt4");'>
+</div>
+</div>
+</div>
+<!-- Bottom Content Section -->
+<div class="relative w-full z-10 flex flex-col pb-8 pt-4">
+<!-- Text Content -->
+<div class="px-6 text-center mb-8">
+<!-- Headline -->
+<h1 class="text-slate-900 dark:text-white tracking-tight text-3xl font-extrabold leading-tight mb-3">
+                    Track Earnings <br class="hidden min-[380px]:block"/> &amp; Chat
+                </h1>
+<!-- Body Text -->
+<p class="text-slate-500 dark:text-slate-400 text-base font-medium leading-relaxed max-w-[300px] mx-auto">
+                    Monitor your campaign revenue in real-time and communicate directly with top brands.
+                </p>
+</div>
+<!-- Controls Area -->
+<div class="flex flex-col items-center gap-6 px-6 w-full">
+<!-- Page Indicators -->
+<div class="flex flex-row items-center justify-center gap-2.5">
+<!-- Inactive Dot 1 -->
+<div class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 transition-colors"></div>
+<!-- Inactive Dot 2 -->
+<div class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 transition-colors"></div>
+<!-- Active Dot 3 (Elongated) -->
+<div class="h-2 w-6 rounded-full bg-primary shadow-[0_0_10px_rgba(19,55,236,0.5)]"></div>
+</div>
+<!-- Primary Action Button -->
+<button class="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl bg-primary h-14 px-8 text-white shadow-lg shadow-primary/25 transition-all active:scale-[0.98] hover:shadow-primary/40 hover:bg-blue-600">
+<span class="text-base font-bold tracking-wide">Get Started</span>
+<span class="material-symbols-outlined ml-2 transition-transform group-hover:translate-x-1" style="font-size: 20px;">arrow_forward</span>
+</button>
+<!-- Footer Link -->
+<button class="text-sm font-semibold text-slate-500 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors pb-2">
+                    Already have an account? Log In
+                </button>
+</div>
+<!-- Safe Area Spacer for iOS Home Indicator -->
+<div class="h-4 w-full"></div>
+</div>
+</div>
+</body></html>
