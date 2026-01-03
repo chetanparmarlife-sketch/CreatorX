@@ -215,20 +215,31 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor }]}> 
+      <View style={[styles.header, { backgroundColor, borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]}> 
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => router.push('/profile')} activeOpacity={0.7}>
-            <Avatar size={36} name="User" />
+            <View style={styles.avatarWrap}>
+              <Avatar size={36} name="User" />
+              <View style={[styles.avatarOnline, { borderColor: isDark ? '#050505' : '#f6f6f8' }]} />
+            </View>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Discover</Text>
         </View>
-        <TouchableOpacity
-          style={[styles.headerBell, { backgroundColor: isDark ? '#0C0C0C' : '#FFFFFF' }]}
-          onPress={() => router.push('/notifications')}
-        >
-          <Feather name="bell" size={18} color={colors.text} />
-          <View style={styles.headerDot} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={[styles.headerIconButton, { backgroundColor: isDark ? '#0C0C0C' : '#FFFFFF' }]}
+            onPress={() => router.push('/notifications')}
+          >
+            <Feather name="bell" size={18} color={colors.text} />
+            <View style={styles.headerDot} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerIconButton, { backgroundColor: isDark ? '#0C0C0C' : '#FFFFFF' }]}
+            onPress={() => router.push('/chat')}
+          >
+            <Feather name="message-circle" size={18} color={colors.text} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -441,10 +452,11 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -456,12 +468,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.2,
   },
-  headerBell: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerIconButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarWrap: {
+    position: 'relative',
+  },
+  avatarOnline: {
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#22c55e',
+    borderWidth: 2,
+    borderColor: '#050505',
   },
   headerDot: {
     position: 'absolute',
@@ -537,7 +568,7 @@ const styles = StyleSheet.create({
   },
   featuredCard: {
     width: screenWidth * 0.75,
-    height: 160,
+    height: 180,
     borderRadius: 18,
     overflow: 'hidden',
   },

@@ -8,7 +8,6 @@ import { getPlatformDisplayName, SocialPlatform } from '@/src/services/socialCon
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
-  ONBOARDING_COMPLETE: '@onboarding_complete_creator',
   CREATOR_PROFILE: '@creator_profile',
 };
 
@@ -33,20 +32,33 @@ export default function OnboardingFormScreen() {
     handle: string;
   }>();
 
-  const platform = params.platform as SocialPlatform;
+  const resolvedPlatform = (params.platform as SocialPlatform) || 'instagram';
   const followerCount = params.followerCount || '0';
   const initialHandle = params.handle || '';
 
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [city, setCity] = useState('');
-  const [category, setCategory] = useState('');
+  const [bio, setBio] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [socialHandle, setSocialHandle] = useState(initialHandle);
-  const [showCategories, setShowCategories] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>(resolvedPlatform);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const isValid = fullName.trim() && phoneNumber.length >= 10 && category;
+  const isValid = fullName.trim() && phoneNumber.length >= 10 && selectedCategories.length > 0;
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) => {
+      if (prev.includes(category)) {
+        return prev.filter((item) => item !== category);
+      }
+      if (prev.length >= 3) {
+        return prev;
+      }
+      return [...prev, category];
+    });
+  };
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -59,8 +71,8 @@ export default function OnboardingFormScreen() {
         fullName,
         phoneNumber,
         city: city || null,
-        category,
-        primaryPlatform: platform,
+        category: selectedCategories.join(', '),
+        primaryPlatform: selectedPlatform,
         socialHandle: socialHandle || initialHandle,
         followerCount: parseInt(followerCount, 10),
         createdAt: new Date().toISOString(),
@@ -70,7 +82,7 @@ export default function OnboardingFormScreen() {
 
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      router.push('/(auth)/marketing-profile');
+      router.push('/(auth)/onboarding-social');
     } catch (err) {
       setError('Failed to save profile. Please try again.');
     } finally {
@@ -79,21 +91,36 @@ export default function OnboardingFormScreen() {
   };
 
   const handleBack = () => {
-    router.replace('/(auth)/eligibility');
+    router.back();
+  };
+
+  const handleSkip = () => {
+    router.push('/(auth)/onboarding-social');
   };
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0a0a0a', '#1a1a2e', '#0a0a0a']}
+        colors={['#0c0f1c', '#101322', '#0a0c16']}
         style={styles.background}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
 
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Feather name="arrow-left" size={24} color={colors.text} />
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Feather name="arrow-left" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.stepText}>Step 1 of 3</Text>
+        <TouchableOpacity style={styles.skipButtonHeader} onPress={handleSkip}>
+          <Text style={styles.skipTextHeader}>Skip</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.progressRow}>
+        <View style={[styles.progressPill, styles.progressActive]} />
+        <View style={styles.progressPill} />
+        <View style={styles.progressPill} />
+      </View>
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -105,21 +132,90 @@ export default function OnboardingFormScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Complete your profile</Text>
+          <View style={styles.intro}>
+            <Text style={styles.title}>
+              Let's define <Text style={styles.titleHighlight}>your style.</Text>
+            </Text>
             <Text style={styles.subtitle}>
-              Tell us more about yourself to get started
+              Select the categories that best describe your content. This helps brands find you for relevant campaigns.
             </Text>
           </View>
 
-          <View style={styles.connectedBadge}>
-            <Feather name="check-circle" size={16} color={colors.emerald} />
-            <Text style={styles.connectedText}>
-              {getPlatformDisplayName(platform)} connected
-            </Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Select Niche (Max 3)</Text>
+            <View style={styles.chipsRow}>
+              {CATEGORIES.map((category) => {
+                const isSelected = selectedCategories.includes(category);
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={[styles.chip, isSelected && styles.chipActive]}
+                    onPress={() => toggleCategory(category)}
+                    activeOpacity={0.85}
+                  >
+                    {isSelected && <Feather name="check" size={14} color={colors.primary} />}
+                    <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          <View style={styles.form}>
+          <View style={styles.section}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>Primary Platforms</Text>
+              <Feather name="info" size={16} color={colors.textMuted} />
+            </View>
+            <View style={styles.platformList}>
+              {([
+                { id: 'instagram', label: 'Instagram', icon: 'instagram' },
+                { id: 'youtube', label: 'YouTube', icon: 'youtube' },
+                { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' },
+              ] as const).map((platform) => {
+                const isSelected = selectedPlatform === platform.id;
+                return (
+                  <TouchableOpacity
+                    key={platform.id}
+                    style={[styles.platformCard, isSelected && styles.platformCardActive]}
+                    onPress={() => setSelectedPlatform(platform.id)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.platformInfo}>
+                      <View style={[styles.platformIcon, isSelected && styles.platformIconActive]}>
+                        <Feather name={platform.icon} size={18} color={isSelected ? colors.primary : colors.textSecondary} />
+                      </View>
+                      <View>
+                        <Text style={styles.platformTitle}>{platform.label}</Text>
+                        <Text style={styles.platformSubtitle}>
+                          {isSelected ? 'Connected' : 'Connect account'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.platformCheck, isSelected && styles.platformCheckActive]}>
+                      {isSelected && <Feather name="check" size={14} color="#fff" />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Short Bio</Text>
+            <Text style={styles.sectionSubtitle}>A one-liner to introduce yourself to brands.</Text>
+            <TextInput
+              style={styles.bioInput}
+              placeholder="e.g. Creating daily tech reviews for Gen Z..."
+              placeholderTextColor={colors.textMuted}
+              value={bio}
+              onChangeText={setBio}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Profile Details</Text>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name *</Text>
               <TextInput
@@ -162,48 +258,10 @@ export default function OnboardingFormScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Category / Niche *</Text>
-              <TouchableOpacity
-                style={styles.selectInput}
-                onPress={() => setShowCategories(!showCategories)}
-              >
-                <Text style={category ? styles.selectText : styles.selectPlaceholder}>
-                  {category || 'Select your niche'}
-                </Text>
-                <Feather
-                  name={showCategories ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-              {showCategories && (
-                <View style={styles.dropdown}>
-                  {CATEGORIES.map((cat) => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[styles.dropdownItem, category === cat && styles.dropdownItemSelected]}
-                      onPress={() => {
-                        setCategory(cat);
-                        setShowCategories(false);
-                      }}
-                    >
-                      <Text style={[styles.dropdownText, category === cat && styles.dropdownTextSelected]}>
-                        {cat}
-                      </Text>
-                      {category === cat && (
-                        <Feather name="check" size={18} color={colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            <View style={styles.inputGroup}>
               <Text style={styles.label}>Social Handle</Text>
               <TextInput
                 style={styles.input}
-                placeholder={`Your ${getPlatformDisplayName(platform)} handle`}
+                placeholder={`Your ${getPlatformDisplayName(selectedPlatform)} handle`}
                 placeholderTextColor={colors.textMuted}
                 value={socialHandle}
                 onChangeText={setSocialHandle}
@@ -211,30 +269,28 @@ export default function OnboardingFormScreen() {
             </View>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <TouchableOpacity
-              style={[styles.submitButton, !isValid && styles.disabledButton]}
-              onPress={handleSubmit}
-              disabled={loading || !isValid}
-            >
-              <LinearGradient
-                colors={[colors.primary, colors.violet]}
-                style={styles.submitGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                {loading ? (
-                  <ActivityIndicator color={colors.text} />
-                ) : (
-                  <>
-                    <Text style={styles.submitText}>Complete Setup</Text>
-                    <Feather name="arrow-right" size={20} color={colors.text} />
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
           </View>
         </ScrollView>
+        <View style={styles.footer}>
+          <LinearGradient
+            colors={['rgba(16,19,34,0)', '#101322', '#101322']}
+            style={styles.footerGradient}
+          />
+          <TouchableOpacity
+            style={[styles.submitButton, !isValid && styles.disabledButton]}
+            onPress={handleSubmit}
+            disabled={loading || !isValid}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.submitText}>Continue</Text>
+                <Feather name="arrow-right" size={18} color="#fff" />
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -248,12 +304,49 @@ const styles = StyleSheet.create({
   background: {
     ...StyleSheet.absoluteFillObject,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingHorizontal: 24,
+  },
   backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
-    padding: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  stepText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  skipButtonHeader: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  skipTextHeader: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  progressRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
+  progressPill: {
+    flex: 1,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  progressActive: {
+    backgroundColor: colors.primary,
   },
   keyboardView: {
     flex: 1,
@@ -262,44 +355,153 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 100,
+    paddingTop: 24,
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 160,
   },
-  header: {
+  intro: {
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
+  titleHighlight: {
+    color: colors.primary,
   },
-  connectedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.emeraldLight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
+  subtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  section: {
     marginBottom: 24,
   },
-  connectedText: {
-    color: colors.emerald,
-    fontSize: 14,
+  sectionLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  chipActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(19, 55, 236, 0.15)',
+  },
+  chipText: {
+    color: colors.textSecondary,
+    fontSize: 13,
     fontWeight: '500',
   },
-  form: {
-    gap: 20,
+  chipTextActive: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  sectionSubtitle: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  platformList: {
+    gap: 12,
+  },
+  platformCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  platformCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(19, 55, 236, 0.12)',
+  },
+  platformInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  platformIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginRight: 12,
+  },
+  platformIconActive: {
+    backgroundColor: 'rgba(19, 55, 236, 0.18)',
+  },
+  platformTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  platformSubtitle: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  platformCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  platformCheckActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  bioInput: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: colors.text,
+    fontSize: 14,
   },
   inputGroup: {
     gap: 8,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
@@ -307,114 +509,85 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   input: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 16,
     paddingVertical: 14,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
   },
   phoneContainer: {
     flexDirection: 'row',
     gap: 8,
   },
   countryCode: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 16,
     paddingVertical: 14,
     justifyContent: 'center',
   },
   countryCodeText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
   },
   phoneInput: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 16,
     paddingVertical: 14,
     color: colors.text,
-    fontSize: 16,
-  },
-  selectInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  selectText: {
-    color: colors.text,
-    fontSize: 16,
-  },
-  selectPlaceholder: {
-    color: colors.textMuted,
-    fontSize: 16,
-  },
-  dropdown: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  dropdownItemSelected: {
-    backgroundColor: colors.primaryLight,
-  },
-  dropdownText: {
-    color: colors.text,
-    fontSize: 16,
-  },
-  dropdownTextSelected: {
-    color: colors.primary,
-    fontWeight: '500',
+    fontSize: 14,
   },
   errorText: {
     color: colors.red,
     fontSize: 14,
     textAlign: 'center',
+    marginTop: 12,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 24,
+  },
+  footerGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -40,
+    height: 120,
   },
   submitButton: {
-    marginTop: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
   },
   disabledButton: {
     opacity: 0.5,
   },
-  submitGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
   submitText: {
-    color: colors.text,
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

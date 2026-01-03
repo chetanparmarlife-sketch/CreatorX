@@ -3,13 +3,19 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { colors, spacing, borderRadius, typography } from '@/src/theme';
+import { spacing, borderRadius, typography, colors as themeColors } from '@/src/theme';
 import { useApp } from '@/src/context';
-import { useRefresh } from '@/src/hooks';
+import { useRefresh, useTheme } from '@/src/hooks';
 import { Notification } from '@/src/types';
 import { EmptyState } from '@/src/components';
 
-const NotificationIcon = memo(function NotificationIcon({ type }: { type: Notification['type'] }) {
+const NotificationIcon = memo(function NotificationIcon({
+  type,
+  colors,
+}: {
+  type: Notification['type'];
+  colors: any;
+}) {
   const config = {
     payment: { icon: null, bg: colors.emeraldLight, color: colors.emerald, isRupee: true },
     campaign: { icon: 'briefcase' as const, bg: colors.primaryLight, color: colors.primary, isRupee: false },
@@ -35,25 +41,38 @@ const NotificationIcon = memo(function NotificationIcon({ type }: { type: Notifi
 const NotificationItem = memo(function NotificationItem({
   notification,
   onPress,
+  colors,
+  palette,
 }: {
   notification: Notification;
   onPress: () => void;
+  colors: any;
+  palette: {
+    cardColor: string;
+    borderColor: string;
+    mutedText: string;
+    secondaryText: string;
+  };
 }) {
   return (
     <TouchableOpacity
-      style={[styles.notificationItem, !notification.read && styles.unreadItem]}
+      style={[
+        styles.notificationItem,
+        { backgroundColor: palette.cardColor, borderColor: palette.borderColor },
+        !notification.read && styles.unreadItem,
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <NotificationIcon type={notification.type} />
+      <NotificationIcon type={notification.type} colors={colors} />
       <View style={styles.notificationContent}>
         <View style={styles.notificationHeader}>
-          <Text style={styles.notificationTitle} numberOfLines={1}>
+          <Text style={[styles.notificationTitle, { color: colors.text }]} numberOfLines={1}>
             {notification.title}
           </Text>
-          <Text style={styles.notificationTime}>{notification.time}</Text>
+          <Text style={[styles.notificationTime, { color: palette.mutedText }]}>{notification.time}</Text>
         </View>
-        <Text style={styles.notificationDescription} numberOfLines={2}>
+        <Text style={[styles.notificationDescription, { color: palette.secondaryText }]} numberOfLines={2}>
           {notification.description}
         </Text>
         {notification.action && (
@@ -70,6 +89,7 @@ const NotificationItem = memo(function NotificationItem({
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { colors: theme, isDark } = useTheme();
   const {
     notifications,
     markNotificationRead,
@@ -79,6 +99,11 @@ export default function NotificationsScreen() {
     fetchUnreadNotificationCount,
     notificationsError,
   } = useApp();
+  const backgroundColor = isDark ? '#101322' : theme.background;
+  const cardColor = isDark ? '#1c1f2e' : theme.card;
+  const borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : theme.cardBorder;
+  const mutedText = isDark ? '#94a3b8' : theme.textMuted;
+  const secondaryText = isDark ? '#9ca3af' : theme.textSecondary;
   const { refreshing, handleRefresh } = useRefresh(async () => {
     await Promise.all([fetchNotifications(), fetchUnreadNotificationCount()]);
   });
@@ -95,30 +120,37 @@ export default function NotificationsScreen() {
       <NotificationItem
         notification={item}
         onPress={() => handleNotificationPress(item)}
+        colors={theme}
+        palette={{
+          cardColor,
+          borderColor,
+          mutedText,
+          secondaryText,
+        }}
       />
     ),
-    [handleNotificationPress]
+    [handleNotificationPress, theme, cardColor, borderColor, mutedText, secondaryText]
   );
 
   const keyExtractor = useCallback((item: Notification) => item.id, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={22} color={colors.text} />
+    <SafeAreaView style={[styles.container, { backgroundColor: backgroundColor }]} edges={['top']}>
+      <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor: backgroundColor }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: cardColor, borderColor: borderColor }]} onPress={() => router.back()}>
+          <Feather name="arrow-left" size={22} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Notifications</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Notifications</Text>
           {unreadNotificationCount > 0 && (
-            <View style={styles.unreadBadge}>
+            <View style={[styles.unreadBadge, { backgroundColor: theme.primary }]}>
               <Text style={styles.unreadBadgeText}>{unreadNotificationCount}</Text>
             </View>
           )}
         </View>
         {unreadNotificationCount > 0 && (
-          <TouchableOpacity style={styles.markAllButton} onPress={markAllNotificationsRead}>
-            <Feather name="check-circle" size={20} color={colors.primary} />
+          <TouchableOpacity style={[styles.markAllButton, { backgroundColor: cardColor, borderColor: borderColor }]} onPress={markAllNotificationsRead}>
+            <Feather name="check-circle" size={20} color={theme.primary} />
           </TouchableOpacity>
         )}
       </View>
@@ -127,14 +159,14 @@ export default function NotificationsScreen() {
         data={notifications}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { backgroundColor: backgroundColor }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
           />
         }
         ListEmptyComponent={
@@ -165,7 +197,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: themeColors.background,
   },
   header: {
     flexDirection: 'row',
@@ -173,13 +205,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    borderBottomColor: themeColors.cardBorder,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: colors.card,
+    backgroundColor: themeColors.card,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -191,10 +223,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.h4,
-    color: colors.text,
+    color: themeColors.text,
   },
   unreadBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: themeColors.primary,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
@@ -202,14 +234,14 @@ const styles = StyleSheet.create({
   },
   unreadBadgeText: {
     ...typography.xs,
-    color: colors.text,
+    color: themeColors.text,
     fontWeight: '600',
   },
   markAllButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: themeColors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -218,17 +250,21 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     flexDirection: 'row',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
     position: 'relative',
   },
   unreadItem: {
-    backgroundColor: 'rgba(19, 55, 236, 0.05)',
+    backgroundColor: 'rgba(19, 55, 236, 0.08)',
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -244,18 +280,18 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     ...typography.bodyMedium,
-    color: colors.text,
+    color: themeColors.text,
     flex: 1,
     marginRight: spacing.sm,
   },
   notificationTime: {
     ...typography.xs,
-    color: colors.textMuted,
+    color: themeColors.textMuted,
     fontSize: 9,
   },
   notificationDescription: {
     ...typography.small,
-    color: colors.textSecondary,
+    color: themeColors.textSecondary,
     lineHeight: 20,
   },
   actionRow: {
@@ -265,7 +301,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     ...typography.small,
-    color: colors.primary,
+    color: themeColors.primary,
     fontWeight: '600',
   },
   unreadDot: {
@@ -275,11 +311,9 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.primary,
+    backgroundColor: themeColors.primary,
   },
   separator: {
-    height: 1,
-    backgroundColor: colors.cardBorder,
-    marginHorizontal: spacing.lg,
+    height: 0,
   },
 });

@@ -23,25 +23,27 @@ export function ChatItem({ chat, onPress, isLast = false }: ChatItemProps) {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Avatar 
-        size={52} 
-        name={chat.name} 
-        showBadge={chat.online}
-        badgeColor={colors.emerald}
-      />
+      <View style={[styles.avatarWrap, { borderColor: colors.cardBorder }]}>
+        <Avatar 
+          size={56} 
+          name={chat.name} 
+          showBadge={false}
+        />
+        {chat.online && <View style={styles.onlineBadge} />}
+      </View>
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>{chat.name}</Text>
-          <Text style={[styles.time, { color: colors.textMuted }]}>{chat.time}</Text>
+          <View style={styles.metaColumn}>
+            <Text style={[styles.time, { color: chat.unread > 0 ? colors.primary : colors.textMuted }]}>
+              {chat.time}
+            </Text>
+            {chat.unread > 0 && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+          </View>
         </View>
-        <View style={styles.footer}>
-          <Text style={[styles.message, { color: colors.textSecondary }]} numberOfLines={1}>{chat.lastMessage}</Text>
-          {chat.unread > 0 && (
-            <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.unreadText, { color: '#ffffff' }]}>{chat.unread}</Text>
-            </View>
-          )}
-        </View>
+        <Text style={[styles.message, { color: chat.unread > 0 ? colors.text : colors.textSecondary }]} numberOfLines={1}>
+          {chat.lastMessage}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -58,6 +60,23 @@ const styles = StyleSheet.create({
   lastItem: {
     borderBottomWidth: 0,
   },
+  avatarWrap: {
+    borderWidth: 2,
+    borderRadius: 999,
+    padding: 2,
+    position: 'relative',
+  },
+  onlineBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#22c55e',
+    borderWidth: 2,
+    borderColor: '#101322',
+  },
   content: {
     flex: 1,
     marginLeft: spacing.md,
@@ -66,36 +85,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   name: {
     ...typography.bodyMedium,
     flex: 1,
     marginRight: spacing.sm,
   },
+  metaColumn: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
   time: {
     ...typography.xs,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   message: {
     ...typography.small,
     flex: 1,
-    marginRight: spacing.sm,
   },
-  unreadBadge: {
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  unreadText: {
-    ...typography.xs,
-    fontWeight: '600',
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 });

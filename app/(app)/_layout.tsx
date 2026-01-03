@@ -13,7 +13,8 @@ export default function AppLayout() {
       }}
     >
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="profile" />
+      <Stack.Screen name="analytics" />
+      <Stack.Screen name="media-kit" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="conversation" />
       <Stack.Screen name="new-message" />
@@ -23,7 +24,9 @@ export default function AppLayout() {
       <Stack.Screen name="privacy" />
       <Stack.Screen name="help" />
       <Stack.Screen name="kyc" />
+      <Stack.Screen name="refer-earn" />
       <Stack.Screen name="transaction-detail" />
+      <Stack.Screen name="event-details" />
     </Stack>
   );
 }

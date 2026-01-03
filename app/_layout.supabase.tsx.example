@@ -19,7 +19,7 @@ function RootLayoutNav() {
 
     if (!isAuthenticated && !inAuthGroup) {
       // Redirect to login if not authenticated
-      router.replace('/auth/login');
+      router.replace('/(auth)/login-otp');
     } else if (isAuthenticated && inAuthGroup) {
       // Redirect to app if authenticated and in auth group
       router.replace('/(tabs)');
@@ -40,4 +40,3 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
-

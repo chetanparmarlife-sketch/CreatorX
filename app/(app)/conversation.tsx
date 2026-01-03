@@ -15,7 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, borderRadius, typography } from '@/src/theme';
+import { colors, spacing } from '@/src/theme';
 import { Avatar } from '@/src/components';
 import { Message } from '@/src/types';
 import { useApp } from '@/src/context';
@@ -169,21 +169,29 @@ export default function ConversationScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={22} color={colors.text} />
+          <Feather name="chevron-left" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Avatar size={40} name={chatName} showBadge={isOnline} badgeColor={colors.emerald} />
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName} numberOfLines={1}>{chatName}</Text>
-          <Text style={styles.headerStatus}>
-            {isTyping ? 'Typing...' : isOnline ? 'Online' : 'Offline'}
-          </Text>
+        <View style={styles.headerCenter}>
+          <View style={styles.headerAvatarWrap}>
+            <Avatar size={40} name={chatName} showBadge={false} />
+            {isOnline && <View style={styles.onlineDot} />}
+          </View>
+          <View style={styles.headerInfo}>
+            <View style={styles.headerNameRow}>
+              <Text style={styles.headerName} numberOfLines={1}>{chatName}</Text>
+              <Feather name="check-circle" size={14} color="#3b82f6" />
+            </View>
+            <Text style={styles.headerStatus}>
+              {isTyping ? 'Typing...' : isOnline ? 'Active now' : 'Offline'}
+            </Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.headerAction}>
-          <Feather name="phone" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
         <TouchableOpacity style={styles.headerAction}>
           <Feather name="more-vertical" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
+      </View>
+      <View style={styles.campaignBanner}>
+        <Text style={styles.campaignBannerText}>Campaign Active</Text>
       </View>
 
       <FlatList
@@ -204,27 +212,40 @@ export default function ConversationScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.quickChip}>
+            <Feather name="upload" size={14} color={colors.primary} />
+            <Text style={styles.quickChipText}>Submit Deliverable</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickChipMuted}>
+            <Feather name="calendar" size={14} color={colors.textSecondary} />
+            <Text style={styles.quickChipMutedText}>Schedule Post</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.inputContainer}>
           <TouchableOpacity style={styles.attachButton} onPress={handleAttachment}>
-            <Feather name="paperclip" size={20} color={colors.textSecondary} />
+            <Feather name="plus" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
               value={inputText}
               onChangeText={setInputText}
-              placeholder="Type a message..."
+              placeholder={`Message ${chatName}...`}
               placeholderTextColor={colors.textMuted}
               multiline
               maxLength={1000}
             />
+            <TouchableOpacity style={styles.emojiButton}>
+              <Feather name="smile" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={[styles.sendButton, inputText.trim() && styles.sendButtonActive]}
             onPress={handleSend}
             disabled={!inputText.trim()}
           >
-            <Feather name="send" size={18} color={inputText.trim() ? colors.text : colors.textMuted} />
+            <Feather name="send" size={18} color={inputText.trim() ? '#fff' : colors.textMuted} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -235,7 +256,7 @@ export default function ConversationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#101322',
   },
   header: {
     flexDirection: 'row',
@@ -243,41 +264,77 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    backgroundColor: colors.card,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(16, 19, 34, 0.9)',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
+  },
+  headerCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerAvatarWrap: {
+    position: 'relative',
+  },
+  onlineDot: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#22c55e',
+    borderWidth: 2,
+    borderColor: '#101322',
   },
   headerInfo: {
     flex: 1,
-    marginLeft: spacing.md,
+  },
+  headerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   headerName: {
-    ...typography.bodyMedium,
-    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
   headerStatus: {
-    ...typography.xs,
-    color: colors.textSecondary,
-    fontSize: 9,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
   },
   headerAction: {
     width: 36,
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: spacing.sm,
+  },
+  campaignBanner: {
+    paddingVertical: 6,
+    alignItems: 'center',
+    backgroundColor: 'rgba(19,55,236,0.12)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(19,55,236,0.2)',
+  },
+  campaignBannerText: {
+    color: '#1337ec',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   messageList: {
     padding: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingBottom: 140,
   },
   messageBubbleContainer: {
     marginBottom: spacing.md,
@@ -287,27 +344,25 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   messageBubble: {
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   messageBubbleUser: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 6,
   },
   messageBubbleOther: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderBottomLeftRadius: 4,
+    backgroundColor: '#282b39',
+    borderBottomLeftRadius: 6,
   },
   messageText: {
-    ...typography.body,
-    color: colors.text,
-    lineHeight: 22,
+    fontSize: 15,
+    color: '#e5e7eb',
+    lineHeight: 20,
   },
   messageTextUser: {
-    color: colors.text,
+    color: '#fff',
   },
   messageFooter: {
     flexDirection: 'row',
@@ -318,9 +373,46 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   messageTime: {
-    ...typography.xs,
-    color: colors.textMuted,
-    fontSize: 9,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  quickChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(19,55,236,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(19,55,236,0.25)',
+  },
+  quickChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  quickChipMuted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#1c1f2e',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  quickChipMutedText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -328,38 +420,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    backgroundColor: colors.card,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#101322',
     gap: spacing.sm,
   },
   attachButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+    borderRadius: 20,
+    backgroundColor: '#1c1f2e',
     justifyContent: 'center',
     alignItems: 'center',
   },
   inputWrapper: {
     flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.xl,
+    backgroundColor: '#1c1f2e',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    borderColor: 'transparent',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     maxHeight: 120,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   input: {
-    ...typography.body,
-    color: colors.text,
+    flex: 1,
+    fontSize: 14,
+    color: '#e5e7eb',
     maxHeight: 100,
   },
+  emojiButton: {
+    padding: 4,
+  },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1c1f2e',
     justifyContent: 'center',
     alignItems: 'center',
   },

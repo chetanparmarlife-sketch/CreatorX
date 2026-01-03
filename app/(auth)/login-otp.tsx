@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { colors } from '@/src/theme';
 import { sendOTP, verifyOTP, formatPhoneNumber } from '@/src/services/otpMock';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 const STORAGE_KEYS = {
   ONBOARDING_COMPLETE: '@onboarding_complete_creator',
 };
+
+const OTP_LENGTH = 6;
 
 export default function LoginOTPScreen() {
   const router = useRouter();
@@ -22,6 +24,7 @@ export default function LoginOTPScreen() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(true);
+  const otpInputRef = useRef<TextInput>(null);
 
   const handleSkipDev = () => {
     devLogin();
@@ -55,6 +58,7 @@ export default function LoginOTPScreen() {
     try {
       const result = await verifyOTP(phoneNumber, otp);
       if (result.success) {
+        devLogin();
         const onboardingComplete = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE);
         
         if (onboardingComplete === '1') {
@@ -87,16 +91,31 @@ export default function LoginOTPScreen() {
   };
 
   const isPhoneValid = phoneNumber.length === 10;
+  const canVerify = otp.length === OTP_LENGTH;
+
+  const handleOtpChange = (value: string) => {
+    const next = value.replace(/\D/g, '').slice(0, OTP_LENGTH);
+    setOtp(next);
+  };
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={['#0b0d1a', '#101322', '#0a0c16']}
+        style={styles.background}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+      <View style={styles.glowTop} />
+      <View style={styles.glowBottom} />
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Feather name="arrow-left" size={24} color="#1a1a1a" />
+          <Feather name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sign Up or Log in</Text>
+        <Text style={styles.headerTitle}>CreatorX</Text>
         <TouchableOpacity style={styles.helpButton}>
-          <Feather name="help-circle" size={24} color="#1a1a1a" />
+          <Feather name="help-circle" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -111,19 +130,22 @@ export default function LoginOTPScreen() {
         >
           {step === 'phone' ? (
             <>
-              <Text style={styles.title}>Verify your{'\n'}mobile number</Text>
+              <Text style={styles.title}>Welcome back</Text>
               <Text style={styles.subtitle}>
-                Please verify your mobile to log in or{'\n'}create a new account with CreatorX
+                Enter your phone number to access your creator dashboard.
               </Text>
 
               <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>Your phone number</Text>
+                <Text style={styles.inputLabel}>Phone Number</Text>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.countryCode}>+91</Text>
+                  <View style={styles.countrySelect}>
+                    <Text style={styles.countryCode}>🇮🇳 +91</Text>
+                    <Feather name="chevron-down" size={16} color={colors.textMuted} />
+                  </View>
                   <TextInput
                     style={styles.input}
-                    placeholder=""
-                    placeholderTextColor="#999"
+                    placeholder="555 000-0000"
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="phone-pad"
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
@@ -132,7 +154,7 @@ export default function LoginOTPScreen() {
                   />
                   {phoneNumber.length > 0 && (
                     <TouchableOpacity onPress={handleClearPhone} style={styles.clearButton}>
-                      <Feather name="x-circle" size={20} color="#999" />
+                      <Feather name="x-circle" size={18} color={colors.textMuted} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -140,16 +162,40 @@ export default function LoginOTPScreen() {
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              <View style={styles.demoBox}>
-                <Text style={styles.demoTitle}>Demo Credentials</Text>
-                <Text style={styles.demoText}>Phone: Any 10 digits | OTP: 123456</Text>
-              </View>
+              <TouchableOpacity
+                style={[styles.primaryButton, !isPhoneValid && styles.primaryButtonDisabled]}
+                onPress={handleSendOTP}
+                disabled={loading || !isPhoneValid}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.primaryButtonText}>Get Code</Text>
+                    <Feather name="arrow-right" size={18} color="#fff" />
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.termsRow} 
+                onPress={() => setTermsAccepted(!termsAccepted)}
+              >
+                <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                  {termsAccepted && <Feather name="check" size={12} color="#fff" />}
+                </View>
+                <Text style={styles.termsText}>
+                  By continuing, you agree to CreatorX's{' '}
+                  <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
+                  <Text style={styles.termsLink}>Privacy Policy</Text>.
+                </Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
-              <Text style={styles.title}>Enter OTP</Text>
+              <Text style={styles.title}>Verify Account</Text>
               <Text style={styles.subtitle}>
-                We sent a 6-digit code to{'\n'}{formatPhoneNumber(phoneNumber)}
+                Enter the {OTP_LENGTH}-digit code sent to{'\n'}{formatPhoneNumber(phoneNumber)}
               </Text>
 
               {message ? (
@@ -159,64 +205,64 @@ export default function LoginOTPScreen() {
                 </View>
               ) : null}
 
-              <View style={styles.otpContainer}>
+              <TouchableOpacity
+                style={styles.otpContainer}
+                activeOpacity={0.9}
+                onPress={() => otpInputRef.current?.focus()}
+              >
                 <TextInput
-                  style={styles.otpInput}
-                  placeholder="000000"
-                  placeholderTextColor="#ccc"
-                  keyboardType="number-pad"
+                  ref={otpInputRef}
+                  style={styles.otpHiddenInput}
                   value={otp}
-                  onChangeText={setOtp}
-                  maxLength={6}
+                  onChangeText={handleOtpChange}
+                  keyboardType="number-pad"
+                  maxLength={OTP_LENGTH}
                   autoFocus
                 />
-              </View>
+                <View style={styles.otpBoxes}>
+                  {Array.from({ length: OTP_LENGTH }).map((_, index) => {
+                    const digit = otp[index] || '';
+                    const isActive = index === otp.length;
+                    return (
+                      <View
+                        key={`otp-${index}`}
+                        style={[
+                          styles.otpBox,
+                          digit ? styles.otpBoxFilled : null,
+                          isActive ? styles.otpBoxActive : null,
+                        ]}
+                      >
+                        <Text style={styles.otpDigit}>{digit}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </TouchableOpacity>
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <TouchableOpacity style={styles.resendButton} onPress={handleSendOTP} disabled={loading}>
-                <Text style={styles.resendText}>Didn't receive code? <Text style={styles.resendLink}>Resend</Text></Text>
+                <Text style={styles.resendText}>
+                  Didn't receive code? <Text style={styles.resendLink}>Resend</Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryButton, !canVerify && styles.primaryButtonDisabled]}
+                onPress={handleVerifyOTP}
+                disabled={loading || !canVerify}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Verify</Text>
+                )}
               </TouchableOpacity>
             </>
           )}
         </ScrollView>
 
         <View style={styles.footer}>
-          {step === 'phone' && (
-            <TouchableOpacity 
-              style={styles.termsRow} 
-              onPress={() => setTermsAccepted(!termsAccepted)}
-            >
-              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
-                {termsAccepted && <Feather name="check" size={14} color="#fff" />}
-              </View>
-              <Text style={styles.termsText}>
-                By continuing, I agree to CreatorX's{'\n'}
-                <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[
-              styles.verifyButton, 
-              (step === 'phone' ? !isPhoneValid : otp.length !== 6) && styles.verifyButtonDisabled
-            ]}
-            onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
-            disabled={loading || (step === 'phone' ? !isPhoneValid : otp.length !== 6)}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={[
-                styles.verifyText,
-                (step === 'phone' ? !isPhoneValid : otp.length !== 6) && styles.verifyTextDisabled
-              ]}>
-                {step === 'phone' ? 'Verify' : 'Continue'}
-              </Text>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.skipButton} onPress={handleSkipDev}>
             <Text style={styles.skipText}>Skip for Dev Preview</Text>
           </TouchableOpacity>
@@ -229,7 +275,28 @@ export default function LoginOTPScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0b0d1a',
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glowTop: {
+    position: 'absolute',
+    top: -120,
+    left: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(19, 55, 236, 0.25)',
+  },
+  glowBottom: {
+    position: 'absolute',
+    bottom: -140,
+    right: -100,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(124, 58, 237, 0.2)',
   },
   header: {
     flexDirection: 'row',
@@ -241,90 +308,109 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   helpButton: {
     padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
   },
   content: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 8,
     flexGrow: 1,
+    gap: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: colors.text,
     lineHeight: 36,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
-    color: '#666',
+    color: colors.textSecondary,
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   inputSection: {
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 13,
-    color: '#999',
-    marginBottom: 8,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    paddingBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  countrySelect: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 8,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.1)',
   },
   countryCode: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#1a1a1a',
-    marginRight: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
   },
   input: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
-    color: '#1a1a1a',
+    color: colors.text,
+    paddingVertical: 6,
   },
   clearButton: {
     padding: 4,
   },
   otpContainer: {
     marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  otpInput: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    textAlign: 'center',
-    letterSpacing: 12,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+  otpHiddenInput: {
+    position: 'absolute',
+    opacity: 0,
+    width: 1,
+    height: 1,
   },
   errorText: {
-    color: '#dc2626',
+    color: colors.red,
     fontSize: 14,
     marginBottom: 16,
   },
   successBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ecfdf5',
+    backgroundColor: colors.emeraldLight,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 24,
   },
   successText: {
@@ -332,29 +418,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
   },
-  demoBox: {
-    backgroundColor: '#f8f4ff',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 16,
+  otpBoxes: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  demoTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-    marginBottom: 4,
+  otpBox: {
+    width: 44,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  demoText: {
-    fontSize: 12,
-    color: '#666',
+  otpBoxFilled: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(19, 55, 236, 0.15)',
+  },
+  otpBoxActive: {
+    borderColor: colors.primary,
+  },
+  otpDigit: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
   },
   resendButton: {
     alignItems: 'center',
     padding: 8,
   },
   resendText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   resendLink: {
     color: colors.primary,
@@ -362,56 +458,60 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 16,
-    backgroundColor: '#fff',
+    paddingBottom: 24,
+    paddingTop: 8,
+    backgroundColor: 'transparent',
+  },
+  primaryButton: {
+    marginTop: 6,
+    height: 54,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  primaryButtonDisabled: {
+    opacity: 0.4,
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   termsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 10,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#ccc',
-    marginRight: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#1a1a1a',
-    borderColor: '#1a1a1a',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   termsText: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 12,
+    color: colors.textSecondary,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   termsLink: {
-    color: '#1a1a1a',
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-  verifyButton: {
-    backgroundColor: '#1a1a1a',
-    paddingVertical: 18,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  verifyButtonDisabled: {
-    backgroundColor: '#e0e0e0',
-  },
-  verifyText: {
-    color: '#fff',
-    fontSize: 16,
+    color: colors.primary,
     fontWeight: '600',
-  },
-  verifyTextDisabled: {
-    color: '#999',
   },
   skipButton: {
     marginTop: 16,
@@ -419,7 +519,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   skipText: {
-    color: '#999',
-    fontSize: 13,
+    color: colors.textMuted,
+    fontSize: 12,
   },
 });

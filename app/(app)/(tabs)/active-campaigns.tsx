@@ -267,7 +267,13 @@ export default function ActiveCampaignsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+      <View style={[
+        styles.header,
+        {
+          borderBottomColor: colors.cardBorder,
+          backgroundColor: isDark ? 'rgba(5, 5, 5, 0.85)' : 'rgba(246, 246, 248, 0.9)',
+        },
+      ]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>My Campaigns</Text>
         <TouchableOpacity 
           style={styles.notificationButton}
@@ -475,14 +481,14 @@ const styles = StyleSheet.create({
   },
   tabsBackground: {
     flexDirection: 'row',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 4,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
   },
   tabButtonActive: {},
   tabButtonText: {

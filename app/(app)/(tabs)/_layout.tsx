@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router';
 import { View, Platform, StyleSheet, Text } from 'react-native';
-import { useApp } from '@/src/context';
 import { useTheme } from '@/src/hooks';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
@@ -49,20 +48,31 @@ const ExploreIcon = ({ size = 24, color = '#888', focused = false }: { size?: nu
   </Svg>
 );
 
-const ChatIcon = ({ size = 24, color = '#888', focused = false }: { size?: number; color?: string; focused?: boolean }) => (
+const CampaignIcon = ({ size = 24, color = '#888', focused = false }: { size?: number; color?: string; focused?: boolean }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
-      d="M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.6056 8.7 3.90003C9.87812 3.30496 11.1801 2.99659 12.5 3.00003H13C15.0843 3.11502 17.053 3.99479 18.5291 5.47089C20.0052 6.94699 20.885 8.91568 21 11V11.5Z"
+      d="M4 11V6C4 5.44772 4.44772 5 5 5H14C15.6569 5 17 6.34315 17 8V13C17 14.6569 15.6569 16 14 16H9"
       stroke={color}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       fill={focused ? color : 'none'}
-      fillOpacity={focused ? 0.15 : 0}
+      fillOpacity={focused ? 0.08 : 0}
     />
-    <Circle cx="8.5" cy="11.5" r="1" fill={color} />
-    <Circle cx="12.5" cy="11.5" r="1" fill={color} />
-    <Circle cx="16.5" cy="11.5" r="1" fill={color} />
+    <Path
+      d="M4 11L2.5 10.5V9.5L4 9"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M9 16L10.5 20H13"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </Svg>
 );
 
@@ -168,7 +178,6 @@ const IconGlow = ({ focused, children }: { focused: boolean; children: React.Rea
 );
 
 export default function TabsLayout() {
-  const { unreadNotificationCount } = useApp();
   const { colors, isDark } = useTheme();
 
   const navBarBg = isDark ? '#0a0a0a' : '#ffffff';
@@ -221,12 +230,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="active-campaigns"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
         name="explore"
         options={{
           title: 'Home',
@@ -250,35 +253,32 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="active-campaigns"
         options={{
-          title: 'Updates',
+          title: 'My Campaign',
           tabBarIcon: ({ focused }) => (
             <View style={styles.tabItem}>
               <IconGlow focused={focused}>
-                <View style={styles.iconWithBadge}>
-                  <ChatIcon 
-                    size={22} 
-                    color={focused ? activeColor : inactiveColor}
-                    focused={focused}
-                  />
-                  {unreadNotificationCount > 0 && (
-                    <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                      <Text style={styles.badgeText}>
-                        {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                <CampaignIcon 
+                  size={22} 
+                  color={focused ? activeColor : inactiveColor}
+                  focused={focused}
+                />
               </IconGlow>
               <TabLabel 
-                label="Updates" 
+                label="My Campaign" 
                 focused={focused} 
                 activeColor={activeColor} 
                 inactiveColor={inactiveColor}
               />
             </View>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

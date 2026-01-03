@@ -107,14 +107,16 @@ interface SavedCampaignCardProps {
 const SavedCampaignCard = memo(function SavedCampaignCard({ campaign, colors, isDark, onView, onUnsave }: SavedCampaignCardProps) {
   const platformColors = getPlatformColors(campaign.platform);
   const isClosed = campaign.status === 'CLOSED';
+  const cardBackground = isDark ? '#1c1f2e' : colors.card;
+  const cardBorder = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.cardBorder;
 
   return (
     <TouchableOpacity
       style={[
         styles.campaignCard,
         { 
-          backgroundColor: colors.card, 
-          borderColor: colors.cardBorder,
+          backgroundColor: cardBackground, 
+          borderColor: cardBorder,
           opacity: isClosed ? 0.7 : 1,
         }
       ]}
@@ -167,7 +169,7 @@ const SavedCampaignCard = memo(function SavedCampaignCard({ campaign, colors, is
         )}
       </View>
 
-      <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
+      <View style={[styles.divider, { backgroundColor: cardBorder }]} />
 
       <View style={styles.cardFooter}>
         <View style={styles.payoutSection}>
@@ -202,6 +204,11 @@ export default function SavedScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const { savedCampaigns, saveCampaign, unsaveCampaign, isCampaignSaved, addNotification } = useApp();
+
+  const backgroundColor = isDark ? '#101322' : colors.background;
+  const surfaceColor = isDark ? '#1c1f2e' : colors.card;
+  const borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.cardBorder;
+  const mutedText = isDark ? '#94a3b8' : colors.textMuted;
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -265,17 +272,17 @@ export default function SavedScreen() {
   const keyExtractor = useCallback((item: Campaign) => item.id, []);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: backgroundColor }]} edges={['top']}>
+      <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor: backgroundColor }]}>
         <TouchableOpacity 
-          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'transparent' }]} 
+          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0,0,0,0.05)' }]} 
           onPress={() => router.back()}
         >
           <Feather name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Saved Campaigns</Text>
         <TouchableOpacity 
-          style={[styles.filterButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'transparent' }]}
+          style={[styles.filterButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0,0,0,0.05)' }]}
         >
           <Feather name="sliders" size={20} color={colors.text} />
         </TouchableOpacity>
@@ -294,14 +301,14 @@ export default function SavedScreen() {
                 styles.filterChip,
                 selectedFilter === filter.id
                   ? { backgroundColor: colors.primary }
-                  : { backgroundColor: isDark ? colors.card : '#ffffff', borderColor: colors.cardBorder }
+                  : { backgroundColor: surfaceColor, borderColor: borderColor }
               ]}
               onPress={() => setSelectedFilter(filter.id)}
               activeOpacity={0.8}
             >
               <Text style={[
                 styles.filterChipText,
-                { color: selectedFilter === filter.id ? '#ffffff' : colors.textSecondary }
+                { color: selectedFilter === filter.id ? '#ffffff' : mutedText }
               ]}>
                 {filter.label}
               </Text>

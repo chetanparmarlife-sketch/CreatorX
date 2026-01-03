@@ -6,8 +6,6 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks';
 import {
-  Avatar,
-  Button,
   TransactionItem,
   EmptyState,
   ErrorView,
@@ -428,6 +426,10 @@ export default function MoneyScreen() {
   }, [kycStatus]);
 
   const colorsWithDark = { ...colors, isDark };
+  const backgroundColor = isDark ? '#050505' : colors.background;
+  const surfaceColor = isDark ? '#121212' : colors.card;
+  const borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.cardBorder;
+  const mutedText = isDark ? '#9da1b9' : colors.textMuted;
   const walletSummary = useMemo(
     () =>
       wallet ?? {
@@ -437,6 +439,10 @@ export default function MoneyScreen() {
         currency: 'INR',
       },
     [wallet]
+  );
+  const chartBars = useMemo(
+    () => [0.3, 0.5, 0.4, 0.7, 0.45, 0.6, 0.3, 0.8, 0.55, 0.4, 0.9, 0.65, 0.4, 0.75],
+    []
   );
   const showWalletSkeleton = !hasLoadedOnce && walletLoading && !wallet && !walletError;
   const showTransactionsSkeleton =
@@ -485,98 +491,100 @@ export default function MoneyScreen() {
 
     return (
       <>
-        <View style={[styles.balanceCard, { borderColor: colors.primaryBorder }]}>
-          <LinearGradient
-            colors={['rgba(19, 55, 236, 0.3)', 'rgba(19, 55, 236, 0.15)', 'rgba(19, 55, 236, 0.08)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.balanceGradient}
-          >
-            <View style={styles.balanceHeader}>
-              <View>
-                <View style={styles.balanceLabelRow}>
-                  <Feather name="credit-card" size={18} color={colors.primary} />
-                  <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Available Balance</Text>
-                </View>
-                <Text style={[styles.balanceValue, { color: colors.text }]}>
-                  {formatCurrencyAmount(walletSummary.availableBalance, walletSummary.currency)}
-                </Text>
-                <Text style={[styles.changeLabel, { color: colors.textMuted }]}>Available now</Text>
+        <View style={styles.balanceSection}>
+          <View style={styles.balanceLabelRow}>
+            <Text style={[styles.balanceLabelText, { color: mutedText }]}>Available Balance</Text>
+            <TouchableOpacity style={styles.balanceIconButton} activeOpacity={0.7}>
+              <Feather name="eye" size={16} color={mutedText} />
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.balanceValueLarge, { color: colors.text }]}>
+            {formatCurrencyAmount(walletSummary.availableBalance, walletSummary.currency)}
+          </Text>
+          <View style={styles.walletStatsRow}>
+            <View style={[styles.walletStatCard, { backgroundColor: surfaceColor, borderColor: borderColor }]}>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+                <Feather name="clock" size={16} color="#f59e0b" />
               </View>
-              <View style={[styles.securedBadge, { backgroundColor: colors.emeraldLight, borderColor: colors.emeraldBorder }]}>
-                <Feather name="shield" size={14} color={colors.emerald} />
-                <Text style={[styles.securedText, { color: colors.emerald }]}>Secured</Text>
-              </View>
-            </View>
-
-            <Button
-              title="Withdraw (Coming soon)"
-              onPress={() => {}}
-              variant="primary"
-              size="lg"
-              icon={<Feather name="arrow-up-right" size={18} color={colors.text} />}
-              fullWidth
-              style={styles.withdrawBtn}
-              disabled
-            />
-            <Text style={[styles.withdrawNote, { color: colors.textMuted }]}>
-              Withdrawals will be enabled after payout setup.
-            </Text>
-          </LinearGradient>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderColor: colors.amberBorder }]}>
-            <LinearGradient
-              colors={['rgba(251, 191, 36, 0.15)', 'rgba(251, 191, 36, 0.05)']}
-              style={styles.statGradient}
-            >
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pending</Text>
-              <Text style={[styles.statValue, { color: colors.amber }]}>
+              <Text style={[styles.statValueText, { color: colors.text }]}>
                 {formatCurrencyAmount(walletSummary.pendingBalance, walletSummary.currency)}
               </Text>
-              <Text style={[styles.statSubtext, { color: colors.textMuted }]}>Under review</Text>
-            </LinearGradient>
-          </View>
-          <View style={[styles.statCard, { borderColor: colors.emeraldBorder }]}>
-            <LinearGradient
-              colors={['rgba(52, 211, 153, 0.15)', 'rgba(52, 211, 153, 0.05)']}
-              style={styles.statGradient}
-            >
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Balance</Text>
-              <Text style={[styles.statValue, { color: colors.emerald }]}>
+              <Text style={[styles.statLabelText, { color: mutedText }]}>Pending</Text>
+            </View>
+            <View style={[styles.walletStatCard, { backgroundColor: surfaceColor, borderColor: borderColor }]}>
+              <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                <Feather name="dollar-sign" size={16} color="#10b981" />
+              </View>
+              <Text style={[styles.statValueText, { color: colors.text }]}>
                 {formatCurrencyAmount(walletSummary.balance, walletSummary.currency)}
               </Text>
-              <Text style={[styles.statSubtext, { color: colors.textMuted }]}>Total</Text>
-            </LinearGradient>
+              <Text style={[styles.statLabelText, { color: mutedText }]}>Total Earned</Text>
+            </View>
           </View>
         </View>
-        {walletError && !wallet ? (
-          <View style={styles.section}>
-            <ErrorView
-              error={walletError}
-              onRetry={handleRetryAll}
-              compact
-              showIcon={false}
-              title="Wallet summary unavailable"
-              hideRetry
-            />
+
+        <View style={styles.chartSection}>
+          <View style={styles.chartHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Earnings</Text>
+            <Text style={[styles.chartCaption, { color: mutedText }]}>Last 30 Days</Text>
           </View>
-        ) : null}
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction History</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
-            <FilterTab label="All" isActive={walletFilter === 'all'} onPress={handleSetFilterAll} colors={colorsWithDark} />
-            <FilterTab label="Income" isActive={walletFilter === 'credit'} onPress={handleSetFilterCredit} count={counts.credit} colors={colorsWithDark} />
-            <FilterTab label="Withdrawals" isActive={walletFilter === 'debit'} onPress={handleSetFilterDebit} count={counts.debit} colors={colorsWithDark} />
-            <FilterTab label="Pending" isActive={walletFilter === 'pending'} onPress={handleSetFilterPending} count={counts.pending} colors={colorsWithDark} />
-          </ScrollView>
+          <View style={[styles.chartCard, { backgroundColor: surfaceColor, borderColor: borderColor }]}>
+            <View style={styles.chartBars}>
+              {chartBars.map((height, index) => (
+                <View
+                  key={`chart-bar-${index}`}
+                  style={[
+                    styles.chartBar,
+                    { height: `${height * 100}%`, backgroundColor: index === chartBars.length - 1 ? colors.primary : 'rgba(19, 55, 236, 0.2)' },
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
         </View>
 
-        <View style={styles.resultsHeader}>
-          <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>{filteredTransactions.length} transactions</Text>
+        <View style={styles.transactionsHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+          </TouchableOpacity>
         </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
+          <TouchableOpacity
+            style={[
+              styles.filterChipNew,
+              { backgroundColor: surfaceColor, borderColor: borderColor },
+              walletFilter === 'all' && styles.filterChipActive,
+              walletFilter === 'all' && { backgroundColor: colors.primary, borderColor: colors.primary },
+            ]}
+            onPress={handleSetFilterAll}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterChipTextNew, { color: walletFilter === 'all' ? '#ffffff' : mutedText }]}>All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.filterChipNew,
+              { backgroundColor: walletFilter === 'credit' ? colors.primary : surfaceColor, borderColor: walletFilter === 'credit' ? colors.primary : borderColor },
+              walletFilter === 'credit' && styles.filterChipActive,
+            ]}
+            onPress={handleSetFilterCredit}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterChipTextNew, { color: walletFilter === 'credit' ? '#ffffff' : mutedText }]}>Incoming</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.filterChipNew,
+              { backgroundColor: walletFilter === 'debit' ? colors.primary : surfaceColor, borderColor: walletFilter === 'debit' ? colors.primary : borderColor },
+              walletFilter === 'debit' && styles.filterChipActive,
+            ]}
+            onPress={handleSetFilterDebit}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterChipTextNew, { color: walletFilter === 'debit' ? '#ffffff' : mutedText }]}>Withdrawals</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </>
     );
   }, [
@@ -585,8 +593,11 @@ export default function MoneyScreen() {
     walletSummary,
     walletFilter,
     counts,
-    filteredTransactions.length,
     colorsWithDark,
+    surfaceColor,
+    borderColor,
+    mutedText,
+    chartBars,
     handleSetFilterAll,
     handleSetFilterCredit,
     handleSetFilterDebit,
@@ -797,27 +808,25 @@ export default function MoneyScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
-        <TouchableOpacity onPress={() => router.push('/profile')} activeOpacity={0.7} data-testid="button-profile-avatar">
-          <Avatar size={30} name="User" />
+    <SafeAreaView style={[styles.container, { backgroundColor: backgroundColor }]} edges={['top']}>
+      <View style={[styles.walletHeader, { backgroundColor: backgroundColor }]}>
+        <TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()} activeOpacity={0.7}>
+          <Feather name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTabsContainer}>
-          {headerTabs.map((tab) => (
-            <HeaderTabButton
-              key={tab.id}
-              label={tab.label}
-              isActive={selectedTab === tab.id}
-              onPress={() => setSelectedTab(tab.id)}
-              colors={colorsWithDark}
-            />
-          ))}
-        </View>
+        <Text style={[styles.walletTitle, { color: colors.text }]}>Wallet</Text>
+        <TouchableOpacity style={styles.headerIconButton} onPress={() => {}} activeOpacity={0.7}>
+          <Feather name="settings" size={22} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
-      {selectedTab === 'wallet' && renderWalletContent()}
-      {selectedTab === 'invoices' && renderInvoicesContent()}
-      {selectedTab === 'kyc' && renderKYCContent()}
+      {renderWalletContent()}
+
+      <View style={styles.withdrawFooter}>
+        <TouchableOpacity style={[styles.withdrawButton, { backgroundColor: colors.primary }]} activeOpacity={0.85}>
+          <Feather name="credit-card" size={18} color="#ffffff" />
+          <Text style={styles.withdrawButtonText}>Withdraw Funds</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -825,6 +834,25 @@ export default function MoneyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  walletHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  walletTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stickyHeader: {
     flexDirection: 'row',
@@ -864,6 +892,147 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.lg,
     paddingBottom: 100,
+  },
+  balanceSection: {
+    alignItems: 'center',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  balanceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  balanceLabelText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  balanceIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  balanceValueLarge: {
+    fontSize: 36,
+    fontWeight: '800',
+    marginTop: spacing.xs,
+  },
+  walletStatsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    width: '100%',
+    paddingHorizontal: spacing.sm,
+  },
+  walletStatCard: {
+    flex: 1,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+  },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  statValueText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  statLabelText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  chartSection: {
+    marginTop: spacing.sm,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  chartCaption: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  chartCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: spacing.md,
+    height: 160,
+    overflow: 'hidden',
+  },
+  chartBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 6,
+    height: '100%',
+  },
+  chartBar: {
+    flex: 1,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
+  transactionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.sm,
+  },
+  viewAllText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  filterChipNew: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: spacing.sm,
+  },
+  filterChipActive: {
+    shadowColor: '#1337ec',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  filterChipTextNew: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  withdrawFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  withdrawButton: {
+    height: 54,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  withdrawButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
   balanceCard: {
     borderRadius: borderRadius.xxl,

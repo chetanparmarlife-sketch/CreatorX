@@ -1,126 +1,14 @@
 import { useState, useCallback, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { spacing, borderRadius, typography } from '@/src/theme';
-import { ChatItem, ChatItemSkeleton, EmptyState, Avatar } from '@/src/components';
-import { ChatPreview, Notification } from '@/src/types';
+import { spacing, borderRadius } from '@/src/theme';
+import { ChatItem, ChatItemSkeleton } from '@/src/components';
+import { ChatPreview } from '@/src/types';
 import { useDebounce, useRefresh, useTheme } from '@/src/hooks';
 import { useApp } from '@/src/context';
-
-const headerTabs = [
-  { id: 'messages', label: 'Messages' },
-  { id: 'notifications', label: 'Notifications' },
-];
-
-const HeaderTabButton = memo(function HeaderTabButton({
-  label,
-  isActive,
-  onPress,
-  count,
-  colors,
-  isDark,
-}: {
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-  count?: number;
-  colors: any;
-  isDark: boolean;
-}) {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.headerTabButton,
-        isActive 
-          ? [styles.headerTabButtonActive, { borderColor: isDark ? 'rgba(255, 255, 255, 0.8)' : colors.primary }]
-          : [styles.headerTabButtonInactive, { backgroundColor: isDark ? '#2a2a2a' : colors.card, borderColor: isDark ? '#2a2a2a' : colors.cardBorder }],
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-      data-testid={`tab-${label.toLowerCase()}`}
-    >
-      <Text style={[
-        styles.headerTabButtonText,
-        isActive 
-          ? { color: isDark ? '#FFFFFF' : colors.primary }
-          : { color: isDark ? 'rgba(255, 255, 255, 0.9)' : colors.textSecondary },
-      ]}>
-        {label}
-      </Text>
-      {count !== undefined && count > 0 && (
-        <View style={[styles.tabBadge, { backgroundColor: colors.primary }]}>
-          <Text style={styles.tabBadgeText}>{count > 99 ? '99+' : count}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-});
-
-const NotificationItem = memo(function NotificationItem({
-  notification,
-  colors,
-  onPress,
-}: {
-  notification: Notification;
-  colors: any;
-  onPress: () => void;
-}) {
-  const getIconColor = () => {
-    switch (notification.type) {
-      case 'campaign':
-      case 'application':
-        return '#10b981';
-      case 'payment':
-        return colors.primary;
-      case 'referral':
-        return '#f59e0b';
-      case 'message':
-        return '#3b82f6';
-      default:
-        return colors.textSecondary;
-    }
-  };
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.notificationItem,
-        !notification.read && { backgroundColor: colors.isDark ? 'rgba(19, 55, 236, 0.08)' : 'rgba(19, 55, 236, 0.05)' },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.7}
-      data-testid={`notification-${notification.id}`}
-    >
-      <View style={[styles.notificationIconContainer, { backgroundColor: `${getIconColor()}15` }]}>
-        {notification.type === 'payment' ? (
-          <FontAwesome5 name="rupee-sign" size={16} color={getIconColor()} />
-        ) : (
-          <Feather name="bell" size={18} color={getIconColor()} />
-        )}
-      </View>
-      <View style={styles.notificationContent}>
-        <View style={styles.notificationHeader}>
-          <Text style={[styles.notificationTitle, { color: colors.text }]} numberOfLines={1}>
-            {notification.title}
-          </Text>
-          {!notification.read && (
-            <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
-          )}
-        </View>
-        <Text style={[styles.notificationMessage, { color: colors.textSecondary }]} numberOfLines={2}>
-          {notification.description}
-        </Text>
-        <Text style={[styles.notificationTime, { color: colors.textMuted }]}>
-          {notification.time}
-        </Text>
-      </View>
-      <Feather name="chevron-right" size={18} color={colors.textMuted} />
-    </TouchableOpacity>
-  );
-});
 
 const MemoizedChatItem = memo(function MemoizedChatItem({
   chat,
@@ -134,20 +22,16 @@ const MemoizedChatItem = memo(function MemoizedChatItem({
   return <ChatItem chat={chat} onPress={onPress} isLast={isLast} />;
 });
 
-export default function UpdatesScreen() {
+export default function MessagesScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const {
     chats,
-    notifications,
     markChatRead,
-    markNotificationRead,
-    unreadNotificationCount,
     refreshData,
     startMessagesPolling,
     stopMessagesPolling,
   } = useApp();
-  const [selectedTab, setSelectedTab] = useState('messages');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -178,13 +62,6 @@ export default function UpdatesScreen() {
     });
   }, [router, markChatRead]);
 
-  const handleNotificationPress = useCallback((notification: Notification) => {
-    markNotificationRead(notification.id);
-    if (notification.action?.path) {
-      router.push(notification.action.path as any);
-    }
-  }, [markNotificationRead, router]);
-
   const filteredChats = useMemo(() => {
     if (!debouncedSearch) return chats;
     return chats.filter(
@@ -194,42 +71,26 @@ export default function UpdatesScreen() {
     );
   }, [chats, debouncedSearch]);
 
-  const filteredNotifications = useMemo(() => {
-    if (!debouncedSearch) return notifications;
-    return notifications.filter(
-      (n) =>
-        n.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        n.description.toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
-  }, [notifications, debouncedSearch]);
-
-  const totalUnread = useMemo(
-    () => chats.reduce((sum, chat) => sum + chat.unread, 0),
-    [chats]
-  );
-
-  const unreadNotifications = unreadNotificationCount;
-
   const renderChat = useCallback(
     ({ item }: { item: ChatPreview }) => (
       <MemoizedChatItem chat={item} onPress={() => handleChatPress(item)} />
     ),
     [handleChatPress]
   );
-
-  const renderNotification = useCallback(
-    ({ item }: { item: Notification }) => (
-      <NotificationItem 
-        notification={item} 
-        colors={{ ...colors, isDark }} 
-        onPress={() => handleNotificationPress(item)} 
-      />
-    ),
-    [colors, isDark, handleNotificationPress]
-  );
-
   const chatKeyExtractor = useCallback((item: ChatPreview) => item.id, []);
-  const notificationKeyExtractor = useCallback((item: Notification) => item.id, []);
+
+  const renderEmptyState = useCallback(
+    (icon: keyof typeof Feather.glyphMap, title: string, subtitle: string) => (
+      <View style={styles.emptyState}>
+        <View style={styles.emptyIconWrap}>
+          <Feather name={icon} size={28} color={colors.textMuted} />
+        </View>
+        <Text style={styles.emptyTitle}>{title}</Text>
+        <Text style={styles.emptySubtitle}>{subtitle}</Text>
+      </View>
+    ),
+    [colors.textMuted]
+  );
 
   const MessagesEmptyComponent = useMemo(
     () =>
@@ -241,63 +102,51 @@ export default function UpdatesScreen() {
           <ChatItemSkeleton />
         </View>
       ) : (
-        <EmptyState
-          icon="message-circle"
-          title={searchQuery ? 'No conversations found' : 'No messages yet'}
-          subtitle={searchQuery ? 'Try a different search' : 'Start a conversation with brands'}
-        />
+        renderEmptyState(
+          'message-circle',
+          searchQuery ? 'No conversations found' : 'No messages yet',
+          searchQuery ? 'Try a different search' : 'Start a conversation with brands'
+        )
       ),
-    [isLoading, searchQuery, colors]
-  );
-
-  const NotificationsEmptyComponent = useMemo(
-    () => (
-      <EmptyState
-        icon="bell"
-        title={searchQuery ? 'No notifications found' : 'No notifications yet'}
-        subtitle={searchQuery ? 'Try a different search' : 'You\'ll see updates about campaigns, payments and more here'}
-      />
-    ),
-    [searchQuery]
+    [isLoading, searchQuery, colors, renderEmptyState]
   );
 
   const ListHeader = useMemo(() => (
     <>
       <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: '#FFFFFF' }]}>
-          <Feather name="search" size={20} color="#1a1a1a" />
+        <View style={[
+          styles.searchBar,
+          {
+            backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.08)',
+          },
+        ]}>
+          <View style={styles.searchIconWrap}>
+            <Feather name="search" size={18} color={colors.textMuted} />
+          </View>
           <TextInput
-            style={[styles.searchInput, { color: '#1a1a1a' }]}
-            placeholder={selectedTab === 'messages' ? 'Search conversations...' : 'Search notifications...'}
-            placeholderTextColor="rgba(0,0,0,0.5)"
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search messages"
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} data-testid="button-clear-search">
-              <Feather name="x" size={18} color="#1a1a1a" />
+              <Feather name="x" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
       </View>
-
-      <View style={styles.resultsHeader}>
-        <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>
-          {selectedTab === 'messages' 
-            ? `${filteredChats.length} conversations`
-            : `${filteredNotifications.length} notifications`
-          }
-        </Text>
-      </View>
     </>
-  ), [colors, selectedTab, searchQuery, filteredChats.length, filteredNotifications.length]);
+  ), [colors, isDark, searchQuery]);
 
   const renderMessagesTab = () => (
     <FlatList
       data={filteredChats}
       renderItem={renderChat}
       keyExtractor={chatKeyExtractor}
-      contentContainerStyle={[styles.content, filteredChats.length > 0 && [styles.chatListContainer, { backgroundColor: colors.card, borderColor: colors.cardBorder }]]}
+      contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={ListHeader}
       refreshControl={
@@ -313,57 +162,23 @@ export default function UpdatesScreen() {
       maxToRenderPerBatch={10}
       windowSize={5}
       removeClippedSubviews
-      ItemSeparatorComponent={() => <View style={[styles.chatSeparator, { backgroundColor: colors.cardBorder }]} />}
-    />
-  );
-
-  const renderNotificationsTab = () => (
-    <FlatList
-      data={filteredNotifications}
-      renderItem={renderNotification}
-      keyExtractor={notificationKeyExtractor}
-      contentContainerStyle={[styles.content, filteredNotifications.length > 0 && [styles.notificationListContainer, { backgroundColor: colors.card, borderColor: colors.cardBorder }]]}
-      showsVerticalScrollIndicator={false}
-      ListHeaderComponent={ListHeader}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-        />
-      }
-      ListEmptyComponent={NotificationsEmptyComponent}
-      initialNumToRender={10}
-      maxToRenderPerBatch={10}
-      windowSize={5}
-      removeClippedSubviews
-      ItemSeparatorComponent={() => <View style={[styles.notificationSeparator, { backgroundColor: colors.cardBorder }]} />}
+      ItemSeparatorComponent={undefined}
     />
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
-        <TouchableOpacity onPress={() => router.push('/profile')} activeOpacity={0.7}>
-          <Avatar size={30} name="User" />
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#101322' : colors.background }]} edges={['top']}>
+      <View style={[styles.stickyHeader, { backgroundColor: isDark ? 'rgba(16, 19, 34, 0.9)' : colors.background, borderBottomColor: colors.cardBorder }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Messages</Text>
+        <TouchableOpacity
+          style={[styles.composeButton, { backgroundColor: isDark ? '#1c1c1e' : '#ffffff' }]}
+          onPress={() => router.push('/new-message')}
+        >
+          <Feather name="edit-2" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTabsContainer}>
-          {headerTabs.map((tab) => (
-            <HeaderTabButton
-              key={tab.id}
-              label={tab.label}
-              isActive={selectedTab === tab.id}
-              onPress={() => setSelectedTab(tab.id)}
-              count={tab.id === 'messages' ? totalUnread : unreadNotifications}
-              colors={colors}
-              isDark={isDark}
-            />
-          ))}
-        </View>
       </View>
 
-      {selectedTab === 'messages' ? renderMessagesTab() : renderNotificationsTab()}
+      {renderMessagesTab()}
     </SafeAreaView>
   );
 }
@@ -375,70 +190,42 @@ const styles = StyleSheet.create({
   stickyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    gap: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
     zIndex: 100,
+    borderBottomWidth: 1,
   },
-  headerTabsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
   },
-  headerTabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 50,
-    gap: 6,
-  },
-  headerTabButtonActive: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-  },
-  headerTabButtonInactive: {
-    backgroundColor: '#2a2a2a',
-    borderWidth: 1.5,
-    borderColor: '#2a2a2a',
-  },
-  headerTabButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  headerTabButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  headerTabButtonTextInactive: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  tabBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+  composeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 5,
-    backgroundColor: '#1337ec',
-  },
-  tabBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    backgroundColor: '#1c1c1e',
   },
   searchContainer: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.md,
+    borderRadius: 14,
+    borderWidth: 1,
     paddingHorizontal: spacing.md,
     height: 48,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
@@ -446,16 +233,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '400',
   },
-  resultsHeader: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  resultsCount: {
-    fontSize: 13,
-    fontWeight: '500',
+  searchIconWrap: {
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     paddingBottom: 100,
+    paddingHorizontal: spacing.lg,
   },
   chatList: {
     borderRadius: borderRadius.xl,
@@ -463,63 +248,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
-  chatListContainer: {
-    borderRadius: borderRadius.xl,
-    marginHorizontal: spacing.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  chatSeparator: {
-    height: 1,
-  },
-  notificationListContainer: {
-    borderRadius: borderRadius.xl,
-    marginHorizontal: spacing.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  notificationSeparator: {
-    height: 1,
-  },
-  notificationItem: {
-    flexDirection: 'row',
+  emptyState: {
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: 12,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxxl,
   },
-  notificationIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.lg,
   },
-  notificationContent: {
-    flex: 1,
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
   },
-  notificationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  notificationTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    flex: 1,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  notificationMessage: {
+  emptySubtitle: {
     fontSize: 13,
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  notificationTime: {
-    fontSize: 12,
-    marginTop: 4,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    marginTop: 6,
   },
 });

@@ -1,14 +1,10 @@
-import { useState, memo, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Dimensions } from 'react-native';
+import { memo, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/src/hooks';
-import { Avatar } from '@/src/components';
-import { spacing, borderRadius } from '@/src/theme';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 const headerTabs = [
   { id: 'events', label: 'Events' },
@@ -20,21 +16,13 @@ const cities = [
   { id: 'all', label: 'All Cities', image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400' },
   { id: 'bengaluru', label: 'Bengaluru', image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?w=400' },
   { id: 'mumbai', label: 'Mumbai', image: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?w=400' },
-  { id: 'delhi', label: 'New Delhi', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=400' },
-  { id: 'hyderabad', label: 'Hyderabad', image: 'https://images.unsplash.com/photo-1626014303219-d4eb6ebcb6be?w=400' },
-  { id: 'chennai', label: 'Chennai', image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=400' },
+  { id: 'delhi', label: 'Delhi', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=400' },
 ];
 
 const eventTimeFilters = [
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'past', label: 'Past' },
-];
-
-const eventHostFilters = [
-  { id: 'all', label: 'All' },
-  { id: 'creatorx', label: 'CreatorX' },
-  { id: 'brand', label: 'Brand' },
-  { id: 'influencer', label: 'Influencer' },
+  { id: 'saved', label: 'Saved' },
 ];
 
 const perkCategories = [
@@ -56,81 +44,42 @@ const mockEvents = [
   {
     id: '1',
     title: 'Creator Summit 2025',
-    host: 'CreatorX',
-    hostType: 'creatorx',
+    host: 'CreatorX Official',
     date: 'Jan 15, 2025',
     time: '10:00 AM',
     location: 'Bengaluru',
     city: 'bengaluru',
-    isOnline: false,
-    description: 'Join us for the biggest creator event of the year with exclusive insights and networking.',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
+    description: 'Join us for the biggest creator event of the year with exclusive insights and networking opportunities.',
+    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+    badge: { label: 'Registration Open', tone: 'primary' },
+    isPast: false,
+    isSaved: true,
   },
   {
     id: '2',
-    title: 'Brand Collaboration Workshop',
-    host: 'Nike',
-    hostType: 'brand',
-    date: 'Jan 20, 2025',
-    time: '2:00 PM',
+    title: 'Sports & Culture Mixer',
+    host: 'Partner Event',
+    date: 'Feb 22, 2025',
+    time: '6:30 PM',
     location: 'Mumbai',
     city: 'mumbai',
-    isOnline: false,
-    description: 'Learn how to create impactful brand collaborations that resonate with your audience.',
-    image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=400',
+    description: 'An exclusive evening for sports creators to connect with Nike\'s brand team and fellow athletes.',
+    image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800',
+    badge: { label: 'Limited Spots', tone: 'warning' },
+    isPast: false,
   },
   {
     id: '3',
-    title: 'Content Strategy Masterclass',
-    host: 'Sarah Johnson',
-    hostType: 'influencer',
-    date: 'Jan 25, 2025',
-    time: '4:00 PM',
-    location: 'Online',
-    city: 'online',
-    isOnline: true,
-    description: 'Top influencer shares secrets to building a content strategy that drives engagement.',
-    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400',
-  },
-  {
-    id: '4',
     title: 'Monetization Bootcamp',
-    host: 'CreatorX',
-    hostType: 'creatorx',
-    date: 'Feb 1, 2025',
-    time: '11:00 AM',
-    location: 'New Delhi',
-    city: 'delhi',
-    isOnline: false,
-    description: 'Intensive workshop on maximizing your earning potential as a creator.',
-    image: 'https://images.unsplash.com/photo-1551818255-e6e10975bc17?w=400',
-  },
-  {
-    id: '5',
-    title: 'Fashion Week Meetup',
-    host: 'Gucci',
-    hostType: 'brand',
+    host: 'CreatorX Official',
     date: 'Dec 10, 2024',
-    time: '6:00 PM',
-    location: 'Hyderabad',
-    city: 'hyderabad',
-    isOnline: false,
-    description: 'Exclusive fashion week event for top creators in the fashion space.',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+    time: '11:00 AM',
+    location: 'Delhi',
+    city: 'delhi',
+    description: 'A hands-on bootcamp focused on brand pricing, negotiations, and steady creator income.',
+    image: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800',
+    badge: { label: 'Past Event', tone: 'neutral' },
     isPast: true,
-  },
-  {
-    id: '6',
-    title: 'Tech Creators Meetup',
-    host: 'Google',
-    hostType: 'brand',
-    date: 'Feb 15, 2025',
-    time: '3:00 PM',
-    location: 'Chennai',
-    city: 'chennai',
-    isOnline: false,
-    description: 'Connect with tech creators and learn about the latest Google tools for content creation.',
-    image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400',
   },
 ];
 
@@ -160,33 +109,6 @@ const mockPerks = [
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Notion-logo.svg/120px-Notion-logo.svg.png',
     description: 'Organize your content calendar with 30% off Notion Team plan.',
     validity: 'No expiry',
-    category: 'saas',
-  },
-  {
-    id: '4',
-    name: '$100 Amazon Gift Card',
-    partner: 'Amazon',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/120px-Amazon_logo.svg.png',
-    description: 'Earn $100 Amazon gift card when you complete 5 campaigns.',
-    validity: 'Valid until Feb 28, 2025',
-    category: 'shopping',
-  },
-  {
-    id: '5',
-    name: '25% Off Airbnb Stays',
-    partner: 'Airbnb',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Airbnb_Logo_B%C3%A9lo.svg/120px-Airbnb_Logo_B%C3%A9lo.svg.png',
-    description: 'Get 25% off your next Airbnb stay for content creation trips.',
-    validity: 'Valid until Jun 30, 2025',
-    category: 'travel',
-  },
-  {
-    id: '6',
-    name: 'Free Grammarly Premium',
-    partner: 'Grammarly',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Grammarly_Logo.svg/120px-Grammarly_Logo.svg.png',
-    description: '1-year free Grammarly Premium for polished captions and scripts.',
-    validity: 'Valid until Dec 31, 2025',
     category: 'saas',
   },
 ];
@@ -219,143 +141,157 @@ const mockNews = [
     summary: 'New industry report predicts significant growth in influencer marketing spend, with micro-influencers leading the charge.',
     tag: 'Industry',
   },
-  {
-    id: '4',
-    title: 'New Payment Options Available',
-    source: 'CreatorX',
-    sourceType: 'product',
-    date: 'Nov 28, 2024',
-    summary: 'Creators can now receive payments via PayPal, Stripe, and direct bank transfer with faster processing times.',
-    tag: 'Product Update',
-  },
-  {
-    id: '5',
-    title: 'Sephora Launches Beauty Creator Program',
-    source: 'Sephora',
-    sourceType: 'campaign',
-    date: 'Nov 25, 2024',
-    summary: 'Sephora introduces an exclusive creator program with up to $10K per campaign for beauty influencers.',
-    tag: 'Campaign',
-  },
-  {
-    id: '6',
-    title: 'TikTok Algorithm Changes Impact Creator Reach',
-    source: 'Social Media Today',
-    sourceType: 'industry',
-    date: 'Nov 20, 2024',
-    summary: 'Recent TikTok algorithm updates are affecting creator visibility. Here is what you need to know to adapt.',
-    tag: 'Industry',
-  },
 ];
 
-const HeaderTabButton = memo(function HeaderTabButton({
+const TopTabButton = memo(function TopTabButton({
   label,
   isActive,
   onPress,
-  colors,
-  isDark,
+  palette,
 }: {
   label: string;
   isActive: boolean;
   onPress: () => void;
-  colors: any;
-  isDark: boolean;
+  palette: ReturnType<typeof getPalette>;
 }) {
   return (
     <TouchableOpacity
       style={[
         styles.headerTabButton,
-        isActive 
-          ? [styles.headerTabButtonActive, { borderColor: isDark ? 'rgba(255, 255, 255, 0.8)' : colors.primary }]
-          : [styles.headerTabButtonInactive, { backgroundColor: isDark ? '#2a2a2a' : colors.card, borderColor: isDark ? '#2a2a2a' : colors.cardBorder }],
+        isActive
+          ? [styles.headerTabButtonActive, { borderColor: palette.text }]
+          : [styles.headerTabButtonInactive, { backgroundColor: palette.surfaceAlt }],
       ]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text style={[
-        styles.headerTabButtonText,
-        isActive 
-          ? { color: isDark ? '#FFFFFF' : colors.primary }
-          : { color: isDark ? 'rgba(255, 255, 255, 0.9)' : colors.textSecondary },
-      ]}>
+      <Text style={[styles.headerTabButtonText, { color: isActive ? palette.text : palette.textMuted }]}>
         {label}
       </Text>
     </TouchableOpacity>
   );
 });
 
-const FilterChip = memo(function FilterChip({
+const FilterPill = memo(function FilterPill({
   label,
   isActive,
   onPress,
-  colors,
+  palette,
 }: {
   label: string;
   isActive: boolean;
   onPress: () => void;
-  colors: any;
+  palette: ReturnType<typeof getPalette>;
 }) {
   return (
     <TouchableOpacity
       style={[
-        styles.filterChip,
-        { backgroundColor: colors.card, borderColor: colors.cardBorder },
-        isActive && { backgroundColor: colors.primaryLight, borderColor: colors.primaryBorder },
+        styles.filterPill,
+        {
+          backgroundColor: isActive ? palette.primary : palette.surfaceAlt,
+          borderColor: isActive ? palette.primary : 'transparent',
+        },
       ]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text style={[
-        styles.filterChipText,
-        { color: colors.textSecondary },
-        isActive && { color: colors.primary, fontWeight: '600' },
-      ]}>
+      <Text style={[styles.filterPillText, { color: isActive ? '#FFFFFF' : palette.textMuted }]}>
         {label}
       </Text>
+    </TouchableOpacity>
+  );
+});
+
+const CityCard = memo(function CityCard({
+  city,
+  isActive,
+  onPress,
+  palette,
+}: {
+  city: typeof cities[0];
+  isActive: boolean;
+  onPress: () => void;
+  palette: ReturnType<typeof getPalette>;
+}) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.cityCard,
+        isActive && { borderColor: palette.primary, borderWidth: 2 },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <Image source={{ uri: city.image }} style={styles.cityImage} />
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.85)']}
+        style={styles.cityGradient}
+      />
+      {city.id === 'all' ? (
+        <View style={styles.cityAllOverlay}>
+          <Text style={styles.cityAllText}>All{'\n'}Cities</Text>
+        </View>
+      ) : (
+        <View style={styles.cityLabelWrap}>
+          <Text style={styles.cityLabel}>{city.label}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 });
 
 const EventCard = memo(function EventCard({
   event,
-  colors,
+  palette,
   onViewDetails,
   onRegister,
 }: {
   event: typeof mockEvents[0];
-  colors: any;
+  palette: ReturnType<typeof getPalette>;
   onViewDetails: () => void;
   onRegister: () => void;
 }) {
+  const badgeTone = getBadgeTone(event.badge?.tone || 'primary', palette);
+
   return (
-    <View style={[styles.eventCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-      <Image source={{ uri: event.image }} style={styles.eventImage} />
+    <View style={[styles.eventCard, { backgroundColor: palette.surface, borderColor: palette.cardBorder }]}>
+      <View style={styles.eventImageWrap}>
+        <Image source={{ uri: event.image }} style={styles.eventImage} />
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.9)']}
+          style={styles.eventImageGradient}
+        />
+        <View style={[styles.eventBadge, { backgroundColor: badgeTone.bg, borderColor: badgeTone.border }]}>
+          <Text style={[styles.eventBadgeText, { color: badgeTone.text }]}>{event.badge?.label}</Text>
+        </View>
+      </View>
       <View style={styles.eventContent}>
-        <View style={styles.eventHeader}>
-          <View style={[styles.hostBadge, { backgroundColor: colors.primaryLight }]}>
-            <Text style={[styles.hostBadgeText, { color: colors.primary }]}>{event.host}</Text>
+        <View style={styles.eventMetaRow}>
+          <View style={[styles.eventHostPill, { backgroundColor: palette.primarySoft }]}>
+            <Text style={[styles.eventHostText, { color: palette.primary }]}>{event.host}</Text>
           </View>
-          <View style={[styles.locationBadge, { backgroundColor: event.isOnline ? colors.emeraldLight : colors.card, borderColor: colors.cardBorder }]}>
-            <Feather name={event.isOnline ? 'video' : 'map-pin'} size={12} color={event.isOnline ? colors.emerald : colors.textSecondary} />
-            <Text style={[styles.locationText, { color: event.isOnline ? colors.emerald : colors.textSecondary }]}>
-              {event.isOnline ? 'Online' : event.location}
-            </Text>
+          <View style={[styles.eventLocationPill, { backgroundColor: palette.surfaceAlt, borderColor: palette.border }]}>
+            <Feather name="map-pin" size={12} color={palette.textMuted} />
+            <Text style={[styles.eventLocationText, { color: palette.textMuted }]}>{event.location}</Text>
           </View>
         </View>
-        <Text style={[styles.eventTitle, { color: colors.text }]} numberOfLines={2}>{event.title}</Text>
-        <View style={styles.eventDateTime}>
-          <Feather name="calendar" size={14} color={colors.textMuted} />
-          <Text style={[styles.eventDateTimeText, { color: colors.textMuted }]}>{event.date} at {event.time}</Text>
+        <Text style={[styles.eventTitle, { color: palette.text }]} numberOfLines={2}>{event.title}</Text>
+        <View style={styles.eventDateRow}>
+          <Feather name="calendar" size={14} color={palette.primary} />
+          <Text style={[styles.eventDateText, { color: palette.textMuted }]}>{event.date} • {event.time}</Text>
         </View>
-        <Text style={[styles.eventDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+        <Text style={[styles.eventDescription, { color: palette.textMuted }]} numberOfLines={2}>
           {event.description}
         </Text>
         <View style={styles.eventActions}>
-          <TouchableOpacity style={[styles.eventBtn, { backgroundColor: colors.primary }]} onPress={onRegister}>
-            <Text style={styles.eventBtnText}>Register</Text>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: palette.primary }]} onPress={onRegister}>
+            <Text style={styles.primaryButtonText}>Register Now</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.eventBtnOutline, { borderColor: colors.cardBorder }]} onPress={onViewDetails}>
-            <Text style={[styles.eventBtnOutlineText, { color: colors.text }]}>View Details</Text>
+          <TouchableOpacity
+            style={[styles.secondaryButton, { backgroundColor: palette.surfaceAlt, borderColor: palette.border }]}
+            onPress={onViewDetails}
+          >
+            <Text style={[styles.secondaryButtonText, { color: palette.text }]}>View Details</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -365,50 +301,50 @@ const EventCard = memo(function EventCard({
 
 const PerkCard = memo(function PerkCard({
   perk,
-  colors,
+  palette,
   onRedeem,
   onLearnMore,
 }: {
   perk: typeof mockPerks[0];
-  colors: any;
+  palette: ReturnType<typeof getPalette>;
   onRedeem: () => void;
   onLearnMore: () => void;
 }) {
   const [logoError, setLogoError] = useState(false);
 
   return (
-    <View style={[styles.perkCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+    <View style={[styles.perkCard, { backgroundColor: palette.surface, borderColor: palette.cardBorder }]}>
       <View style={styles.perkHeader}>
-        <View style={[styles.perkLogo, { backgroundColor: '#ffffff' }]}>
+        <View style={[styles.perkLogo, { backgroundColor: palette.surfaceAlt }]}>
           {perk.logo && !logoError ? (
-            <Image 
-              source={{ uri: perk.logo }} 
-              style={styles.perkLogoImage} 
+            <Image
+              source={{ uri: perk.logo }}
+              style={styles.perkLogoImage}
               onError={() => setLogoError(true)}
             />
           ) : (
-            <Text style={styles.perkLogoText}>{perk.partner.charAt(0)}</Text>
+            <Text style={[styles.perkLogoText, { color: palette.text }]}>{perk.partner.charAt(0)}</Text>
           )}
         </View>
         <View style={styles.perkInfo}>
-          <Text style={[styles.perkPartner, { color: colors.textSecondary }]}>{perk.partner}</Text>
-          <Text style={[styles.perkName, { color: colors.text }]} numberOfLines={1}>{perk.name}</Text>
+          <Text style={[styles.perkPartner, { color: palette.textMuted }]}>{perk.partner}</Text>
+          <Text style={[styles.perkName, { color: palette.text }]} numberOfLines={1}>{perk.name}</Text>
         </View>
       </View>
-      <Text style={[styles.perkDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+      <Text style={[styles.perkDescription, { color: palette.textMuted }]} numberOfLines={2}>
         {perk.description}
       </Text>
       <View style={styles.perkFooter}>
         <View style={styles.perkValidity}>
-          <Feather name="clock" size={12} color={colors.textMuted} />
-          <Text style={[styles.perkValidityText, { color: colors.textMuted }]}>{perk.validity}</Text>
+          <Feather name="clock" size={12} color={palette.textMuted} />
+          <Text style={[styles.perkValidityText, { color: palette.textMuted }]}>{perk.validity}</Text>
         </View>
         <View style={styles.perkActions}>
-          <TouchableOpacity style={[styles.perkBtn, { backgroundColor: colors.primary }]} onPress={onRedeem}>
+          <TouchableOpacity style={[styles.perkBtn, { backgroundColor: palette.primary }]} onPress={onRedeem}>
             <Text style={styles.perkBtnText}>Redeem</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onLearnMore}>
-            <Text style={[styles.perkLearnMore, { color: colors.primary }]}>Learn more</Text>
+            <Text style={[styles.perkLearnMore, { color: palette.primary }]}>Learn more</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -416,87 +352,45 @@ const PerkCard = memo(function PerkCard({
   );
 });
 
-const CityCard = memo(function CityCard({
-  city,
-  isActive,
-  onPress,
-  colors,
-}: {
-  city: typeof cities[0];
-  isActive: boolean;
-  onPress: () => void;
-  colors: any;
-}) {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.cityCard,
-        isActive && { borderColor: colors.primary, borderWidth: 2 },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Image source={{ uri: city.image }} style={styles.cityImage} />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.8)']}
-        style={styles.cityGradient}
-      />
-      <Text style={[styles.cityLabel, isActive && { color: colors.primary }]}>{city.label}</Text>
-    </TouchableOpacity>
-  );
-});
-
 const NewsCard = memo(function NewsCard({
   news,
-  colors,
+  palette,
   onReadMore,
 }: {
   news: typeof mockNews[0];
-  colors: any;
+  palette: ReturnType<typeof getPalette>;
   onReadMore: () => void;
 }) {
-  const getTagColor = (tag: string) => {
-    switch (tag) {
-      case 'Product Update':
-        return { bg: colors.primaryLight, text: colors.primary };
-      case 'Campaign':
-        return { bg: colors.emeraldLight, text: colors.emerald };
-      case 'Industry':
-        return { bg: 'rgba(19, 55, 236, 0.15)', text: '#1337ec' };
-      default:
-        return { bg: colors.card, text: colors.textSecondary };
-    }
-  };
-
-  const tagColors = getTagColor(news.tag);
+  const tagColors = getTagTone(news.tag, palette);
 
   return (
-    <View style={[styles.newsCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+    <View style={[styles.newsCard, { backgroundColor: palette.surface, borderColor: palette.cardBorder }]}>
       <View style={styles.newsHeader}>
         <View style={[styles.newsTag, { backgroundColor: tagColors.bg }]}>
           <Text style={[styles.newsTagText, { color: tagColors.text }]}>{news.tag}</Text>
         </View>
-        <Text style={[styles.newsDate, { color: colors.textMuted }]}>{news.date}</Text>
+        <Text style={[styles.newsDate, { color: palette.textMuted }]}>{news.date}</Text>
       </View>
-      <Text style={[styles.newsTitle, { color: colors.text }]} numberOfLines={2}>{news.title}</Text>
-      <Text style={[styles.newsSource, { color: colors.textSecondary }]}>By {news.source}</Text>
-      <Text style={[styles.newsSummary, { color: colors.textSecondary }]} numberOfLines={3}>
+      <Text style={[styles.newsTitle, { color: palette.text }]} numberOfLines={2}>{news.title}</Text>
+      <Text style={[styles.newsSource, { color: palette.textMuted }]}>By {news.source}</Text>
+      <Text style={[styles.newsSummary, { color: palette.textMuted }]} numberOfLines={3}>
         {news.summary}
       </Text>
       <TouchableOpacity style={styles.newsReadMore} onPress={onReadMore}>
-        <Text style={[styles.newsReadMoreText, { color: colors.primary }]}>Read more</Text>
-        <Feather name="arrow-right" size={14} color={colors.primary} />
+        <Text style={[styles.newsReadMoreText, { color: palette.primary }]}>Read more</Text>
+        <Feather name="arrow-right" size={14} color={palette.primary} />
       </TouchableOpacity>
     </View>
   );
 });
 
 export default function MoreScreen() {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const router = useRouter();
+  const palette = getPalette(isDark);
+
   const [selectedTab, setSelectedTab] = useState('events');
   const [eventTimeFilter, setEventTimeFilter] = useState('upcoming');
-  const [eventHostFilter, setEventHostFilter] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
   const [perkCategory, setPerkCategory] = useState('all');
   const [perkSearch, setPerkSearch] = useState('');
@@ -505,12 +399,16 @@ export default function MoreScreen() {
 
   const filteredEvents = useMemo(() => {
     return mockEvents.filter(event => {
-      const timeMatch = eventTimeFilter === 'upcoming' ? !event.isPast : event.isPast;
-      const hostMatch = eventHostFilter === 'all' || event.hostType === eventHostFilter;
-      const cityMatch = selectedCity === 'all' || event.city === selectedCity || (selectedCity === 'online' && event.isOnline);
-      return timeMatch && hostMatch && cityMatch;
+      if (eventTimeFilter === 'past') {
+        return event.isPast;
+      }
+      if (eventTimeFilter === 'saved') {
+        return event.isSaved;
+      }
+      const cityMatch = selectedCity === 'all' || event.city === selectedCity;
+      return !event.isPast && cityMatch;
     });
-  }, [eventTimeFilter, eventHostFilter, selectedCity]);
+  }, [eventTimeFilter, selectedCity]);
 
   const filteredPerks = useMemo(() => {
     let perks = mockPerks;
@@ -519,7 +417,7 @@ export default function MoreScreen() {
     }
     if (perkSearch.trim()) {
       const query = perkSearch.toLowerCase();
-      perks = perks.filter(perk => 
+      perks = perks.filter(perk =>
         perk.name.toLowerCase().includes(query) ||
         perk.partner.toLowerCase().includes(query) ||
         perk.description.toLowerCase().includes(query)
@@ -535,7 +433,7 @@ export default function MoreScreen() {
     }
     if (newsSearch.trim()) {
       const query = newsSearch.toLowerCase();
-      news = news.filter(n => 
+      news = news.filter(n =>
         n.title.toLowerCase().includes(query) ||
         n.source.toLowerCase().includes(query) ||
         n.summary.toLowerCase().includes(query)
@@ -544,85 +442,92 @@ export default function MoreScreen() {
     return news;
   }, [newsFilter, newsSearch]);
 
+  const isEventsTab = selectedTab === 'events';
+  const stickyHeaderIndices = isEventsTab ? [1] : [];
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
-        <TouchableOpacity onPress={() => router.push('/profile')} activeOpacity={0.7}>
-          <Avatar size={30} name="User" />
-        </TouchableOpacity>
-        <View style={styles.headerTabsContainer}>
-          {headerTabs.map((tab) => (
-            <HeaderTabButton
-              key={tab.id}
-              label={tab.label}
-              isActive={selectedTab === tab.id}
-              onPress={() => setSelectedTab(tab.id)}
-              colors={colors}
-              isDark={isDark}
-            />
-          ))}
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: palette.background, borderColor: palette.border }]}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={[styles.brandBadge, { backgroundColor: palette.surfaceAlt }]} onPress={() => router.push('/profile')}>
+            <Text style={[styles.brandBadgeText, { color: palette.primary }]}>CX</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: palette.text }]}>Community Hub</Text>
         </View>
+        <TouchableOpacity style={styles.searchButton} activeOpacity={0.7}>
+          <Feather name="search" size={18} color={palette.textMuted} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView} 
+      <View style={styles.topTabs}>
+        {headerTabs.map(tab => (
+          <TopTabButton
+            key={tab.id}
+            label={tab.label}
+            isActive={selectedTab === tab.id}
+            onPress={() => setSelectedTab(tab.id)}
+            palette={palette}
+          />
+        ))}
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        stickyHeaderIndices={stickyHeaderIndices}
       >
-        {selectedTab === 'events' && (
+        {isEventsTab && (
           <>
-            <View style={styles.citiesSection}>
-              <Text style={[styles.citiesSectionTitle, { color: colors.text }]}>CITIES</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.citiesScroll}>
-                {cities.map((city) => (
+            <View style={styles.citySection}>
+              <View style={styles.cityHeader}>
+                <Text style={[styles.cityTitle, { color: palette.textMuted }]}>EXPLORE BY CITY</Text>
+                <TouchableOpacity activeOpacity={0.7}>
+                  <Text style={[styles.cityLink, { color: palette.primary }]}>View Map</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cityScroll}>
+                {cities.map(city => (
                   <CityCard
                     key={city.id}
                     city={city}
                     isActive={selectedCity === city.id}
                     onPress={() => setSelectedCity(city.id)}
-                    colors={colors}
+                    palette={palette}
                   />
                 ))}
               </ScrollView>
             </View>
-            <View style={styles.filtersContainer}>
+
+            <View style={[styles.filtersSticky, { backgroundColor: palette.background, borderColor: palette.border }]}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-                {eventTimeFilters.map((filter) => (
-                  <FilterChip
+                {eventTimeFilters.map(filter => (
+                  <FilterPill
                     key={filter.id}
                     label={filter.label}
                     isActive={eventTimeFilter === filter.id}
                     onPress={() => setEventTimeFilter(filter.id)}
-                    colors={colors}
-                  />
-                ))}
-                <View style={[styles.filterDivider, { backgroundColor: colors.cardBorder }]} />
-                {eventHostFilters.map((filter) => (
-                  <FilterChip
-                    key={filter.id}
-                    label={filter.label}
-                    isActive={eventHostFilter === filter.id}
-                    onPress={() => setEventHostFilter(filter.id)}
-                    colors={colors}
+                    palette={palette}
                   />
                 ))}
               </ScrollView>
             </View>
+
             <View style={styles.section}>
               {filteredEvents.length > 0 ? (
-                filteredEvents.map((event) => (
+                filteredEvents.map(event => (
                   <EventCard
                     key={event.id}
                     event={event}
-                    colors={colors}
-                    onViewDetails={() => {}}
+                    palette={palette}
+                    onViewDetails={() => router.push('/event-details')}
                     onRegister={() => {}}
                   />
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Feather name="calendar" size={48} color={colors.textMuted} />
-                  <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>No events found</Text>
+                  <Feather name="calendar" size={44} color={palette.textMuted} />
+                  <Text style={[styles.emptyStateText, { color: palette.textMuted }]}>No events found</Text>
                 </View>
               )}
             </View>
@@ -632,50 +537,50 @@ export default function MoreScreen() {
         {selectedTab === 'perks' && (
           <>
             <View style={styles.searchContainer}>
-              <View style={[styles.searchBar, { backgroundColor: '#FFFFFF' }]}>
-                <Feather name="search" size={20} color="#1a1a1a" />
+              <View style={[styles.searchBar, { backgroundColor: palette.surface }]}>
+                <Feather name="search" size={18} color={palette.textMuted} />
                 <TextInput
-                  style={[styles.searchInput, { color: '#1a1a1a' }]}
+                  style={[styles.searchInput, { color: palette.text }]}
                   placeholder="Search perks, partners..."
-                  placeholderTextColor="rgba(0,0,0,0.5)"
+                  placeholderTextColor={palette.textMuted}
                   value={perkSearch}
                   onChangeText={setPerkSearch}
                 />
                 {perkSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setPerkSearch('')}>
-                    <Feather name="x" size={18} color="#1a1a1a" />
+                    <Feather name="x" size={18} color={palette.textMuted} />
                   </TouchableOpacity>
                 )}
               </View>
             </View>
-            <View style={styles.filtersContainer}>
+            <View style={styles.filtersInline}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-                {perkCategories.map((category) => (
-                  <FilterChip
+                {perkCategories.map(category => (
+                  <FilterPill
                     key={category.id}
                     label={category.label}
                     isActive={perkCategory === category.id}
                     onPress={() => setPerkCategory(category.id)}
-                    colors={colors}
+                    palette={palette}
                   />
                 ))}
               </ScrollView>
             </View>
             <View style={styles.section}>
               {filteredPerks.length > 0 ? (
-                filteredPerks.map((perk) => (
+                filteredPerks.map(perk => (
                   <PerkCard
                     key={perk.id}
                     perk={perk}
-                    colors={colors}
+                    palette={palette}
                     onRedeem={() => {}}
                     onLearnMore={() => {}}
                   />
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Feather name="gift" size={48} color={colors.textMuted} />
-                  <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>No perks found</Text>
+                  <Feather name="gift" size={44} color={palette.textMuted} />
+                  <Text style={[styles.emptyStateText, { color: palette.textMuted }]}>No perks found</Text>
                 </View>
               )}
             </View>
@@ -685,49 +590,49 @@ export default function MoreScreen() {
         {selectedTab === 'news' && (
           <>
             <View style={styles.searchContainer}>
-              <View style={[styles.searchBar, { backgroundColor: '#FFFFFF' }]}>
-                <Feather name="search" size={20} color="#1a1a1a" />
+              <View style={[styles.searchBar, { backgroundColor: palette.surface }]}>
+                <Feather name="search" size={18} color={palette.textMuted} />
                 <TextInput
-                  style={[styles.searchInput, { color: '#1a1a1a' }]}
+                  style={[styles.searchInput, { color: palette.text }]}
                   placeholder="Search news, updates..."
-                  placeholderTextColor="rgba(0,0,0,0.5)"
+                  placeholderTextColor={palette.textMuted}
                   value={newsSearch}
                   onChangeText={setNewsSearch}
                 />
                 {newsSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setNewsSearch('')}>
-                    <Feather name="x" size={18} color="#1a1a1a" />
+                    <Feather name="x" size={18} color={palette.textMuted} />
                   </TouchableOpacity>
                 )}
               </View>
             </View>
-            <View style={styles.filtersContainer}>
+            <View style={styles.filtersInline}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-                {newsFilters.map((filter) => (
-                  <FilterChip
+                {newsFilters.map(filter => (
+                  <FilterPill
                     key={filter.id}
                     label={filter.label}
                     isActive={newsFilter === filter.id}
                     onPress={() => setNewsFilter(filter.id)}
-                    colors={colors}
+                    palette={palette}
                   />
                 ))}
               </ScrollView>
             </View>
             <View style={styles.section}>
               {filteredNews.length > 0 ? (
-                filteredNews.map((news) => (
+                filteredNews.map(news => (
                   <NewsCard
                     key={news.id}
                     news={news}
-                    colors={colors}
+                    palette={palette}
                     onReadMore={() => {}}
                   />
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Feather name="file-text" size={48} color={colors.textMuted} />
-                  <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>No news found</Text>
+                  <Feather name="file-text" size={44} color={palette.textMuted} />
+                  <Text style={[styles.emptyStateText, { color: palette.textMuted }]}>No news found</Text>
                 </View>
               )}
             </View>
@@ -738,126 +643,173 @@ export default function MoreScreen() {
   );
 }
 
+function getPalette(isDark: boolean) {
+  return isDark
+    ? {
+        background: '#000000',
+        surface: '#111111',
+        surfaceAlt: '#1E1E1E',
+        text: '#FFFFFF',
+        textMuted: '#A3A3A3',
+        textSubtle: '#737373',
+        primary: '#0047FF',
+        primarySoft: 'rgba(0, 71, 255, 0.2)',
+        border: 'rgba(255, 255, 255, 0.08)',
+        cardBorder: 'rgba(255, 255, 255, 0.1)',
+      }
+    : {
+        background: '#F3F4F6',
+        surface: '#FFFFFF',
+        surfaceAlt: '#E5E7EB',
+        text: '#0F172A',
+        textMuted: '#64748B',
+        textSubtle: '#94A3B8',
+        primary: '#0047FF',
+        primarySoft: 'rgba(0, 71, 255, 0.15)',
+        border: 'rgba(15, 23, 42, 0.08)',
+        cardBorder: 'rgba(15, 23, 42, 0.08)',
+      };
+}
+
+function getBadgeTone(tone: string, palette: ReturnType<typeof getPalette>) {
+  if (tone === 'warning') {
+    return {
+      bg: 'rgba(249, 115, 22, 0.2)',
+      border: 'rgba(249, 115, 22, 0.3)',
+      text: '#FB923C',
+    };
+  }
+  if (tone === 'neutral') {
+    return {
+      bg: 'rgba(0, 0, 0, 0.4)',
+      border: 'rgba(255, 255, 255, 0.1)',
+      text: '#E5E7EB',
+    };
+  }
+  return {
+    bg: 'rgba(0, 0, 0, 0.6)',
+    border: 'rgba(255, 255, 255, 0.12)',
+    text: palette.text,
+  };
+}
+
+function getTagTone(tag: string, palette: ReturnType<typeof getPalette>) {
+  switch (tag) {
+    case 'Product Update':
+      return { bg: palette.primarySoft, text: palette.primary };
+    case 'Campaign':
+      return { bg: 'rgba(16, 185, 129, 0.18)', text: '#34D399' };
+    case 'Industry':
+      return { bg: 'rgba(99, 102, 241, 0.2)', text: '#818CF8' };
+    default:
+      return { bg: palette.surfaceAlt, text: palette.textMuted };
+  }
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  stickyHeader: {
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    gap: spacing.md,
-    zIndex: 100,
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
   },
-  headerTabsContainer: {
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 10,
   },
-  headerTabButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 50,
+  brandBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  brandBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  searchButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topTabs: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 6,
+  },
+  headerTabButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
   headerTabButtonActive: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   headerTabButtonInactive: {
-    backgroundColor: '#2a2a2a',
-    borderWidth: 1.5,
-    borderColor: '#2a2a2a',
+    borderColor: 'transparent',
   },
   headerTabButtonText: {
     fontSize: 13,
-    fontWeight: '500',
-  },
-  headerTabButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  headerTabButtonTextInactive: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
-  filtersContainer: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
+  citySection: {
+    paddingTop: 8,
+    paddingBottom: 6,
   },
-  filtersScroll: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-  },
-  filterChipText: {
-    fontSize: 13,
-  },
-  filterDivider: {
-    width: 1,
-    height: 24,
-    marginHorizontal: spacing.xs,
-  },
-  section: {
-    paddingHorizontal: spacing.lg,
-  },
-  searchContainer: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  searchBar: {
+  cityHeader: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    height: 48,
+    justifyContent: 'space-between',
   },
-  searchInput: {
-    flex: 1,
-    marginLeft: spacing.sm,
-    fontSize: 15,
-    fontWeight: '400',
+  cityTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
-  citiesSection: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  citiesSectionTitle: {
+  cityLink: {
     fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 1,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
   },
-  citiesScroll: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
+  cityScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
   },
   cityCard: {
-    width: (screenWidth - spacing.lg * 2 - spacing.md * 2) / 3,
-    height: 100,
-    borderRadius: borderRadius.lg,
+    width: 110,
+    height: 110,
+    borderRadius: 18,
     overflow: 'hidden',
-    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   cityImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   cityGradient: {
     position: 'absolute',
@@ -866,158 +818,251 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: '60%',
   },
-  cityLabel: {
+  cityAllOverlay: {
     position: 'absolute',
-    bottom: spacing.sm,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  cityAllText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  cityLabelWrap: {
+    position: 'absolute',
+    bottom: 10,
     left: 0,
     right: 0,
-    textAlign: 'center',
+    alignItems: 'center',
+  },
+  cityLabel: {
     color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  filtersSticky: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  filtersScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+  filterPillText: {
     fontSize: 12,
     fontWeight: '600',
   },
+  section: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
   eventCard: {
-    borderRadius: borderRadius.lg,
+    borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
-    marginBottom: spacing.md,
+    marginBottom: 18,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  eventImageWrap: {
+    height: 190,
+    overflow: 'hidden',
   },
   eventImage: {
     width: '100%',
-    height: 140,
-    resizeMode: 'cover',
+    height: '100%',
   },
-  eventContent: {
-    padding: spacing.md,
+  eventImageGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '70%',
   },
-  eventHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
+  eventBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
   },
-  hostBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.full,
-  },
-  hostBadgeText: {
+  eventBadgeText: {
     fontSize: 11,
     fontWeight: '600',
   },
-  locationBadge: {
+  eventContent: {
+    padding: 18,
+    paddingTop: 12,
+  },
+  eventMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  eventHostPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  eventHostText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  eventLocationPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: borderRadius.full,
+    borderRadius: 10,
     borderWidth: 1,
   },
-  locationText: {
+  eventLocationText: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   eventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 6,
   },
-  eventDateTime: {
+  eventDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
+    gap: 6,
+    marginBottom: 10,
   },
-  eventDateTimeText: {
-    fontSize: 12,
+  eventDateText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   eventDescription: {
     fontSize: 13,
     lineHeight: 18,
-    marginBottom: spacing.md,
+    marginBottom: 14,
   },
   eventActions: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: 12,
   },
-  eventBtn: {
+  primaryButton: {
     flex: 1,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    paddingVertical: 12,
+    borderRadius: 14,
     alignItems: 'center',
   },
-  eventBtnText: {
-    color: '#1a1a1a',
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
     fontSize: 13,
     fontWeight: '600',
   },
-  eventBtnOutline: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    alignItems: 'center',
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
-  eventBtnOutlineText: {
-    fontSize: 13,
-    fontWeight: '500',
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  filtersInline: {
+    paddingVertical: 10,
   },
   perkCard: {
-    borderRadius: borderRadius.lg,
+    borderRadius: 20,
     borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: 16,
+    marginBottom: 14,
   },
   perkHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.sm,
+    gap: 12,
+    marginBottom: 10,
   },
   perkLogo: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.md,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   perkLogoImage: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     resizeMode: 'contain',
   },
   perkLogoText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a1a',
   },
   perkInfo: {
     flex: 1,
   },
   perkPartner: {
-    fontSize: 12,
+    fontSize: 11,
     marginBottom: 2,
   },
   perkName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   perkDescription: {
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 18,
-    marginBottom: spacing.md,
+    marginBottom: 12,
   },
   perkFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   perkValidity: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   perkValidityText: {
     fontSize: 11,
@@ -1025,70 +1070,70 @@ const styles = StyleSheet.create({
   perkActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 10,
   },
   perkBtn: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: borderRadius.md,
+    borderRadius: 10,
   },
   perkBtnText: {
-    color: '#1a1a1a',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
   perkLearnMore: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   newsCard: {
-    borderRadius: borderRadius.lg,
+    borderRadius: 20,
     borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: 16,
+    marginBottom: 14,
   },
   newsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   newsTag: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: borderRadius.full,
+    borderRadius: 999,
   },
   newsTagText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   newsDate: {
     fontSize: 11,
   },
   newsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 4,
   },
   newsSource: {
-    fontSize: 12,
-    marginBottom: spacing.sm,
+    fontSize: 11,
+    marginBottom: 8,
   },
   newsSummary: {
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 18,
-    marginBottom: spacing.md,
+    marginBottom: 12,
   },
   newsReadMore: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   newsReadMoreText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
@@ -1096,7 +1141,8 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyStateText: {
-    fontSize: 14,
-    marginTop: spacing.md,
+    fontSize: 13,
+    marginTop: 10,
+    fontWeight: '500',
   },
 });

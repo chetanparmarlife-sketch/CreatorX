@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, Alert, StyleSheet, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spacing, borderRadius } from '@/src/theme';
 import { Avatar } from '@/src/components';
 import { useApp } from '@/src/context';
 import { useTheme } from '@/src/hooks';
 
-const socialAccounts = [
+const STORAGE_KEYS = {
+  CREATOR_PROFILE: '@creator_profile',
+  SOCIAL_ACCOUNTS: '@creator_social_accounts',
+  COMMERCIAL_PROFILE: '@creator_commercial_profile',
+};
+
+const defaultSocialAccounts = [
   { 
     platform: 'Instagram', 
     handle: '@alexcreators', 
@@ -34,6 +41,7 @@ const socialAccounts = [
 ];
 
 const creatorToolkit = [
+  { icon: 'file-text', label: 'Media Kit', subtitle: 'Your profile, socials & pricing', action: 'media-kit', iconBg: 'rgba(37, 99, 235, 0.12)', iconColor: '#2563eb' },
   { icon: 'gift', label: 'Refer and Earn', subtitle: 'Invite creators & earn bonuses', action: 'refer', iconBg: 'rgba(236, 72, 153, 0.1)', iconColor: '#ec4899' },
   { icon: 'bookmark', label: 'Saved Campaigns', subtitle: 'View your bookmarked briefs', action: 'saved', iconBg: 'rgba(249, 115, 22, 0.1)', iconColor: '#f97316' },
   { icon: 'folder', label: 'My Docs', subtitle: 'Contracts, Tax forms & Invoices', action: 'documents', iconBg: 'rgba(6, 182, 212, 0.1)', iconColor: '#06b6d4' },
@@ -49,10 +57,32 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, darkMode, toggleDarkMode } = useApp();
   const { colors, isDark } = useTheme();
+
+  const backgroundColor = isDark ? '#000000' : colors.background;
+  const cardColor = isDark ? '#121212' : colors.card;
+  const surfaceColor = isDark ? '#1E1E1E' : colors.card;
+  const borderColor = isDark ? '#272727' : colors.cardBorder;
+  const mutedText = isDark ? '#94a3b8' : colors.textMuted;
+  const secondaryText = isDark ? '#9ca3af' : colors.textSecondary;
   
   const [fullName, setFullName] = useState(user.name);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [city, setCity] = useState('');
   const [bio, setBio] = useState('Digital creator focused on lifestyle, tech, and modern living. Creating content that inspires.');
   const [email, setEmail] = useState('alex@creatorx.com');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedPlatform, setSelectedPlatform] = useState('instagram');
+  const [socialHandle, setSocialHandle] = useState('');
+  const [followerCount, setFollowerCount] = useState('');
+  const [connectedAccounts, setConnectedAccounts] = useState(defaultSocialAccounts);
+  const [pricing, setPricing] = useState({
+    reel: '',
+    story: '',
+    post: '',
+    youtube: '',
+    short: '',
+    live: '',
+  });
   
   const [preferences, setPreferences] = useState({
     pushNotifications: true,
@@ -64,8 +94,117 @@ export default function ProfileScreen() {
     setPreferences(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const creatorProfile = {
+      fullName: fullName.trim(),
+      phoneNumber: phoneNumber.trim(),
+      city: city.trim(),
+      bio: bio.trim(),
+      email: email.trim(),
+      category: selectedCategories.join(', '),
+      primaryPlatform: selectedPlatform,
+      socialHandle: socialHandle.trim(),
+      followerCount: followerCount.trim() ? parseInt(followerCount, 10) : 0,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const commercialProfile = {
+      reelRate: pricing.reel.trim() || null,
+      storyRate: pricing.story.trim() || null,
+      postRate: pricing.post.trim() || null,
+      youtubeRate: pricing.youtube.trim() || null,
+      shortRate: pricing.short.trim() || null,
+      liveRate: pricing.live.trim() || null,
+    };
+
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEYS.CREATOR_PROFILE, JSON.stringify(creatorProfile)),
+      AsyncStorage.setItem(STORAGE_KEYS.COMMERCIAL_PROFILE, JSON.stringify(commercialProfile)),
+      AsyncStorage.setItem(STORAGE_KEYS.SOCIAL_ACCOUNTS, JSON.stringify(connectedAccounts)),
+    ]);
+
     Alert.alert('Saved', 'Your profile has been updated.');
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateProfile = async () => {
+      const [creatorRaw, socialRaw, commercialRaw] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.CREATOR_PROFILE),
+        AsyncStorage.getItem(STORAGE_KEYS.SOCIAL_ACCOUNTS),
+        AsyncStorage.getItem(STORAGE_KEYS.COMMERCIAL_PROFILE),
+      ]);
+
+      if (!isMounted) return;
+
+      if (creatorRaw) {
+        const creator = JSON.parse(creatorRaw);
+        setFullName(creator.fullName || user.name);
+        setPhoneNumber(creator.phoneNumber || '');
+        setCity(creator.city || '');
+        setBio(creator.bio || bio);
+        setEmail(creator.email || email);
+        setSelectedCategories(
+          typeof creator.category === 'string' && creator.category.length
+            ? creator.category.split(',').map((item: string) => item.trim()).filter(Boolean)
+            : []
+        );
+        setSelectedPlatform(creator.primaryPlatform || 'instagram');
+        setSocialHandle(creator.socialHandle || '');
+        setFollowerCount(creator.followerCount ? String(creator.followerCount) : '');
+      }
+
+      if (commercialRaw) {
+        const commercial = JSON.parse(commercialRaw);
+        setPricing({
+          reel: commercial.reelRate || '',
+          story: commercial.storyRate || '',
+          post: commercial.postRate || '',
+          youtube: commercial.youtubeRate || '',
+          short: commercial.shortRate || '',
+          live: commercial.liveRate || '',
+        });
+      }
+
+      if (socialRaw) {
+        const stored = JSON.parse(socialRaw);
+        if (Array.isArray(stored)) {
+          const mapped = stored.map((account: any) => {
+            const id = account.id || account.platform?.toLowerCase() || '';
+            const status = account.status === 'connected' || account.connected;
+            return {
+              platform: account.name || account.platform || 'Social',
+              handle: status ? account.handle || '@creator_official' : 'Not connected',
+              connected: status,
+              gradient: id === 'instagram' ? (['#f09433', '#e6683c', '#dc2743', '#cc2366', '#bc1888'] as const) : undefined,
+              bgColor: id === 'tiktok' ? '#000000' : id === 'youtube' ? '#FF0000' : '#0f172a',
+            };
+          });
+          setConnectedAccounts(mapped.length ? mapped : defaultSocialAccounts);
+        }
+      }
+    };
+
+    hydrateProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user.name]);
+
+  const handleAccountToggle = (platform: string) => {
+    setConnectedAccounts((prev) =>
+      prev.map((account) =>
+        account.platform === platform
+          ? {
+              ...account,
+              connected: !account.connected,
+              handle: account.connected ? 'Not connected' : account.handle || '@creator_official',
+            }
+          : account
+      )
+    );
   };
 
   const handleLogout = () => {
@@ -77,8 +216,11 @@ export default function ProfileScreen() {
 
   const handleToolkitPress = (action: string) => {
     switch (action) {
+      case 'media-kit':
+        router.push('/media-kit');
+        break;
       case 'refer':
-        router.push('/refer');
+        router.push('/refer-earn');
         break;
       case 'saved':
         router.push('/saved');
@@ -90,10 +232,10 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: backgroundColor }]} edges={['top']}>
+      <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor: backgroundColor }]}>
         <TouchableOpacity 
-          style={styles.backButton} 
+          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)' }]} 
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
@@ -118,58 +260,79 @@ export default function ProfileScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.avatarGradient}
             >
-              <View style={[styles.avatarInner, { backgroundColor: colors.card, borderColor: colors.background }]}>
-                <Avatar size={88} name={user.name} imageUrl={user.avatarUri} />
+              <View style={[styles.avatarInner, { backgroundColor: cardColor, borderColor: backgroundColor }]}>
+                <Avatar size={88} name={fullName || user.name} imageUrl={user.avatarUri} />
               </View>
             </LinearGradient>
             <TouchableOpacity 
-              style={[styles.editAvatarButton, { backgroundColor: colors.primary, borderColor: colors.background }]}
+              style={[styles.editAvatarButton, { backgroundColor: colors.primary, borderColor: backgroundColor }]}
               activeOpacity={0.8}
             >
               <Feather name="edit-2" size={14} color="#ffffff" />
             </TouchableOpacity>
           </View>
-          <Text style={[styles.userName, { color: colors.text }]}>{user.name}</Text>
-          <Text style={[styles.userHandle, { color: colors.textSecondary }]}>{user.username}</Text>
+          <Text style={[styles.userName, { color: colors.text }]}>{fullName || user.name}</Text>
+          <Text style={[styles.userHandle, { color: secondaryText }]}>{socialHandle || user.username}</Text>
         </View>
 
         <View style={styles.section}>
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>PERSONAL INFO</Text>
+          <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
+            <Text style={[styles.sectionLabel, { color: mutedText }]}>PERSONAL INFO</Text>
             
             <View style={styles.formGroup}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Full Name</Text>
+              <Text style={[styles.inputLabel, { color: secondaryText }]}>Full Name</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: isDark ? '#1e1e1e' : '#f8fafc', color: colors.text }]}
+                style={[styles.input, { backgroundColor: surfaceColor, color: colors.text }]}
                 value={fullName}
                 onChangeText={setFullName}
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={mutedText}
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: secondaryText }]}>Phone Number</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: surfaceColor, color: colors.text }]}
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="Enter your phone"
+                placeholderTextColor={mutedText}
+                keyboardType="phone-pad"
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: secondaryText }]}>City</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: surfaceColor, color: colors.text }]}
+                value={city}
+                onChangeText={setCity}
+                placeholder="Enter your city"
+                placeholderTextColor={mutedText}
               />
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Bio</Text>
+              <Text style={[styles.inputLabel, { color: secondaryText }]}>Bio</Text>
               <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: isDark ? '#1e1e1e' : '#f8fafc', color: colors.text }]}
+                style={[styles.input, styles.textArea, { backgroundColor: surfaceColor, color: colors.text }]}
                 value={bio}
                 onChangeText={setBio}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={mutedText}
               />
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Email Address</Text>
-              <View style={[styles.inputWithIcon, { backgroundColor: isDark ? '#1e1e1e' : '#f8fafc' }]}>
-                <Feather name="mail" size={18} color={colors.textMuted} style={styles.inputIcon} />
+              <Text style={[styles.inputLabel, { color: secondaryText }]}>Email Address</Text>
+              <View style={[styles.inputWithIcon, { backgroundColor: surfaceColor }]}>
+                <Feather name="mail" size={18} color={mutedText} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.inputInner, { color: colors.text }]}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={mutedText}
                 />
               </View>
             </View>
@@ -177,14 +340,14 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>CONNECTED ACCOUNTS</Text>
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            {socialAccounts.map((account, index) => (
+          <Text style={[styles.sectionTitle, { color: mutedText }]}>CONNECTED ACCOUNTS</Text>
+          <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
+            {connectedAccounts.map((account, index) => (
               <View 
                 key={account.platform}
                 style={[
                   styles.accountItem,
-                  index < socialAccounts.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.cardBorder }
+                  index < connectedAccounts.length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor }
                 ]}
               >
                 <View style={styles.accountLeft}>
@@ -211,16 +374,16 @@ export default function ProfileScreen() {
                   </View>
                   <View>
                     <Text style={[styles.accountPlatform, { color: colors.text }]}>{account.platform}</Text>
-                    <Text style={[styles.accountHandle, { color: colors.textSecondary }]}>
+                    <Text style={[styles.accountHandle, { color: secondaryText }]}>
                       {account.connected ? `Connected as ${account.handle}` : account.handle}
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity activeOpacity={0.7}>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => handleAccountToggle(account.platform)}>
                   <Text style={[
                     styles.accountAction,
                     account.connected 
-                      ? { color: colors.textMuted }
+                      ? { color: mutedText }
                       : { color: colors.primary, fontWeight: '700' }
                   ]}>
                     {account.connected ? 'Disconnect' : 'Connect'}
@@ -232,14 +395,14 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>CREATOR TOOLKIT</Text>
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[styles.sectionTitle, { color: mutedText }]}>CREATOR TOOLKIT</Text>
+          <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             {creatorToolkit.map((item, index) => (
               <TouchableOpacity 
                 key={item.action}
                 style={[
                   styles.menuItem,
-                  index < creatorToolkit.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.cardBorder }
+                  index < creatorToolkit.length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor }
                 ]}
                 onPress={() => handleToolkitPress(item.action)}
                 activeOpacity={0.7}
@@ -250,7 +413,7 @@ export default function ProfileScreen() {
                   </View>
                   <View>
                     <Text style={[styles.menuItemLabel, { color: colors.text }]}>{item.label}</Text>
-                    <Text style={[styles.menuItemSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
+                    <Text style={[styles.menuItemSubtitle, { color: secondaryText }]}>{item.subtitle}</Text>
                   </View>
                 </View>
                 <Feather name="chevron-right" size={20} color={colors.textMuted} />
@@ -260,14 +423,14 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>APP PREFERENCES</Text>
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[styles.sectionTitle, { color: mutedText }]}>APP PREFERENCES</Text>
+          <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             {appPreferences.map((pref, index) => (
               <View 
                 key={pref.key}
                 style={[
                   styles.preferenceItem,
-                  index < appPreferences.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.cardBorder }
+                  index < appPreferences.length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor }
                 ]}
               >
                 <View style={styles.preferenceLeft}>
@@ -276,7 +439,7 @@ export default function ProfileScreen() {
                   </View>
                   <View>
                     <Text style={[styles.menuItemLabel, { color: colors.text }]}>{pref.label}</Text>
-                    <Text style={[styles.menuItemSubtitle, { color: colors.textSecondary }]}>{pref.subtitle}</Text>
+                    <Text style={[styles.menuItemSubtitle, { color: secondaryText }]}>{pref.subtitle}</Text>
                   </View>
                 </View>
                 <Switch
@@ -291,9 +454,9 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             <TouchableOpacity 
-              style={[styles.simpleMenuItem, { borderBottomWidth: 1, borderBottomColor: colors.cardBorder }]}
+              style={[styles.simpleMenuItem, { borderBottomWidth: 1, borderBottomColor: borderColor }]}
               onPress={() => router.push('/wallet')}
               activeOpacity={0.7}
             >
@@ -302,7 +465,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.simpleMenuItem, { borderBottomWidth: 1, borderBottomColor: colors.cardBorder }]}
+              style={[styles.simpleMenuItem, { borderBottomWidth: 1, borderBottomColor: borderColor }]}
               onPress={() => router.push('/help')}
               activeOpacity={0.7}
             >
@@ -322,7 +485,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.versionContainer}>
-          <Text style={[styles.versionText, { color: colors.textMuted }]}>Version 2.4.0 (Build 1024)</Text>
+          <Text style={[styles.versionText, { color: mutedText }]}>Version 2.4.0 (Build 1024)</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

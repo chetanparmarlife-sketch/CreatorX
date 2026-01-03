@@ -35,7 +35,7 @@ export default function CampaignDetailsScreen() {
   const [isSaved, setIsSaved] = useState(false);
 
   const handleApply = useCallback(() => {
-    router.push('/apply-campaign');
+    router.push('/apply-to-campaign');
   }, [router]);
 
   const handleShare = useCallback(() => {
@@ -46,8 +46,8 @@ export default function CampaignDetailsScreen() {
   }, [isSaved]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: isDark ? 'rgba(5, 5, 5, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#101322' : colors.background }]}>
+      <View style={[styles.header, { backgroundColor: isDark ? 'rgba(16, 19, 34, 0.85)' : 'rgba(255, 255, 255, 0.8)' }]}>
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={() => router.back()}
@@ -79,7 +79,7 @@ export default function CampaignDetailsScreen() {
             resizeMode="cover"
           />
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.5)', isDark ? '#050505' : '#ffffff']}
+            colors={['transparent', 'rgba(0,0,0,0.5)', isDark ? '#101322' : '#ffffff']}
             style={styles.heroGradient}
           />
           <View style={styles.heroContent}>
@@ -204,7 +204,7 @@ export default function CampaignDetailsScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      <View style={[styles.bottomCta, { backgroundColor: colors.background, borderTopColor: colors.cardBorder }]}>
+      <View style={[styles.bottomCta, { backgroundColor: isDark ? '#101322' : colors.background, borderTopColor: colors.cardBorder }]}>
         <TouchableOpacity 
           style={[styles.applyButton, { backgroundColor: colors.primary }]}
           onPress={handleApply}

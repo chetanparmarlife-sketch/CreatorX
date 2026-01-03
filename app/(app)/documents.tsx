@@ -1,310 +1,146 @@
-import { useState, useCallback, memo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
-} from 'react-native';
+import { useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import { colors, spacing, borderRadius, typography } from '@/src/theme';
-import { Button, Badge, EmptyState } from '@/src/components';
-import { useRefresh } from '@/src/hooks';
-import { useApp } from '@/src/context';
+import { useTheme } from '@/src/hooks';
 
-interface Document {
-  id: string;
-  name: string;
-  type: 'contract' | 'invoice' | 'identity' | 'other';
-  size: string;
-  date: string;
-  status: 'verified' | 'pending' | 'expired';
-}
-
-const mockDocuments: Document[] = [
-  {
-    id: '1',
-    name: 'Brand Agreement - StyleCo',
-    type: 'contract',
-    size: '2.4 MB',
-    date: 'Dec 1, 2024',
-    status: 'verified',
-  },
-  {
-    id: '2',
-    name: 'Invoice #INV-2024-001',
-    type: 'invoice',
-    size: '156 KB',
-    date: 'Nov 28, 2024',
-    status: 'verified',
-  },
-  {
-    id: '3',
-    name: 'PAN Card',
-    type: 'identity',
-    size: '1.2 MB',
-    date: 'Oct 15, 2024',
-    status: 'verified',
-  },
-  {
-    id: '4',
-    name: 'Campaign Contract - TechBrand',
-    type: 'contract',
-    size: '3.1 MB',
-    date: 'Nov 20, 2024',
-    status: 'pending',
-  },
-  {
-    id: '5',
-    name: 'Aadhaar Card',
-    type: 'identity',
-    size: '890 KB',
-    date: 'Oct 15, 2024',
-    status: 'expired',
-  },
+const recentUploads = [
+  { id: '1', name: 'Nike Campaign Contract', time: '2 min ago', icon: 'file-text' as const },
+  { id: '2', name: 'Media Kit v2.4', time: '1h ago', icon: 'image' as const },
+  { id: '3', name: 'Q3 Invoice - Sephora', time: 'Yesterday', icon: 'file' as const },
 ];
 
-const DocumentIcon = memo(function DocumentIcon({ type }: { type: Document['type'] }) {
-  const config = {
-    contract: { icon: 'file-text' as const, bg: colors.primaryLight, color: colors.primary },
-    invoice: { icon: 'file' as const, bg: colors.emeraldLight, color: colors.emerald },
-    identity: { icon: 'user' as const, bg: colors.amberLight, color: colors.amber },
-    other: { icon: 'folder' as const, bg: colors.blueLight, color: colors.blue },
-  };
+const folders = [
+  { id: '1', title: 'Legal & Contracts', count: '12 files', icon: 'folder', color: '#1337ec' },
+  { id: '2', title: 'Invoices & Earnings', count: '8 files', icon: 'folder', color: '#a855f7' },
+];
 
-  const { icon, bg, color } = config[type];
-
-  return (
-    <View style={[styles.docIcon, { backgroundColor: bg }]}>
-      <Feather name={icon} size={18} color={color} />
-    </View>
-  );
-});
-
-const DocumentItem = memo(function DocumentItem({
-  document,
-  onPress,
-}: {
-  document: Document;
-  onPress: () => void;
-}) {
-  const getStatusBadge = () => {
-    switch (document.status) {
-      case 'verified':
-        return <Badge label="Verified" variant="success" />;
-      case 'pending':
-        return <Badge label="Pending" variant="warning" />;
-      case 'expired':
-        return <Badge label="Expired" variant="error" />;
-    }
-  };
-
-  return (
-    <TouchableOpacity style={styles.documentItem} onPress={onPress} activeOpacity={0.7}>
-      <DocumentIcon type={document.type} />
-      <View style={styles.documentContent}>
-        <Text style={styles.documentName} numberOfLines={1}>
-          {document.name}
-        </Text>
-        <View style={styles.documentMeta}>
-          <Text style={styles.documentSize}>{document.size}</Text>
-          <View style={styles.dot} />
-          <Text style={styles.documentDate}>{document.date}</Text>
-        </View>
-      </View>
-      {getStatusBadge()}
-    </TouchableOpacity>
-  );
-});
+const documents = [
+  { id: '1', name: 'Summer Campaign Agreement', size: '2.4 MB', date: 'Oct 24, 2023', status: 'SIGNED' },
+  { id: '2', name: 'Updated Media Kit 2024', size: '5.1 MB', date: 'Oct 20, 2023', status: null },
+  { id: '3', name: 'Brand Guidelines - Sony', size: '14.2 MB', date: 'Oct 18, 2023', status: null },
+  { id: '4', name: 'NDA - Project Alpha', size: '1.1 MB', date: 'Sep 29, 2023', status: 'PENDING' },
+];
 
 export default function DocumentsScreen() {
   const router = useRouter();
-  const { addNotification } = useApp();
-  const [documents, setDocuments] = useState(mockDocuments);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'contract' | 'invoice' | 'identity'>('all');
+  const { colors, isDark } = useTheme();
 
-  const handleRefresh = useCallback(async () => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
+  const handleUpload = useCallback(() => {
+    Alert.alert('Upload', 'Document upload coming soon.');
   }, []);
 
-  const { refreshing, handleRefresh: onRefresh } = useRefresh(handleRefresh);
-
-  const handleUpload = useCallback(async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your files to upload documents.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const fileName = asset.fileName || `Document_${Date.now()}.pdf`;
-
-      const newDoc: Document = {
-        id: Date.now().toString(),
-        name: fileName,
-        type: 'other',
-        size: '1.5 MB',
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        status: 'pending',
-      };
-
-      setDocuments((prev) => [newDoc, ...prev]);
-
-      addNotification({
-        type: 'system',
-        title: 'Document Uploaded',
-        description: `${fileName} has been uploaded and is pending verification.`,
-        time: 'Just now',
-        read: false,
-      });
-
-      Alert.alert('Success', 'Document uploaded successfully! It will be verified within 24 hours.');
-    }
-  }, [addNotification]);
-
-  const handleDocumentPress = useCallback((doc: Document) => {
-    Alert.alert(
-      doc.name,
-      `Type: ${doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}\nSize: ${doc.size}\nDate: ${doc.date}\nStatus: ${doc.status}`,
-      [
-        { text: 'Close', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
-            addNotification({
-              type: 'system',
-              title: 'Document Deleted',
-              description: `${doc.name} has been removed.`,
-              time: 'Just now',
-              read: true,
-            });
-          },
-        },
-      ]
-    );
-  }, [addNotification]);
-
-  const filteredDocuments = documents.filter((doc) => {
-    if (selectedFilter === 'all') return true;
-    return doc.type === selectedFilter;
-  });
-
-  const filters = [
-    { key: 'all' as const, label: 'All' },
-    { key: 'contract' as const, label: 'Contracts' },
-    { key: 'invoice' as const, label: 'Invoices' },
-    { key: 'identity' as const, label: 'Identity' },
-  ];
-
-  const renderDocument = useCallback(
-    ({ item }: { item: Document }) => (
-      <DocumentItem document={item} onPress={() => handleDocumentPress(item)} />
-    ),
-    [handleDocumentPress]
-  );
-
-  const keyExtractor = useCallback((item: Document) => item.id, []);
-
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={22} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>My Documents</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>My Docs</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/notifications')}>
+              <Feather name="bell" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/profile')}>
+              <View style={[styles.profileAvatar, { backgroundColor: isDark ? '#1a1d2d' : '#e2e8f0' }]} />
+            </TouchableOpacity>
+          </View>
         </View>
-        <TouchableOpacity style={styles.uploadButton} onPress={handleUpload}>
-          <Feather name="plus" size={20} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.filtersContainer}>
-        {filters.map((filter) => (
-          <TouchableOpacity
-            key={filter.key}
-            style={[styles.filterChip, selectedFilter === filter.key && styles.filterChipActive]}
-            onPress={() => setSelectedFilter(filter.key)}
-          >
-            <Text style={[styles.filterChipText, selectedFilter === filter.key && styles.filterChipTextActive]}>
-              {filter.label}
-            </Text>
+        <View style={styles.searchBar}>
+          <Feather name="search" size={16} color={colors.textMuted} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search contracts, invoices..."
+            placeholderTextColor={colors.textMuted}
+          />
+          <TouchableOpacity>
+            <Feather name="sliders" size={16} color={colors.textMuted} />
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
 
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { borderColor: colors.emeraldBorder }]}>
-          <LinearGradient
-            colors={['rgba(52, 211, 153, 0.15)', 'rgba(52, 211, 153, 0.05)']}
-            style={styles.statGradient}
-          >
-            <Text style={styles.statValue}>{documents.filter((d) => d.status === 'verified').length}</Text>
-            <Text style={styles.statLabel}>Verified</Text>
-          </LinearGradient>
-        </View>
-        <View style={[styles.statCard, { borderColor: colors.amberBorder }]}>
-          <LinearGradient
-            colors={['rgba(251, 191, 36, 0.15)', 'rgba(251, 191, 36, 0.05)']}
-            style={styles.statGradient}
-          >
-            <Text style={styles.statValue}>{documents.filter((d) => d.status === 'pending').length}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </LinearGradient>
-        </View>
-        <View style={[styles.statCard, { borderColor: colors.primaryBorder }]}>
-          <LinearGradient
-            colors={['rgba(19, 55, 236, 0.15)', 'rgba(19, 55, 236, 0.05)']}
-            style={styles.statGradient}
-          >
-            <Text style={styles.statValue}>{documents.length}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </LinearGradient>
-        </View>
-      </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
+          {['All', 'Contracts', 'Invoices', 'Media Kits'].map((label, index) => (
+            <View key={label} style={[styles.filterChip, index === 0 && styles.filterChipActive]}>
+              <Text style={[styles.filterChipText, index === 0 && styles.filterChipTextActive]}>{label}</Text>
+            </View>
+          ))}
+        </ScrollView>
 
-      <FlatList
-        data={filteredDocuments}
-        renderItem={renderDocument}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="folder"
-            title="No documents found"
-            subtitle="Upload your documents to keep them organized"
-            actionLabel="Upload Document"
-            onAction={handleUpload}
-          />
-        }
-      />
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Uploads</Text>
+            <Text style={styles.sectionLink}>View All</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentRow}>
+            {recentUploads.map((item) => (
+              <View key={item.id} style={styles.recentCard}>
+                <View style={styles.recentThumb}>
+                  <Feather name={item.icon} size={16} color="#fff" />
+                </View>
+                <Text style={styles.recentTitle} numberOfLines={1}>{item.name}</Text>
+                <Text style={styles.recentTime}>{item.time}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Folders</Text>
+          <View style={styles.folderGrid}>
+            {folders.map((folder) => (
+              <View key={folder.id} style={styles.folderCard}>
+                <View style={[styles.folderIcon, { backgroundColor: `${folder.color}22` }]}>
+                  <Feather name="folder" size={18} color={folder.color} />
+                </View>
+                <Text style={styles.folderTitle}>{folder.title}</Text>
+                <Text style={styles.folderCount}>{folder.count}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>All Documents</Text>
+          {documents.map((doc) => (
+            <View key={doc.id} style={styles.docRow}>
+              <View style={styles.docIcon}>
+                <Feather name="file-text" size={16} color={colors.primary} />
+              </View>
+              <View style={styles.docContent}>
+                <Text style={styles.docTitle} numberOfLines={1}>{doc.name}</Text>
+                <View style={styles.docMeta}>
+                  <Text style={styles.docMetaText}>{doc.size}</Text>
+                  <View style={styles.metaDot} />
+                  <Text style={styles.docMetaText}>{doc.date}</Text>
+                  {doc.status && (
+                    <View style={[styles.statusBadge, doc.status === 'SIGNED' ? styles.statusSigned : styles.statusPending]}>
+                      <Text style={styles.statusText}>{doc.status}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <TouchableOpacity>
+                <Feather name="more-vertical" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.storage}>
+          <View style={styles.storageBar}>
+            <View style={styles.storageFill} />
+          </View>
+          <Text style={styles.storageText}>1.2GB of 5GB used</Text>
+          <View style={styles.secureBadge}>
+            <Feather name="lock" size={12} color="#22c55e" />
+            <Text style={styles.secureText}>Encrypted & Secure</Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <TouchableOpacity style={styles.fab} onPress={handleUpload}>
+        <Feather name="plus" size={24} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -312,140 +148,254 @@ export default function DocumentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#101322',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 120,
+    gap: 16,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerCenter: {
-    flex: 1,
-    marginLeft: spacing.md,
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
   },
-  title: {
-    ...typography.h4,
-    color: colors.text,
-  },
-  uploadButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filtersContainer: {
+  headerActions: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1a1d2d',
+  },
+  profileAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1d2d',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+  },
+  filtersRow: {
+    gap: 10,
   },
   filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#1a1d2d',
   },
   filterChipActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primaryBorder,
+    backgroundColor: '#1337ec',
   },
   filterChipText: {
-    ...typography.small,
-    color: colors.textSecondary,
-    fontSize: 10,
-  },
-  filterChipTextActive: {
-    color: colors.primary,
+    color: '#9da1b9',
+    fontSize: 12,
     fontWeight: '600',
   },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    gap: spacing.md,
+  filterChipTextActive: {
+    color: '#fff',
   },
-  statCard: {
+  section: {
+    gap: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  sectionLink: {
+    color: '#1337ec',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  recentRow: {
+    gap: 12,
+  },
+  recentCard: {
+    width: 140,
+    borderRadius: 12,
+    backgroundColor: '#1a1d2d',
+    padding: 12,
+    gap: 6,
+  },
+  recentThumb: {
+    width: '100%',
+    height: 70,
+    borderRadius: 10,
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  recentTitle: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  recentTime: {
+    color: '#9da1b9',
+    fontSize: 10,
+  },
+  folderGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  folderCard: {
     flex: 1,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
+    backgroundColor: '#1a1d2d',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
   },
-  statGradient: {
-    padding: spacing.md,
+  folderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  statValue: {
-    ...typography.h4,
-    color: colors.text,
+  folderTitle: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  statLabel: {
-    ...typography.xs,
-    color: colors.textSecondary,
-    marginTop: 2,
+  folderCount: {
+    color: '#9da1b9',
+    fontSize: 10,
   },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: 100,
-  },
-  documentItem: {
+  docRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+    gap: 12,
+    backgroundColor: '#1a1d2d',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   docIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(19,55,236,0.15)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  documentContent: {
+  docContent: {
     flex: 1,
-    marginLeft: spacing.md,
-    marginRight: spacing.sm,
+    gap: 4,
   },
-  documentName: {
-    ...typography.bodyMedium,
-    color: colors.text,
-    marginBottom: 4,
+  docTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  documentMeta: {
+  docMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
   },
-  documentSize: {
-    ...typography.xs,
-    color: colors.textSecondary,
+  docMetaText: {
+    color: '#9da1b9',
+    fontSize: 10,
   },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: colors.textMuted,
-    marginHorizontal: spacing.sm,
+  metaDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#475569',
   },
-  documentDate: {
-    ...typography.xs,
-    color: colors.textMuted,
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 'auto',
+  },
+  statusSigned: {
+    backgroundColor: 'rgba(34,197,94,0.15)',
+  },
+  statusPending: {
+    backgroundColor: 'rgba(234,179,8,0.15)',
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#22c55e',
+  },
+  storage: {
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  storageBar: {
+    width: '100%',
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#1f2937',
+    overflow: 'hidden',
+  },
+  storageFill: {
+    width: '24%',
+    height: '100%',
+    backgroundColor: '#1337ec',
+  },
+  storageText: {
+    color: '#9da1b9',
+    fontSize: 11,
+  },
+  secureBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  secureText: {
+    color: '#22c55e',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1337ec',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1337ec',
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
   },
 });
