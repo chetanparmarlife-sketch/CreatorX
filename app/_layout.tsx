@@ -1,12 +1,13 @@
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import { useEffect, useState } from 'react';
 import { AppProvider } from '@/src/context';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useTheme } from '@/src/hooks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL_READY } from '@/src/config/env';
 
 const DEFAULT_APP_ROUTE = '/(app)/(tabs)/explore';
 const STORAGE_KEYS = {
@@ -23,7 +24,18 @@ function ThemedContainer({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ThemedStatusBar />
+      {!API_BASE_URL_READY && <DegradedModeBanner />}
       {children}
+    </View>
+  );
+}
+
+function DegradedModeBanner() {
+  return (
+    <View style={styles.degradedBanner}>
+      <Text style={styles.degradedText}>
+        Degraded mode: API base URL not set. Configure EXPO_PUBLIC_API_BASE_URL.
+      </Text>
     </View>
   );
 }
@@ -95,3 +107,18 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  degradedBanner: {
+    backgroundColor: '#0b0f1a',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(19, 55, 236, 0.4)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  degradedText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});

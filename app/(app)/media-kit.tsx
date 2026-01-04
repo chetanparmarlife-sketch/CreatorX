@@ -1,32 +1,39 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '@/src/hooks';
+import { useRefresh, useTheme } from '@/src/hooks';
+import { useApp } from '@/src/context';
+import { useAuth } from '@/src/context/AuthContext';
+import { API_BASE_URL_READY } from '@/src/config/env';
+import { SocialProvider } from '@/src/api/services/socialConnectService';
 import { spacing, borderRadius } from '@/src/theme';
 
 const STORAGE_KEYS = {
   CREATOR_PROFILE: '@creator_profile',
-  SOCIAL_ACCOUNTS: '@creator_social_accounts',
   COMMERCIAL_PROFILE: '@creator_commercial_profile',
 };
 
 export default function MediaKitScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const {
+    socialAccounts,
+    socialAccountsError,
+    fetchSocialAccounts,
+  } = useApp();
   const [profile, setProfile] = useState<any>(null);
-  const [socials, setSocials] = useState<any[]>([]);
   const [pricing, setPricing] = useState<any>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const load = async () => {
-      const [creatorRaw, socialRaw, commercialRaw] = await Promise.all([
+      const [creatorRaw, commercialRaw] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.CREATOR_PROFILE),
-        AsyncStorage.getItem(STORAGE_KEYS.SOCIAL_ACCOUNTS),
         AsyncStorage.getItem(STORAGE_KEYS.COMMERCIAL_PROFILE),
       ]);
 
@@ -34,12 +41,6 @@ export default function MediaKitScreen() {
 
       if (creatorRaw) {
         setProfile(JSON.parse(creatorRaw));
-      }
-      if (socialRaw) {
-        const parsed = JSON.parse(socialRaw);
-        if (Array.isArray(parsed)) {
-          setSocials(parsed);
-        }
       }
       if (commercialRaw) {
         setPricing(JSON.parse(commercialRaw));
@@ -52,6 +53,65 @@ export default function MediaKitScreen() {
       isMounted = false;
     };
   }, []);
+
+  const { refreshing, handleRefresh } = useRefresh(async () => {
+    if (!isAuthenticated || !API_BASE_URL_READY) return;
+    await fetchSocialAccounts();
+  });
+
+  const formatFollowers = useCallback((count?: number) => {
+    if (count === undefined || count === null) return '';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return `${count}`;
+  }, []);
+
+  const formatEngagement = useCallback((rate?: number) => {
+    if (rate === undefined || rate === null) return '';
+    const percent = rate > 1 ? rate : rate * 100;
+    return `${percent.toFixed(1)}% ER`;
+  }, []);
+
+  const socials = useMemo(() => {
+    const baseProviders: SocialProvider[] = ['instagram', 'facebook', 'linkedin'];
+    return baseProviders.map((provider) => {
+      const match = socialAccounts.find((item) => item.provider === provider);
+      const connected = match?.status === 'CONNECTED';
+      const needsReconnect = match?.status === 'NEEDS_RECONNECT';
+      const followers = formatFollowers(match?.followers);
+      const engagement = formatEngagement(match?.engagementRate);
+      const metrics = [followers ? `${followers} followers` : '', engagement].filter(Boolean).join(' • ');
+      const handle = match?.username ? `@${match.username}` : '';
+      const statusText = connected
+        ? `${handle}${metrics ? ` • ${metrics}` : ''}`.trim()
+        : needsReconnect
+          ? 'Reconnect required'
+          : !API_BASE_URL_READY
+            ? 'Unavailable'
+            : !isAuthenticated
+              ? 'Login required'
+              : provider === 'linkedin'
+                ? 'Coming soon'
+                : 'Not connected';
+
+      return {
+        id: provider,
+        name: provider === 'facebook' ? 'Facebook' : provider[0].toUpperCase() + provider.slice(1),
+        status: connected ? 'connected' : 'disconnected',
+        handle: statusText,
+      };
+    });
+  }, [socialAccounts, formatFollowers, formatEngagement, isAuthenticated, API_BASE_URL_READY]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !API_BASE_URL_READY) return;
+    fetchSocialAccounts();
+  }, [fetchSocialAccounts, isAuthenticated, API_BASE_URL_READY]);
+
+  useEffect(() => {
+    if (!socialAccountsError) return;
+    Alert.alert('Social connect', socialAccountsError);
+  }, [socialAccountsError]);
 
   const cardColor = isDark ? '#121212' : colors.card;
   const borderColor = isDark ? '#272727' : colors.cardBorder;
@@ -72,7 +132,18 @@ export default function MediaKitScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: mutedText }]}>CREATOR PROFILE</Text>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
@@ -117,7 +188,7 @@ export default function MediaKitScreen() {
                 >
                   <Text style={[styles.socialName, { color: colors.text }]}>{account.name || account.platform}</Text>
                   <Text style={[styles.socialStatus, { color: account.status === 'connected' ? colors.primary : mutedText }]}>
-                    {account.status === 'connected' ? account.handle || 'Connected' : 'Not connected'}
+                    {account.status === 'connected' ? account.handle || 'Connected' : account.handle || 'Not connected'}
                   </Text>
                 </View>
               ))

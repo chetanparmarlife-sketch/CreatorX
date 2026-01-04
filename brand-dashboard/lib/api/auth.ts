@@ -10,7 +10,7 @@
 import { apiClient } from './client'
 import { AuthResponse, LoginRequest, RegisterRequest, UserRole } from '@/lib/types'
 
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || true
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
 
 const DEMO_USER: AuthResponse = {
   userId: 'demo-user-1',
@@ -217,4 +217,3 @@ export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null
   return localStorage.getItem('creatorx_access_token')
 }
-

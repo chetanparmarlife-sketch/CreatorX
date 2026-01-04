@@ -114,7 +114,12 @@ interface AppContextType {
   loadMoreCampaigns: () => Promise<void>;
   applyCampaign: (campaignId: string, applicationData: ApplicationFormData) => Promise<void>;
   getApplication: (campaignId: string) => CampaignApplication | undefined;
-  submitDeliverable: (activeCampaignId: string, deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => Promise<void>;
+  submitDeliverable: (
+    activeCampaignId: string,
+    deliverableId: string,
+    file: { name: string; type: 'video' | 'image'; uri: string },
+    description?: string
+  ) => Promise<void>;
   sendMessage: (chatId: string, text: string) => Promise<void>;
   getConversation: (chatId: string) => Message[];
   markChatRead: (chatId: string) => Promise<void>;
@@ -400,17 +405,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const submitDeliverable = useCallback(async (
     activeCampaignId: string,
     deliverableId: string,
-    file: { name: string; type: 'video' | 'image'; uri: string }
+    file: { name: string; type: 'video' | 'image'; uri: string },
+    description?: string
   ) => {
     if (featureFlags.isEnabled('USE_API_DELIVERABLES')) {
       try {
         const mimeType = file.type === 'video' ? 'video/mp4' : 'image/jpeg';
-        await deliverableService.submitDeliverable(deliverableId, {
+        await deliverableService.submitDeliverable(activeCampaignId, deliverableId, {
           file: {
             uri: file.uri,
             type: mimeType,
             name: file.name,
           },
+          description,
         });
       } catch (err) {
         handleApiError(err);

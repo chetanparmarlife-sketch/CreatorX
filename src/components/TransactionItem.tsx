@@ -24,7 +24,7 @@ export function TransactionItem({ transaction, isLast = false }: TransactionItem
     router.push({
       pathname: '/transaction-detail',
       params: {
-        id: transaction.id,
+        transactionId: transaction.id,
       },
     });
   };

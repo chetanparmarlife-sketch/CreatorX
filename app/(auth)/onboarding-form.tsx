@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { colors } from '@/src/theme';
-import { getPlatformDisplayName, SocialPlatform } from '@/src/services/socialConnectMock';
+type PlatformId = 'instagram' | 'youtube' | 'linkedin' | 'facebook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
@@ -32,7 +32,7 @@ export default function OnboardingFormScreen() {
     handle: string;
   }>();
 
-  const resolvedPlatform = (params.platform as SocialPlatform) || 'instagram';
+  const resolvedPlatform = (params.platform as PlatformId) || 'instagram';
   const followerCount = params.followerCount || '0';
   const initialHandle = params.handle || '';
 
@@ -42,7 +42,7 @@ export default function OnboardingFormScreen() {
   const [bio, setBio] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [socialHandle, setSocialHandle] = useState(initialHandle);
-  const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>(resolvedPlatform);
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformId>(resolvedPlatform);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -175,11 +175,18 @@ export default function OnboardingFormScreen() {
                 { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin' },
               ] as const).map((platform) => {
                 const isSelected = selectedPlatform === platform.id;
+                const handleSelect = () => {
+                  if (platform.id === 'youtube') {
+                    Alert.alert('Coming soon', 'YouTube connection will be available soon.');
+                    return;
+                  }
+                  setSelectedPlatform(platform.id);
+                };
                 return (
                   <TouchableOpacity
                     key={platform.id}
                     style={[styles.platformCard, isSelected && styles.platformCardActive]}
-                    onPress={() => setSelectedPlatform(platform.id)}
+                    onPress={handleSelect}
                     activeOpacity={0.85}
                   >
                     <View style={styles.platformInfo}>

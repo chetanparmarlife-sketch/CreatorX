@@ -1,6 +1,6 @@
-import { useState, useCallback, useMemo, memo, useEffect } from 'react';
+import { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -13,12 +13,12 @@ import {
   StatCardSkeleton,
   TransactionItemSkeleton,
 } from '@/src/components';
-import { TransactionDTO } from '@/src/api/services/walletService';
+import { TransactionDTO, WithdrawalDTO } from '@/src/api/services/walletService';
 import { useApp } from '@/src/context';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRefresh } from '@/src/hooks';
 import { spacing, borderRadius } from '@/src/theme';
-import { formatCurrencyAmount } from '@/src/utils/walletFormatting';
+import { formatCurrencyAmount, formatDateTime } from '@/src/utils/walletFormatting';
 
 const headerTabs = [
   { id: 'wallet', label: 'Wallet' },
@@ -346,29 +346,41 @@ const KYCStepCard = memo(function KYCStepCard({
 export default function MoneyScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const lastRequestedTransactionsPageRef = useRef(-1);
+  const lastRequestedWithdrawalsPageRef = useRef(-1);
   const {
     wallet,
     transactions,
+    withdrawals,
     walletLoading,
     walletError,
     transactionsLoading,
     transactionsError,
+    withdrawalsLoading,
+    withdrawalsError,
     fetchWalletSummary,
     fetchTransactions,
+    fetchWithdrawals,
     refreshWalletAll,
+    transactionsHasMore,
+    transactionsPage,
+    withdrawalsHasMore,
+    withdrawalsPage,
   } = useApp();
   const { isAuthenticated } = useAuth();
   const [selectedTab, setSelectedTab] = useState('wallet');
   const [walletFilter, setWalletFilter] = useState<FilterType>('all');
   const [invoiceFilter, setInvoiceFilter] = useState('all');
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [listMode, setListMode] = useState<'transactions' | 'withdrawals'>('transactions');
 
   useEffect(() => {
     if (hasLoadedOnce) return;
-    if (wallet || transactions.length > 0 || walletError || transactionsError) {
+    if (wallet || transactions.length > 0 || withdrawals.length > 0 || walletError || transactionsError || withdrawalsError) {
       setHasLoadedOnce(true);
     }
-  }, [hasLoadedOnce, wallet, transactions.length, walletError, transactionsError]);
+  }, [hasLoadedOnce, wallet, transactions.length, withdrawals.length, walletError, transactionsError, withdrawalsError]);
 
   const [kycStatus, setKycStatus] = useState({
     personal: 'completed' as const,
@@ -379,6 +391,8 @@ export default function MoneyScreen() {
 
   const handleRefresh = useCallback(async () => {
     if (!isAuthenticated) return;
+    lastRequestedTransactionsPageRef.current = -1;
+    lastRequestedWithdrawalsPageRef.current = -1;
     await refreshWalletAll();
   }, [isAuthenticated, refreshWalletAll]);
 
@@ -386,10 +400,10 @@ export default function MoneyScreen() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (wallet == null) {
+    if (!hasLoadedOnce) {
       refreshWalletAll();
     }
-  }, [isAuthenticated, wallet, refreshWalletAll]);
+  }, [isAuthenticated, hasLoadedOnce, refreshWalletAll]);
 
   const filteredTransactions = useMemo(() => {
     if (walletFilter === 'all') return transactions;
@@ -447,15 +461,18 @@ export default function MoneyScreen() {
   const showWalletSkeleton = !hasLoadedOnce && walletLoading && !wallet && !walletError;
   const showTransactionsSkeleton =
     !hasLoadedOnce && transactionsLoading && filteredTransactions.length === 0 && !transactionsError;
+  const showWithdrawalsSkeleton =
+    !hasLoadedOnce && withdrawalsLoading && withdrawals.length === 0 && !withdrawalsError;
 
   const handleSetFilterAll = useCallback(() => setWalletFilter('all'), []);
   const handleSetFilterCredit = useCallback(() => setWalletFilter('credit'), []);
   const handleSetFilterDebit = useCallback(() => setWalletFilter('debit'), []);
   const handleSetFilterPending = useCallback(() => setWalletFilter('pending'), []);
   const handleRetryAll = useCallback(() => {
-    fetchWalletSummary();
-    fetchTransactions({ page: 0, size: 20, refresh: true });
-  }, [fetchWalletSummary, fetchTransactions]);
+    lastRequestedTransactionsPageRef.current = -1;
+    lastRequestedWithdrawalsPageRef.current = -1;
+    refreshWalletAll();
+  }, [refreshWalletAll]);
 
   const WalletListHeader = useMemo(() => {
     if (showWalletSkeleton && !walletError) {
@@ -491,6 +508,17 @@ export default function MoneyScreen() {
 
     return (
       <>
+        {walletError ? (
+          <View style={styles.errorBlock}>
+            <ErrorView
+              error={walletError}
+              onRetry={refreshWalletAll}
+              compact
+              showIcon={false}
+              title="Wallet unavailable"
+            />
+          </View>
+        ) : null}
         <View style={styles.balanceSection}>
           <View style={styles.balanceLabelRow}>
             <Text style={[styles.balanceLabelText, { color: mutedText }]}>Available Balance</Text>
@@ -544,47 +572,43 @@ export default function MoneyScreen() {
         </View>
 
         <View style={styles.transactionsHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
-          </TouchableOpacity>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {listMode === 'transactions' ? 'Recent Transactions' : 'Recent Withdrawals'}
+          </Text>
+          <View style={styles.segmentControl}>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                listMode === 'transactions' && { backgroundColor: colors.primary },
+              ]}
+              onPress={() => setListMode('transactions')}
+              activeOpacity={0.8}
+            >
+              <Text style={[
+                styles.segmentText,
+                { color: listMode === 'transactions' ? '#ffffff' : mutedText },
+              ]}>
+                Transactions
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segmentButton,
+                listMode === 'withdrawals' && { backgroundColor: colors.primary },
+              ]}
+              onPress={() => setListMode('withdrawals')}
+              activeOpacity={0.8}
+            >
+              <Text style={[
+                styles.segmentText,
+                { color: listMode === 'withdrawals' ? '#ffffff' : mutedText },
+              ]}>
+                Withdrawals
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
-          <TouchableOpacity
-            style={[
-              styles.filterChipNew,
-              { backgroundColor: surfaceColor, borderColor: borderColor },
-              walletFilter === 'all' && styles.filterChipActive,
-              walletFilter === 'all' && { backgroundColor: colors.primary, borderColor: colors.primary },
-            ]}
-            onPress={handleSetFilterAll}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterChipTextNew, { color: walletFilter === 'all' ? '#ffffff' : mutedText }]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterChipNew,
-              { backgroundColor: walletFilter === 'credit' ? colors.primary : surfaceColor, borderColor: walletFilter === 'credit' ? colors.primary : borderColor },
-              walletFilter === 'credit' && styles.filterChipActive,
-            ]}
-            onPress={handleSetFilterCredit}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterChipTextNew, { color: walletFilter === 'credit' ? '#ffffff' : mutedText }]}>Incoming</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.filterChipNew,
-              { backgroundColor: walletFilter === 'debit' ? colors.primary : surfaceColor, borderColor: walletFilter === 'debit' ? colors.primary : borderColor },
-              walletFilter === 'debit' && styles.filterChipActive,
-            ]}
-            onPress={handleSetFilterDebit}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterChipTextNew, { color: walletFilter === 'debit' ? '#ffffff' : mutedText }]}>Withdrawals</Text>
-          </TouchableOpacity>
-        </ScrollView>
+        {null}
       </>
     );
   }, [
@@ -602,6 +626,9 @@ export default function MoneyScreen() {
     handleSetFilterCredit,
     handleSetFilterDebit,
     handleSetFilterPending,
+    listMode,
+    walletError,
+    refreshWalletAll,
   ]);
 
   const renderTransaction = useCallback(
@@ -615,9 +642,48 @@ export default function MoneyScreen() {
   );
 
   const transactionKeyExtractor = useCallback((item: TransactionDTO) => item.id, []);
+  const withdrawalKeyExtractor = useCallback((item: WithdrawalDTO) => item.id, []);
+
+  const renderWithdrawal = useCallback(
+    ({ item, index }: { item: WithdrawalDTO; index: number }) => {
+      const statusColor =
+        item.status === 'PAID'
+          ? colors.emerald
+          : item.status === 'FAILED'
+            ? colors.red
+            : colors.amber;
+      const statusLabel = item.status.charAt(0) + item.status.slice(1).toLowerCase();
+      return (
+        <View
+          style={[
+            styles.withdrawalItem,
+            { borderBottomColor: colors.cardBorder },
+            index === withdrawals.length - 1 && styles.lastItem,
+          ]}
+        >
+          <View style={[styles.withdrawalIcon, { backgroundColor: colors.primaryLight }]}>
+            <Feather name="arrow-up-right" size={16} color={colors.primary} />
+          </View>
+          <View style={styles.withdrawalContent}>
+            <Text style={[styles.withdrawalTitle, { color: colors.text }]}>Withdrawal</Text>
+            <Text style={[styles.withdrawalMeta, { color: colors.textMuted }]}>
+              {formatCurrencyAmount(item.amount, item.currency)}
+            </Text>
+          </View>
+          <View style={styles.withdrawalRight}>
+            <Text style={[styles.withdrawalStatus, { color: statusColor }]}>{statusLabel}</Text>
+            <Text style={[styles.withdrawalDate, { color: colors.textMuted }]}>
+              {formatDateTime(item.createdAt)}
+            </Text>
+          </View>
+        </View>
+      );
+    },
+    [colors, withdrawals.length]
+  );
 
   const WalletListEmpty = useMemo(() => {
-    if (transactionsError) {
+    if (listMode === 'transactions' && transactionsError) {
       return (
         <ErrorView
           error={transactionsError}
@@ -629,14 +695,35 @@ export default function MoneyScreen() {
         />
       );
     }
+    if (listMode === 'withdrawals' && withdrawalsError) {
+      return (
+        <ErrorView
+          error={withdrawalsError}
+          onRetry={() => {
+            lastRequestedWithdrawalsPageRef.current = -1;
+            fetchWithdrawals({ page: 0, size: 20, refresh: true });
+          }}
+          compact
+          showIcon={false}
+          title="Withdrawals unavailable"
+          hideRetry
+        />
+      );
+    }
     return (
       <EmptyState
         icon="inbox"
-        title="No transactions yet"
-        subtitle={walletFilter === 'all' ? 'Your transactions will appear here' : `No ${walletFilter} transactions found`}
+        title={listMode === 'transactions' ? 'No transactions yet' : 'No withdrawals yet'}
+        subtitle={
+          listMode === 'transactions'
+            ? walletFilter === 'all'
+              ? 'Your transactions will appear here'
+              : `No ${walletFilter} transactions found`
+            : 'Your withdrawals will appear here'
+        }
       />
     );
-  }, [walletFilter, transactionsError, handleRetryAll]);
+  }, [walletFilter, transactionsError, withdrawalsError, handleRetryAll, listMode, fetchWithdrawals]);
 
   const TransactionsSkeleton = useMemo(() => (
     <View style={styles.transactionsSkeleton}>
@@ -646,17 +733,40 @@ export default function MoneyScreen() {
     </View>
   ), []);
 
+  const handleTransactionsEndReached = useCallback(() => {
+    const nextPage = transactionsPage + 1;
+    if (transactionsLoading || !transactionsHasMore || filteredTransactions.length === 0) return;
+    if (lastRequestedTransactionsPageRef.current === nextPage) return;
+    lastRequestedTransactionsPageRef.current = nextPage;
+    fetchTransactions({ page: nextPage, size: 20 });
+  }, [transactionsPage, transactionsLoading, transactionsHasMore, filteredTransactions.length, fetchTransactions]);
+
+  const handleWithdrawalsEndReached = useCallback(() => {
+    const nextPage = withdrawalsPage + 1;
+    if (withdrawalsLoading || !withdrawalsHasMore || withdrawals.length === 0) return;
+    if (lastRequestedWithdrawalsPageRef.current === nextPage) return;
+    lastRequestedWithdrawalsPageRef.current = nextPage;
+    fetchWithdrawals({ page: nextPage, size: 20 });
+  }, [withdrawalsPage, withdrawalsLoading, withdrawalsHasMore, withdrawals.length, fetchWithdrawals]);
 
   const renderWalletContent = () => {
+    const data = listMode === 'transactions' ? filteredTransactions : withdrawals;
+    const renderItem = listMode === 'transactions' ? renderTransaction : renderWithdrawal;
+    const keyExtractor = listMode === 'transactions' ? transactionKeyExtractor : withdrawalKeyExtractor;
+    const onEndReached = listMode === 'transactions' ? handleTransactionsEndReached : handleWithdrawalsEndReached;
+    const showSkeleton = listMode === 'transactions' ? showTransactionsSkeleton : showWithdrawalsSkeleton;
     return (
       <FlatList
-        data={filteredTransactions}
-        renderItem={renderTransaction}
-        keyExtractor={transactionKeyExtractor}
-        contentContainerStyle={styles.scrollContent}
+        data={data}
+        renderItem={renderItem as any}
+        keyExtractor={keyExtractor as any}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 200 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={WalletListHeader}
-        ListEmptyComponent={showTransactionsSkeleton ? TransactionsSkeleton : WalletListEmpty}
+        ListEmptyComponent={showSkeleton ? TransactionsSkeleton : WalletListEmpty}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -665,6 +775,8 @@ export default function MoneyScreen() {
             colors={[colors.primary]}
           />
         }
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.3}
         initialNumToRender={8}
         maxToRenderPerBatch={10}
         windowSize={5}
@@ -821,10 +933,17 @@ export default function MoneyScreen() {
 
       {renderWalletContent()}
 
-      <View style={styles.withdrawFooter}>
-        <TouchableOpacity style={[styles.withdrawButton, { backgroundColor: colors.primary }]} activeOpacity={0.85}>
+      <View style={[styles.withdrawFooter, { bottom: 84 + insets.bottom, paddingBottom: spacing.lg + insets.bottom }]}>
+        <TouchableOpacity
+          style={[
+            styles.withdrawButton,
+            { backgroundColor: colors.cardBorder },
+          ]}
+          activeOpacity={0.85}
+          disabled
+        >
           <Feather name="credit-card" size={18} color="#ffffff" />
-          <Text style={styles.withdrawButtonText}>Withdraw Funds</Text>
+          <Text style={styles.withdrawButtonText}>Withdrawals will be enabled after payout setup</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -990,6 +1109,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     paddingHorizontal: spacing.sm,
   },
+  segmentControl: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(15, 23, 42, 0.12)',
+    borderRadius: 999,
+    padding: 4,
+    gap: 4,
+  },
+  segmentButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  segmentText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
   viewAllText: {
     fontSize: 12,
     fontWeight: '700',
@@ -1011,6 +1146,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  errorBlock: {
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  withdrawalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+  },
+  withdrawalIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  withdrawalContent: {
+    flex: 1,
+  },
+  withdrawalTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  withdrawalMeta: {
+    fontSize: 12,
+  },
+  withdrawalRight: {
+    alignItems: 'flex-end',
+  },
+  withdrawalStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  withdrawalDate: {
+    fontSize: 11,
+  },
+  lastItem: {
+    borderBottomWidth: 0,
+  },
   withdrawFooter: {
     position: 'absolute',
     bottom: 0,
@@ -1020,6 +1199,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     paddingTop: spacing.lg,
     backgroundColor: 'rgba(0,0,0,0.6)',
+    zIndex: 20,
+    elevation: 12,
   },
   withdrawButton: {
     height: 54,

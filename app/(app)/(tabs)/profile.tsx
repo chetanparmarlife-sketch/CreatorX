@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, Alert, StyleSheet, Image } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, Alert, StyleSheet, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -8,35 +8,35 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spacing, borderRadius } from '@/src/theme';
 import { Avatar } from '@/src/components';
 import { useApp } from '@/src/context';
-import { useTheme } from '@/src/hooks';
+import { useRefresh, useTheme } from '@/src/hooks';
+import { useAuth } from '@/src/context/AuthContext';
+import { API_BASE_URL_READY } from '@/src/config/env';
+import { openExternalUrl } from '@/src/utils/openExternalUrl';
+import { SocialProvider } from '@/src/api/services/socialConnectService';
 
 const STORAGE_KEYS = {
   CREATOR_PROFILE: '@creator_profile',
-  SOCIAL_ACCOUNTS: '@creator_social_accounts',
   COMMERCIAL_PROFILE: '@creator_commercial_profile',
 };
 
-const defaultSocialAccounts = [
+const baseSocialAccounts = [
   { 
+    id: 'instagram' as const,
     platform: 'Instagram', 
-    handle: '@alexcreators', 
-    connected: true,
-    icon: 'instagram',
     gradient: ['#f09433', '#e6683c', '#dc2743', '#cc2366', '#bc1888'] as const,
+    icon: 'camera' as const,
   },
   { 
-    platform: 'TikTok', 
-    handle: '@alexcreators', 
-    connected: true,
-    icon: 'video',
-    bgColor: '#000000',
+    id: 'facebook' as const,
+    platform: 'Facebook', 
+    bgColor: '#1877f2',
+    icon: 'facebook' as const,
   },
   { 
-    platform: 'YouTube', 
-    handle: 'Not connected', 
-    connected: false,
-    icon: 'youtube',
-    bgColor: '#FF0000',
+    id: 'linkedin' as const,
+    platform: 'LinkedIn', 
+    bgColor: '#0a66c2',
+    icon: 'linkedin' as const,
   },
 ];
 
@@ -55,7 +55,18 @@ const appPreferences = [
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, darkMode, toggleDarkMode } = useApp();
+  const {
+    user,
+    darkMode,
+    toggleDarkMode,
+    socialAccounts,
+    socialAccountsError,
+    fetchSocialAccounts,
+    refreshSocialAccount,
+    disconnectSocialAccount,
+    getSocialConnectUrl,
+  } = useApp();
+  const { isAuthenticated } = useAuth();
   const { colors, isDark } = useTheme();
 
   const backgroundColor = isDark ? '#000000' : colors.background;
@@ -74,7 +85,6 @@ export default function ProfileScreen() {
   const [selectedPlatform, setSelectedPlatform] = useState('instagram');
   const [socialHandle, setSocialHandle] = useState('');
   const [followerCount, setFollowerCount] = useState('');
-  const [connectedAccounts, setConnectedAccounts] = useState(defaultSocialAccounts);
   const [pricing, setPricing] = useState({
     reel: '',
     story: '',
@@ -120,7 +130,6 @@ export default function ProfileScreen() {
     await Promise.all([
       AsyncStorage.setItem(STORAGE_KEYS.CREATOR_PROFILE, JSON.stringify(creatorProfile)),
       AsyncStorage.setItem(STORAGE_KEYS.COMMERCIAL_PROFILE, JSON.stringify(commercialProfile)),
-      AsyncStorage.setItem(STORAGE_KEYS.SOCIAL_ACCOUNTS, JSON.stringify(connectedAccounts)),
     ]);
 
     Alert.alert('Saved', 'Your profile has been updated.');
@@ -130,9 +139,8 @@ export default function ProfileScreen() {
     let isMounted = true;
 
     const hydrateProfile = async () => {
-      const [creatorRaw, socialRaw, commercialRaw] = await Promise.all([
+      const [creatorRaw, commercialRaw] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.CREATOR_PROFILE),
-        AsyncStorage.getItem(STORAGE_KEYS.SOCIAL_ACCOUNTS),
         AsyncStorage.getItem(STORAGE_KEYS.COMMERCIAL_PROFILE),
       ]);
 
@@ -167,23 +175,6 @@ export default function ProfileScreen() {
         });
       }
 
-      if (socialRaw) {
-        const stored = JSON.parse(socialRaw);
-        if (Array.isArray(stored)) {
-          const mapped = stored.map((account: any) => {
-            const id = account.id || account.platform?.toLowerCase() || '';
-            const status = account.status === 'connected' || account.connected;
-            return {
-              platform: account.name || account.platform || 'Social',
-              handle: status ? account.handle || '@creator_official' : 'Not connected',
-              connected: status,
-              gradient: id === 'instagram' ? (['#f09433', '#e6683c', '#dc2743', '#cc2366', '#bc1888'] as const) : undefined,
-              bgColor: id === 'tiktok' ? '#000000' : id === 'youtube' ? '#FF0000' : '#0f172a',
-            };
-          });
-          setConnectedAccounts(mapped.length ? mapped : defaultSocialAccounts);
-        }
-      }
     };
 
     hydrateProfile();
@@ -193,19 +184,111 @@ export default function ProfileScreen() {
     };
   }, [user.name]);
 
-  const handleAccountToggle = (platform: string) => {
-    setConnectedAccounts((prev) =>
-      prev.map((account) =>
-        account.platform === platform
-          ? {
-              ...account,
-              connected: !account.connected,
-              handle: account.connected ? 'Not connected' : account.handle || '@creator_official',
-            }
-          : account
-      )
-    );
-  };
+  const { refreshing, handleRefresh } = useRefresh(async () => {
+    if (!isAuthenticated || !API_BASE_URL_READY) return;
+    await fetchSocialAccounts();
+  });
+
+  const formatFollowers = useCallback((count?: number) => {
+    if (count === undefined || count === null) return '';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return `${count}`;
+  }, []);
+
+  const formatEngagement = useCallback((rate?: number) => {
+    if (rate === undefined || rate === null) return '';
+    const percent = rate > 1 ? rate : rate * 100;
+    return `${percent.toFixed(1)}% ER`;
+  }, []);
+
+  const connectedAccounts = useMemo(() => {
+    return baseSocialAccounts.map((base) => {
+      const match = socialAccounts.find((item) => item.provider === base.id);
+      const connected = match?.status === 'CONNECTED';
+      const needsReconnect = match?.status === 'NEEDS_RECONNECT';
+      const followers = formatFollowers(match?.followers);
+      const engagement = formatEngagement(match?.engagementRate);
+      const metrics = [followers ? `${followers} followers` : '', engagement].filter(Boolean).join(' • ');
+      const handle = match?.username ? `@${match.username}` : undefined;
+      const subtitle =
+        connected && handle
+          ? `${handle}${metrics ? ` • ${metrics}` : ''}`
+          : needsReconnect
+            ? 'Reconnect required'
+            : !isAuthenticated
+              ? 'Login required'
+              : base.id === 'linkedin'
+                ? 'Coming soon'
+                : 'Not connected';
+
+      return {
+        ...base,
+        connected,
+        needsReconnect,
+        handle: subtitle,
+      };
+    });
+  }, [socialAccounts, formatFollowers, formatEngagement, isAuthenticated, API_BASE_URL_READY]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !API_BASE_URL_READY) return;
+    fetchSocialAccounts();
+  }, [fetchSocialAccounts, isAuthenticated, API_BASE_URL_READY]);
+
+  const handleAccountAction = useCallback(
+    async (account: (typeof connectedAccounts)[number]) => {
+      const provider = account.id as SocialProvider;
+
+      if (!API_BASE_URL_READY) {
+        Alert.alert('Unavailable', 'Social connect is unavailable in degraded mode.');
+        return;
+      }
+
+      if (!isAuthenticated) {
+        Alert.alert('Login required', 'Please login to manage your social accounts.');
+        return;
+      }
+
+      if (provider === 'linkedin') {
+        Alert.alert('Coming soon', 'LinkedIn connect will be available soon.');
+        return;
+      }
+
+      if (account.connected) {
+        await disconnectSocialAccount(provider);
+        return;
+      }
+
+      const url = getSocialConnectUrl(provider);
+      if (!url) {
+        Alert.alert('Unavailable', 'Social connect is not configured.');
+        return;
+      }
+
+      try {
+        await openExternalUrl(url);
+      } catch (error) {
+        Alert.alert('Unable to open', 'Please try again.');
+      }
+    },
+    [disconnectSocialAccount, getSocialConnectUrl, isAuthenticated, API_BASE_URL_READY]
+  );
+
+  const handleRefreshMetrics = useCallback(
+    async (provider: SocialProvider) => {
+      if (!API_BASE_URL_READY || !isAuthenticated) {
+        return;
+      }
+      await refreshSocialAccount(provider);
+    },
+    [refreshSocialAccount, isAuthenticated, API_BASE_URL_READY]
+  );
+
+  useEffect(() => {
+    if (!socialAccountsError) return;
+    Alert.alert('Social connect', socialAccountsError);
+  }, [socialAccountsError]);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -251,6 +334,14 @@ export default function ProfileScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
         <View style={styles.profileSection}>
           <View style={styles.avatarWrapper}>
@@ -344,7 +435,7 @@ export default function ProfileScreen() {
           <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             {connectedAccounts.map((account, index) => (
               <View 
-                key={account.platform}
+                key={account.id}
                 style={[
                   styles.accountItem,
                   index < connectedAccounts.length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor }
@@ -366,10 +457,8 @@ export default function ProfileScreen() {
                       >
                         <Feather name="camera" size={18} color="#ffffff" />
                       </LinearGradient>
-                    ) : account.platform === 'TikTok' ? (
-                      <Text style={[styles.tiktokText, { color: isDark ? '#000' : '#fff' }]}>Tk</Text>
                     ) : (
-                      <Feather name="play" size={18} color="#ffffff" />
+                      <Feather name={account.icon} size={18} color="#ffffff" />
                     )}
                   </View>
                   <View>
@@ -379,14 +468,18 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity activeOpacity={0.7} onPress={() => handleAccountToggle(account.platform)}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => handleAccountAction(account)}
+                  onLongPress={() => account.connected && handleRefreshMetrics(account.id as SocialProvider)}
+                >
                   <Text style={[
                     styles.accountAction,
                     account.connected 
                       ? { color: mutedText }
                       : { color: colors.primary, fontWeight: '700' }
                   ]}>
-                    {account.connected ? 'Disconnect' : 'Connect'}
+                    {account.connected ? 'Disconnect' : account.id === 'linkedin' ? 'Coming soon' : 'Connect'}
                   </Text>
                 </TouchableOpacity>
               </View>

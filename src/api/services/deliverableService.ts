@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from '../client';
+import { APIError } from '../errors';
 import {
   DeliverableSubmission,
   SubmitDeliverableRequest,
@@ -38,7 +39,11 @@ export const deliverableService = {
 
     // Add description if provided
     if (data.description) {
-      formData.append('description', data.description);
+      const trimmed = data.description.trim();
+      if (trimmed.length < 20 || trimmed.length > 500) {
+        throw new APIError(400, 'Description must be 20-500 characters.', 'VALIDATION_ERROR');
+      }
+      formData.append('description', trimmed);
     }
 
     formData.append('applicationId', applicationId);
@@ -66,7 +71,11 @@ export const deliverableService = {
     } as any);
 
     if (data.description) {
-      formData.append('description', data.description);
+      const trimmed = data.description.trim();
+      if (trimmed.length < 20 || trimmed.length > 500) {
+        throw new APIError(400, 'Description must be 20-500 characters.', 'VALIDATION_ERROR');
+      }
+      formData.append('description', trimmed);
     }
 
     return await apiClient.put<DeliverableSubmission>(
@@ -89,4 +98,3 @@ export const deliverableService = {
     );
   },
 };
-

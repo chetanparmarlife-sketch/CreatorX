@@ -1,10 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export function useRefresh(onRefresh?: () => Promise<void>) {
   const [refreshing, setRefreshing] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
+    if (isMountedRef.current) {
+      setRefreshing(true);
+    }
     try {
       if (onRefresh) {
         await onRefresh();
@@ -12,7 +21,9 @@ export function useRefresh(onRefresh?: () => Promise<void>) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
     } finally {
-      setRefreshing(false);
+      if (isMountedRef.current) {
+        setRefreshing(false);
+      }
     }
   }, [onRefresh]);
 

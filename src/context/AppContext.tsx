@@ -53,7 +53,12 @@ interface AppContextType {
   updateCampaignStatus: (campaignId: string, status: Campaign['status']) => void;
   addDeliverable: (deliverable: Omit<Deliverable, 'id'>) => void;
   updateDeliverable: (id: string, updates: Partial<Deliverable>) => void;
-  submitDeliverable: (activeCampaignId: string, deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => void;
+  submitDeliverable: (
+    activeCampaignId: string,
+    deliverableId: string,
+    file: { name: string; type: 'video' | 'image'; uri: string },
+    description?: string
+  ) => void;
   approveDeliverable: (activeCampaignId: string, deliverableId: string) => void;
   requestDeliverableChanges: (activeCampaignId: string, deliverableId: string, feedback: string) => void;
   markDeliverablePosted: (activeCampaignId: string, deliverableId: string, postUrl?: string) => void;
@@ -756,7 +761,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const submitDeliverable = useCallback(async (
     activeCampaignId: string,
     deliverableId: string,
-    file: { name: string; type: 'video' | 'image'; uri: string }
+    file: { name: string; type: 'video' | 'image'; uri: string },
+    _description?: string
   ) => {
     const updatedActiveCampaigns = activeCampaigns.map((ac) => {
       if (ac.id !== activeCampaignId) return ac;

@@ -12,4 +12,4 @@ export * from './messagingService';
 export * from './notificationService';
 export * from './profileService';
 export * from './referralService';
-
+export * from './socialConnectService';

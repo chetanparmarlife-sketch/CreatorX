@@ -1,5 +1,5 @@
-import { memo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { memo, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -98,6 +98,9 @@ export default function NotificationsScreen() {
     fetchNotifications,
     fetchUnreadNotificationCount,
     notificationsError,
+    notificationsHasMore,
+    notificationsPage,
+    loadingNotifications,
   } = useApp();
   const backgroundColor = isDark ? '#101322' : theme.background;
   const cardColor = isDark ? '#1c1f2e' : theme.card;
@@ -105,15 +108,104 @@ export default function NotificationsScreen() {
   const mutedText = isDark ? '#94a3b8' : theme.textMuted;
   const secondaryText = isDark ? '#9ca3af' : theme.textSecondary;
   const { refreshing, handleRefresh } = useRefresh(async () => {
-    await Promise.all([fetchNotifications(), fetchUnreadNotificationCount()]);
+    await Promise.all([
+      fetchNotifications({ page: 0, size: 20, refresh: true }),
+      fetchUnreadNotificationCount(),
+    ]);
   });
+  const lastRequestedPageRef = useRef<number>(-1);
+
+  const allowedRoutes = new Set([
+    '/explore',
+    '/active-campaigns',
+    '/wallet',
+    '/transaction-detail',
+    '/saved',
+    '/documents',
+    '/help',
+    '/privacy',
+    '/profile',
+    '/media-kit',
+    '/event-details',
+    '/notifications',
+    '/conversation',
+    '/new-message',
+    '/campaign-details',
+    '/apply-to-campaign',
+    '/kyc',
+  ]);
+
+  const buildNotificationRoute = useCallback((notification: Notification) => {
+    if (!notification.action?.path) return null;
+
+    const actionType = (notification.action as any)?.type as string | undefined;
+    const params = (notification.action as any)?.params ?? (notification.action as any)?.data ?? {};
+
+    if (actionType === 'OPEN_CONVERSATION') {
+      const conversationId = params.conversationId || params.id;
+      if (!conversationId) {
+        Alert.alert('Missing conversation', 'Conversation details are unavailable for this notification.');
+        return null;
+      }
+      return { pathname: '/conversation', params: { conversationId } };
+    }
+
+    if (actionType === 'OPEN_CAMPAIGN') {
+      const campaignId = params.campaignId || params.id;
+      if (!campaignId) {
+        Alert.alert('Missing campaign', 'Campaign details are unavailable for this notification.');
+        return null;
+      }
+      return { pathname: '/campaign-details', params: { campaignId } };
+    }
+
+    if (actionType === 'OPEN_TRANSACTION') {
+      const transactionId = params.transactionId || params.id;
+      if (!transactionId) {
+        Alert.alert('Missing transaction', 'Transaction details are unavailable for this notification.');
+        return null;
+      }
+      return { pathname: '/transaction-detail', params: { transactionId } };
+    }
+
+    if (notification.action.path === '/conversation') {
+      const conversationId = params.conversationId || params.id;
+      if (!conversationId) {
+        Alert.alert('Missing conversation', 'Conversation details are unavailable for this notification.');
+        return null;
+      }
+      return { pathname: '/conversation', params: { conversationId } };
+    }
+
+    if (!allowedRoutes.has(notification.action.path)) {
+      Alert.alert('Coming Soon', 'This notification action is not available yet.');
+      return null;
+    }
+
+    return { pathname: notification.action.path as any };
+  }, [allowedRoutes]);
 
   const handleNotificationPress = useCallback((notification: Notification) => {
     markNotificationRead(notification.id);
     if (notification.action?.path) {
-      router.push(notification.action.path as any);
+      const route = buildNotificationRoute(notification);
+      if (route) {
+        router.push(route as any);
+      }
     }
-  }, [markNotificationRead, router]);
+  }, [buildNotificationRoute, markNotificationRead, router]);
+
+  const handleLoadMore = useCallback(() => {
+    const nextPage = notificationsPage + 1;
+    if (loadingNotifications || !notificationsHasMore || notifications.length === 0) {
+      return;
+    }
+    if (lastRequestedPageRef.current === nextPage) {
+      return;
+    }
+    lastRequestedPageRef.current = nextPage;
+    fetchNotifications({ page: nextPage, size: 20 });
+  }, [loadingNotifications, notificationsHasMore, notifications.length, notificationsPage, fetchNotifications]);
 
   const renderItem = useCallback(
     ({ item }: { item: Notification }) => (
@@ -161,6 +253,8 @@ export default function NotificationsScreen() {
         keyExtractor={keyExtractor}
         contentContainerStyle={[styles.listContent, { backgroundColor: backgroundColor }]}
         showsVerticalScrollIndicator={false}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.3}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -185,6 +279,13 @@ export default function NotificationsScreen() {
           )
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListFooterComponent={
+          loadingNotifications && notifications.length > 0 ? (
+            <View style={styles.footerLoader}>
+              <Text style={[styles.footerText, { color: mutedText }]}>Loading more...</Text>
+            </View>
+          ) : null
+        }
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
@@ -315,5 +416,13 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 0,
+  },
+  footerLoader: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  footerText: {
+    ...typography.small,
+    fontSize: 12,
   },
 });

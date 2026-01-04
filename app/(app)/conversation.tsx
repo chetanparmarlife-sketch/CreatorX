@@ -19,6 +19,8 @@ import { colors, spacing } from '@/src/theme';
 import { Avatar } from '@/src/components';
 import { Message } from '@/src/types';
 import { useApp } from '@/src/context';
+import { useAuth } from '@/src/context/AuthContext';
+import { API_BASE_URL_READY } from '@/src/config/env';
 
 const MessageBubble = memo(function MessageBubble({ message }: { message: Message }) {
   const isUser = message.sender === 'user';
@@ -54,7 +56,9 @@ export default function ConversationScreen() {
     loadMessages,
     startConversationPolling,
     stopConversationPolling,
+    messagingError,
   } = useApp();
+  const { isAuthenticated } = useAuth();
   
   const chatId = paramChatId || '1';
   const messages = getConversation(chatId);
@@ -65,6 +69,7 @@ export default function ConversationScreen() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const isAtBottomRef = useRef(true);
 
   const chat = chats.find(c => c.id === chatId);
   const chatName = name || chat?.name || 'Chat';
@@ -92,6 +97,7 @@ export default function ConversationScreen() {
 
     sendMessage(chatId, inputText.trim());
     setInputText('');
+    isAtBottomRef.current = true;
 
     setIsTyping(true);
     if (typingTimeoutRef.current) {
@@ -147,9 +153,11 @@ export default function ConversationScreen() {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
-      scrollTimeoutRef.current = setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      if (isAtBottomRef.current) {
+        scrollTimeoutRef.current = setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
     }
   }, [messages.length]);
 
@@ -193,6 +201,17 @@ export default function ConversationScreen() {
       <View style={styles.campaignBanner}>
         <Text style={styles.campaignBannerText}>Campaign Active</Text>
       </View>
+      {(!API_BASE_URL_READY || !isAuthenticated || messagingError) ? (
+        <View style={styles.noticeBanner}>
+          <Text style={styles.noticeText}>
+            {!API_BASE_URL_READY
+              ? 'Messaging unavailable in degraded mode.'
+              : !isAuthenticated
+                ? 'Login required to view messages.'
+                : messagingError}
+          </Text>
+        </View>
+      ) : null}
 
       <FlatList
         ref={flatListRef}
@@ -201,7 +220,13 @@ export default function ConversationScreen() {
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.messageList}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        onScroll={(event) => {
+          const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+          const paddingToBottom = 40;
+          isAtBottomRef.current =
+            layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+        }}
+        scrollEventThrottle={16}
         initialNumToRender={15}
         maxToRenderPerBatch={10}
         windowSize={7}
@@ -331,6 +356,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  noticeBanner: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+  },
+  noticeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1337ec',
+    textAlign: 'center',
   },
   messageList: {
     padding: spacing.lg,

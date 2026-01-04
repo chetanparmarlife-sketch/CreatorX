@@ -11,7 +11,7 @@ export const notificationService = {
    */
   async getNotifications(page = 0, size = 20): Promise<PaginatedResponse<Notification>> {
     return await apiClient.get<PaginatedResponse<Notification>>(
-      `/creator/notifications?page=${page}&size=${size}`
+      `/notifications?page=${page}&size=${size}`
     );
   },
 
@@ -19,21 +19,20 @@ export const notificationService = {
    * Mark notification as read
    */
   async markNotificationRead(notificationId: string): Promise<void> {
-    await apiClient.post(`/creator/notifications/${notificationId}/read`);
+    await apiClient.put(`/notifications/${notificationId}/read`);
   },
 
   /**
    * Mark all notifications as read
    */
   async markAllRead(): Promise<void> {
-    // Endpoint not available; no-op for compatibility.
-    return;
+    await apiClient.put(`/notifications/read-all`);
   },
 
   /**
    * Get unread notification count
    */
   async getUnreadCount(): Promise<UnreadCountResponse> {
-    return await apiClient.get<UnreadCountResponse>('/creator/notifications/unread-count');
+    return await apiClient.get<UnreadCountResponse>('/notifications/unread-count');
   },
 };

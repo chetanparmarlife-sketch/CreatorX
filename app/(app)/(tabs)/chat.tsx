@@ -9,6 +9,8 @@ import { ChatItem, ChatItemSkeleton } from '@/src/components';
 import { ChatPreview } from '@/src/types';
 import { useDebounce, useRefresh, useTheme } from '@/src/hooks';
 import { useApp } from '@/src/context';
+import { useAuth } from '@/src/context/AuthContext';
+import { API_BASE_URL_READY } from '@/src/config/env';
 
 const MemoizedChatItem = memo(function MemoizedChatItem({
   chat,
@@ -31,7 +33,9 @@ export default function MessagesScreen() {
     refreshData,
     startMessagesPolling,
     stopMessagesPolling,
+    messagingError,
   } = useApp();
+  const { isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -111,8 +115,23 @@ export default function MessagesScreen() {
     [isLoading, searchQuery, colors, renderEmptyState]
   );
 
+  const messagingNotice = useMemo(() => {
+    if (!API_BASE_URL_READY) {
+      return 'Messaging unavailable in degraded mode.';
+    }
+    if (!isAuthenticated) {
+      return 'Login required to view messages.';
+    }
+    return messagingError;
+  }, [isAuthenticated, messagingError]);
+
   const ListHeader = useMemo(() => (
     <>
+      {messagingNotice ? (
+        <View style={styles.noticeBanner}>
+          <Text style={styles.noticeText}>{messagingNotice}</Text>
+        </View>
+      ) : null}
       <View style={styles.searchContainer}>
         <View style={[
           styles.searchBar,
@@ -139,7 +158,7 @@ export default function MessagesScreen() {
         </View>
       </View>
     </>
-  ), [colors, isDark, searchQuery]);
+  ), [colors, isDark, searchQuery, messagingNotice]);
 
   const renderMessagesTab = () => (
     <FlatList
@@ -213,6 +232,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.sm,
     marginBottom: spacing.md,
+  },
+  noticeBanner: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+  },
+  noticeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1337ec',
+    textAlign: 'center',
   },
   searchBar: {
     flexDirection: 'row',

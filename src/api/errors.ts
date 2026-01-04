@@ -19,13 +19,21 @@ export class APIError extends Error {
 /**
  * Handle API errors and convert to APIError
  */
-export const handleAPIError = (error: unknown): APIError => {
-  // Check if it's already an APIError
+export const normalizeApiError = (error: unknown): APIError => {
   if (error instanceof APIError) {
     return error;
   }
 
-  // Check if it's an Axios error
+  if (error && typeof error === 'object') {
+    const maybeConfigError = error as { code?: string; message?: string };
+    if (maybeConfigError.code === 'CONFIG_MISSING') {
+      return new APIError(0, maybeConfigError.message || 'API configuration missing', 'CONFIG_MISSING');
+    }
+    if (maybeConfigError.code === 'AUTH_REQUIRED') {
+      return new APIError(401, maybeConfigError.message || 'Login required', 'AUTH_REQUIRED');
+    }
+  }
+
   if (error && typeof error === 'object' && 'response' in error) {
     const axiosError = error as {
       response?: {
@@ -49,23 +57,20 @@ export const handleAPIError = (error: unknown): APIError => {
         data?.code,
         data?.details
       );
-    } else if (axiosError.request) {
-      // Network error - request was made but no response received
-      return new APIError(
-        0,
-        'Network error. Please check your connection.',
-        'NETWORK_ERROR'
-      );
+    }
+    if (axiosError.request) {
+      return new APIError(0, 'Network error. Please check your connection.', 'NETWORK_ERROR');
     }
   }
 
-  // Generic error
   if (error instanceof Error) {
     return new APIError(0, error.message, 'UNKNOWN_ERROR');
   }
 
   return new APIError(0, 'An unexpected error occurred', 'UNKNOWN_ERROR');
 };
+
+export const handleAPIError = (error: unknown): APIError => normalizeApiError(error);
 
 /**
  * Check if error is a network error
@@ -115,5 +120,4 @@ export const getErrorMessage = (error: unknown): string => {
 
   return 'An unexpected error occurred. Please try again.';
 };
-
 

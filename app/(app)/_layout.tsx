@@ -26,6 +26,7 @@ export default function AppLayout() {
       <Stack.Screen name="kyc" />
       <Stack.Screen name="refer-earn" />
       <Stack.Screen name="transaction-detail" />
+      <Stack.Screen name="withdraw" />
       <Stack.Screen name="event-details" />
     </Stack>
   );

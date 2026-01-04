@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, memo, useRef } from 'react';
+import { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert, ScrollView, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -212,12 +212,19 @@ export default function ActiveCampaignsScreen() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const isMountedRef = useRef(true);
 
   const handleRefresh = useCallback(async () => {
     await refreshData();
   }, [refreshData]);
 
   const { refreshing, handleRefresh: onRefresh } = useRefresh(handleRefresh);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleViewDetails = useCallback((campaign: ActiveCampaign) => {
     setSelectedCampaign(campaign);
@@ -233,10 +240,10 @@ export default function ActiveCampaignsScreen() {
     }
   }, []);
 
-  const handleDraftSubmit = useCallback(async (deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => {
+  const handleDraftSubmit = useCallback(async (deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }, description?: string) => {
     if (!selectedCampaign) return;
     try {
-      await submitDeliverable(selectedCampaign.id, deliverableId, file);
+      await submitDeliverable(selectedCampaign.id, deliverableId, file, description);
       const updatedDeliverables = selectedCampaign.deliverables.map(d =>
         d.id === deliverableId ? { ...d, status: 'draft_submitted' as const, submittedFile: file, submittedAt: new Date().toISOString() } : d
       );
@@ -247,8 +254,10 @@ export default function ActiveCampaignsScreen() {
       const apiError = handleAPIError(err);
       Alert.alert('Submission Failed', apiError.message || 'Unable to submit deliverable.');
     } finally {
-      setShowDraftModal(false);
-      setSelectedDeliverable(null);
+      if (isMountedRef.current) {
+        setShowDraftModal(false);
+        setSelectedDeliverable(null);
+      }
     }
   }, [selectedCampaign, submitDeliverable, updateActiveCampaign, refreshData]);
 

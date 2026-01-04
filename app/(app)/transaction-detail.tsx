@@ -20,7 +20,12 @@ export default function TransactionDetailScreen() {
   const params = useLocalSearchParams();
   const { colors } = useTheme();
   const { transactions, transactionsLoading, transactionsError, fetchTransactions } = useApp();
-  const transactionId = typeof params.id === 'string' ? params.id : '';
+  const transactionId =
+    typeof params.transactionId === 'string'
+      ? params.transactionId
+      : typeof params.id === 'string'
+        ? params.id
+        : '';
   const [transaction, setTransaction] = useState<TransactionDTO | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
   const isMountedRef = useRef(true);
@@ -122,10 +127,19 @@ export default function TransactionDetailScreen() {
             <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading transaction...</Text>
           </View>
         ) : (
-          <ErrorView
-            error={transactionsError || 'Transaction not found.'}
-            onRetry={() => fetchTransactions({ page: 0, size: 20, refresh: true })}
-          />
+          <View style={styles.emptyState}>
+            <ErrorView
+              error={transactionsError || 'Transaction not found.'}
+              onRetry={() => fetchTransactions({ page: 0, size: 20, refresh: true })}
+            />
+            <TouchableOpacity
+              style={[styles.backAction, { backgroundColor: colors.card }]}
+              onPress={() => router.back()}
+              data-testid="button-back-empty"
+            >
+              <Text style={[styles.backActionText, { color: colors.text }]}>Back</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </SafeAreaView>
     );
@@ -266,6 +280,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  backAction: {
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  backActionText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingText: {
     ...typography.body,

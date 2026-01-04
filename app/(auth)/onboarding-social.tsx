@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,21 +7,27 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, borderRadius } from '@/src/theme';
 import { useTheme } from '@/src/hooks';
+import { useApp } from '@/src/context';
+import { useAuth } from '@/src/context/AuthContext';
+import { API_BASE_URL_READY } from '@/src/config/env';
+import { openExternalUrl } from '@/src/utils/openExternalUrl';
+import { SocialProvider } from '@/src/api/services/socialConnectService';
 
 type SocialAccount = {
-  id: string;
+  id: SocialProvider;
   name: string;
-  status: 'connected' | 'disconnected';
+  status: 'connected' | 'disconnected' | 'needs_reconnect';
   handle?: string;
+  followers?: number;
+  lastSyncedAt?: string;
   accent: string;
   icon: keyof typeof Feather.glyphMap;
 };
 
 const initialAccounts: SocialAccount[] = [
   { id: 'instagram', name: 'Instagram', status: 'disconnected', accent: '#d62976', icon: 'camera' },
-  { id: 'tiktok', name: 'TikTok', status: 'disconnected', accent: '#111111', icon: 'music' },
-  { id: 'youtube', name: 'YouTube', status: 'connected', handle: '@creator_official', accent: '#ff0000', icon: 'video' },
-  { id: 'twitter', name: 'Twitter', status: 'disconnected', accent: '#0f172a', icon: 'at-sign' },
+  { id: 'facebook', name: 'Facebook Pages', status: 'disconnected', accent: '#1877f2', icon: 'facebook' },
+  { id: 'linkedin', name: 'LinkedIn', status: 'disconnected', accent: '#0a66c2', icon: 'linkedin' },
 ];
 
 const STORAGE_KEYS = {
@@ -31,21 +37,130 @@ const STORAGE_KEYS = {
 export default function OnboardingSocialScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const {
+    socialAccounts,
+    socialAccountsError,
+    fetchSocialAccounts,
+    refreshSocialAccount,
+    disconnectSocialAccount,
+    getSocialConnectUrl,
+  } = useApp();
   const [accounts, setAccounts] = useState(initialAccounts);
+  const isMountedRef = useRef(true);
 
-  const toggleConnect = (id: string) => {
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !API_BASE_URL_READY) return;
+    fetchSocialAccounts();
+  }, [fetchSocialAccounts, isAuthenticated]);
+
+  useEffect(() => {
+    if (socialAccountsError && isMountedRef.current) {
+      Alert.alert('Social connect', socialAccountsError);
+    }
+  }, [socialAccountsError]);
+
+  useEffect(() => {
+    if (!socialAccounts.length) {
+      setAccounts(initialAccounts);
+      return;
+    }
+
     setAccounts((prev) =>
-      prev.map((account) =>
-        account.id === id
-          ? {
-              ...account,
-              status: account.status === 'connected' ? 'disconnected' : 'connected',
-              handle: account.status === 'connected' ? undefined : account.handle || '@creator_official',
-            }
-          : account
-      )
+      prev.map((account) => {
+        const match = socialAccounts.find((item) => item.provider === account.id);
+        if (!match) {
+          return { ...account, status: 'disconnected', handle: undefined, followers: undefined, lastSyncedAt: undefined };
+        }
+        const connected = match.status === 'CONNECTED';
+        const needsReconnect = match.status === 'NEEDS_RECONNECT';
+        return {
+          ...account,
+          status: connected ? 'connected' : needsReconnect ? 'needs_reconnect' : 'disconnected',
+          handle: match.username ? `@${match.username}` : account.handle,
+          followers: match.followers,
+          lastSyncedAt: match.lastSyncedAt,
+        };
+      })
     );
-  };
+  }, [socialAccounts]);
+
+  const formatFollowers = useCallback((count?: number) => {
+    if (!count && count !== 0) return '';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return `${count}`;
+  }, []);
+
+  const buildSubtitle = useCallback(
+    (account: SocialAccount) => {
+      if (account.status === 'connected') {
+        const followers = formatFollowers(account.followers);
+        const followersText = followers ? ` • ${followers} followers` : '';
+        return `${account.handle || 'Connected'}${followersText}`;
+      }
+      if (account.status === 'needs_reconnect') {
+        return 'Reconnect required';
+      }
+      return 'Not connected';
+    },
+    [formatFollowers]
+  );
+
+  const handleConnect = useCallback(
+    async (provider: SocialProvider) => {
+      if (!API_BASE_URL_READY) {
+        Alert.alert('Unavailable', 'Social connect is unavailable in degraded mode.');
+        return;
+      }
+      if (!isAuthenticated) {
+        Alert.alert('Login required', 'Please login to connect your social account.');
+        return;
+      }
+      if (provider === 'linkedin') {
+        Alert.alert('Coming soon', 'LinkedIn connect will be available soon.');
+        return;
+      }
+
+      const url = getSocialConnectUrl(provider);
+      if (!url) {
+        Alert.alert('Unavailable', 'Social connect is not configured.');
+        return;
+      }
+
+      try {
+        await openExternalUrl(url);
+      } catch (err) {
+        Alert.alert('Unable to open', 'Please try again.');
+      }
+    },
+    [getSocialConnectUrl, isAuthenticated]
+  );
+
+  const handleDisconnect = useCallback(
+    async (provider: SocialProvider) => {
+      if (!API_BASE_URL_READY) {
+        Alert.alert('Unavailable', 'Social connect is unavailable in degraded mode.');
+        return;
+      }
+      await disconnectSocialAccount(provider);
+    },
+    [disconnectSocialAccount]
+  );
+
+  const handleRefresh = useCallback(
+    async (provider: SocialProvider) => {
+      if (!API_BASE_URL_READY) return;
+      await refreshSocialAccount(provider);
+    },
+    [refreshSocialAccount]
+  );
 
   const handleContinue = async () => {
     await AsyncStorage.setItem(STORAGE_KEYS.SOCIAL_ACCOUNTS, JSON.stringify(accounts));
@@ -86,30 +201,38 @@ export default function OnboardingSocialScreen() {
         </View>
 
         <View style={styles.list}>
-          {accounts.map((account) => (
-            <View key={account.id} style={[styles.card, account.status === 'connected' && styles.cardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={[styles.iconCircle, { backgroundColor: account.accent }]}>
-                  <Feather name={account.icon} size={22} color="#ffffff" />
+          {accounts.map((account) => {
+            const isConnected = account.status === 'connected';
+            const needsReconnect = account.status === 'needs_reconnect';
+            return (
+              <View key={account.id} style={[styles.card, isConnected && styles.cardActive]}>
+                <View style={styles.cardLeft}>
+                  <View style={[styles.iconCircle, { backgroundColor: account.accent }]}>
+                    <Feather name={account.icon} size={22} color="#ffffff" />
+                  </View>
+                  <View>
+                    <Text style={styles.cardTitle}>{account.name}</Text>
+                    <Text style={[styles.cardSubtitle, isConnected && styles.cardSubtitleActive]}>
+                      {buildSubtitle(account)}
+                    </Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={styles.cardTitle}>{account.name}</Text>
-                  <Text style={[styles.cardSubtitle, account.status === 'connected' && styles.cardSubtitleActive]}>
-                    {account.status === 'connected' ? account.handle : 'Not connected'}
-                  </Text>
-                </View>
+                {isConnected ? (
+                  <TouchableOpacity
+                    style={styles.disconnectButton}
+                    onPress={() => handleDisconnect(account.id)}
+                    onLongPress={() => handleRefresh(account.id)}
+                  >
+                    <Feather name="x" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.connectButton} onPress={() => handleConnect(account.id)}>
+                    <Text style={styles.connectText}>{needsReconnect ? 'Reconnect' : 'Connect'}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              {account.status === 'connected' ? (
-                <TouchableOpacity style={styles.disconnectButton} onPress={() => toggleConnect(account.id)}>
-                  <Feather name="x" size={18} color={isDark ? '#94a3b8' : '#64748b'} />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.connectButton} onPress={() => toggleConnect(account.id)}>
-                  <Text style={styles.connectText}>Connect</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
 

@@ -5,9 +5,10 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Alert } from 'react-native';
+import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { featureFlags } from '@/src/config/featureFlags';
+import { featureFlags, POLL_INTERVAL_MS } from '@/src/config/featureFlags';
 import {
   campaignService,
   applicationService,
@@ -16,6 +17,7 @@ import {
   notificationService,
   profileService,
   deliverableService,
+  socialConnectService,
 } from '@/src/api/services';
 import {
   adaptCampaignsResponse,
@@ -26,7 +28,9 @@ import {
   adaptMessage,
   adaptConversation,
 } from '@/src/api/adapters';
-import { handleAPIError, isNetworkError } from '@/src/api/errors';
+import { handleAPIError, isNetworkError, normalizeApiError } from '@/src/api/errors';
+import { API_BASE_URL_READY } from '@/src/config/env';
+import { webSocketService, ThreadEvent, MessageEvent } from '@/src/services/WebSocketService';
 import { cacheUtils } from '@/src/api/utils/cache';
 import { clearApiCacheKeys } from '@/src/storage/cleanup';
 import { APP_OWNED_KEYS } from '@/src/storage/schema';
@@ -45,9 +49,9 @@ import {
 import { CampaignFilters } from '@/src/api/services/campaignService';
 import { ApplicationRequest } from '@/src/api/services/applicationService';
 import { TransactionDTO, WalletDTO, WithdrawalDTO } from '@/src/api/services/walletService';
+import { CreatorSocialAccount, SocialProvider } from '@/src/api/services/socialConnectService';
 import { getSession } from '@/src/lib/supabase';
 import { getSecureItem } from '@/src/lib/secureStore';
-import { storageService } from '@/src/api/services/storageService';
 
 interface ApplicationFormData {
   pitch: string;
@@ -71,6 +75,11 @@ interface AppContextType {
   notifications: Notification[];
   unreadNotifications: number;
   unreadNotificationCount: number;
+  notificationsHasMore: boolean;
+  notificationsPage: number;
+  socialAccounts: CreatorSocialAccount[];
+  socialAccountsLoading: boolean;
+  socialAccountsError: string | null;
   darkMode: boolean;
   isLoading: boolean;
   activeCampaigns: ActiveCampaign[];
@@ -79,6 +88,11 @@ interface AppContextType {
   walletError: string | null;
   transactionsError: string | null;
   withdrawalsError: string | null;
+  messagingError: string | null;
+  transactionsHasMore: boolean;
+  transactionsPage: number;
+  withdrawalsHasMore: boolean;
+  withdrawalsPage: number;
 
   // Loading states
   loadingCampaigns: boolean;
@@ -97,6 +111,7 @@ interface AppContextType {
   fetchCampaigns: (filters?: CampaignFilters, reset?: boolean) => Promise<void>;
   loadMoreCampaigns: () => Promise<void>;
   getCampaignById: (id: string) => Campaign | undefined;
+  fetchCampaignById: (id: string) => Promise<Campaign | null>;
   saveCampaign: (campaignId: string) => Promise<void>;
   unsaveCampaign: (campaignId: string) => Promise<void>;
   isCampaignSaved: (campaignId: string) => boolean;
@@ -117,8 +132,14 @@ interface AppContextType {
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
   addNotification: (notification: Omit<Notification, 'id'>) => void;
-  fetchNotifications: () => Promise<void>;
+  fetchNotifications: (params?: { page?: number; size?: number; refresh?: boolean }) => Promise<void>;
   fetchUnreadNotificationCount: () => Promise<void>;
+
+  // Actions - Social Connect (metadata only; tokens stay backend-only)
+  fetchSocialAccounts: () => Promise<void>;
+  refreshSocialAccount: (provider: SocialProvider) => Promise<void>;
+  disconnectSocialAccount: (provider: SocialProvider) => Promise<void>;
+  getSocialConnectUrl: (provider: SocialProvider) => string | null;
 
   // Actions - Messaging
   sendMessage: (chatId: string, text: string) => Promise<void>;
@@ -135,7 +156,8 @@ interface AppContextType {
   submitDeliverable: (
     activeCampaignId: string,
     deliverableId: string,
-    file: { name: string; type: 'video' | 'image'; uri: string }
+    file: { name: string; type: 'video' | 'image'; uri: string },
+    description?: string
   ) => Promise<void>;
   approveDeliverable: (activeCampaignId: string, deliverableId: string) => Promise<void>;
   requestDeliverableChanges: (activeCampaignId: string, deliverableId: string, feedback: string) => Promise<void>;
@@ -167,6 +189,7 @@ const STORAGE_KEYS = {
   CAMPAIGNS: '@campaigns',
   SAVED_CAMPAIGNS: '@saved_campaigns',
   NOTIFICATIONS: '@notifications',
+  SOCIAL_ACCOUNTS: '@creator_social_accounts',
   DARK_MODE: '@dark_mode',
   ACTIVE_CAMPAIGNS: '@active_campaigns',
   APPLICATIONS: '@applications',
@@ -237,8 +260,7 @@ const defaultUser: UserProfile = {
   },
 };
 
-const MESSAGE_POLL_INTERVAL = 12000;
-const MESSAGE_POLL_MAX_BACKOFF = 48000;
+const MESSAGE_POLL_INTERVAL = POLL_INTERVAL_MS;
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -265,6 +287,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [walletError, setWalletError] = useState<string | null>(null);
   const [transactionsError, setTransactionsError] = useState<string | null>(null);
   const [withdrawalsError, setWithdrawalsError] = useState<string | null>(null);
+  const [socialAccounts, setSocialAccounts] = useState<CreatorSocialAccount[]>([]);
+  const [socialAccountsLoading, setSocialAccountsLoading] = useState(false);
+  const [socialAccountsError, setSocialAccountsError] = useState<string | null>(null);
+  const [messagingError, setMessagingError] = useState<string | null>(null);
+  const [transactionsPage, setTransactionsPage] = useState(0);
+  const [transactionsHasMore, setTransactionsHasMore] = useState(true);
+  const [withdrawalsPage, setWithdrawalsPage] = useState(0);
+  const [withdrawalsHasMore, setWithdrawalsHasMore] = useState(true);
 
   // Loading states
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
@@ -281,20 +311,101 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [campaignsHasMore, setCampaignsHasMore] = useState(true);
   const [campaignsTotal, setCampaignsTotal] = useState(0);
   const [campaignFilters, setCampaignFilters] = useState<CampaignFilters>({});
+  const [notificationsPage, setNotificationsPage] = useState(0);
+  const [notificationsHasMore, setNotificationsHasMore] = useState(true);
   const isMountedRef = useRef(true);
-  const conversationsPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conversationsPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const conversationsPollInFlightRef = useRef(false);
-  const conversationsBackoffRef = useRef(MESSAGE_POLL_INTERVAL);
+  const chatListActiveRef = useRef(false);
   const activeConversationRef = useRef<string | null>(null);
-  const messagesPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messagesPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesPollInFlightRef = useRef(false);
-  const messagesBackoffRef = useRef(MESSAGE_POLL_INTERVAL);
+  const appStateRef = useRef(AppState.currentState);
+  const lastConversationsPollAtRef = useRef<number | null>(null);
+  const lastMessagesPollAtRef = useRef<number | null>(null);
+  const wsThreadsUnsubRef = useRef<(() => void) | null>(null);
+  const wsMessagesUnsubRef = useRef<(() => void) | null>(null);
+  const wsFailedRef = useRef(false);
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  const runIfMounted = useCallback((fn: () => void) => {
+    if (isMountedRef.current) {
+      fn();
+    }
+  }, []);
+
+  const resolveAuthToken = useCallback(async (): Promise<string | null> => {
+    const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+    if (storedToken) return storedToken;
+    const session = await getSession().catch(() => null);
+    return session?.access_token ?? null;
+  }, []);
+
+  const resolveMessagingToken = useCallback(async (): Promise<string | null> => {
+    const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+    if (storedToken) return storedToken;
+    const session = await getSession().catch(() => null);
+    return session?.access_token ?? null;
+  }, []);
+
+  const isWebSocketEnabled = useCallback(() => {
+    return (
+      featureFlags.isEnabled('USE_WS_MESSAGING') ||
+      featureFlags.isEnabled('USE_WS_MESSAGES')
+    );
+  }, []);
+
+  const canStartMessagingPolling = useCallback(async () => {
+    if (!featureFlags.isEnabled('USE_API_MESSAGING_POLLING')) {
+      return false;
+    }
+    if (!featureFlags.isEnabled('USE_POLLING_MESSAGES')) {
+      return false;
+    }
+    if (!featureFlags.isEnabled('USE_API_MESSAGING')) {
+      return false;
+    }
+    if (isWebSocketEnabled() && !wsFailedRef.current && webSocketService.connected) {
+      return false;
+    }
+    if (!API_BASE_URL_READY) {
+      runIfMounted(() => setMessagingError('Messaging unavailable in degraded mode.'));
+      return false;
+    }
+    const token = await resolveMessagingToken();
+    if (!token) {
+      runIfMounted(() => setMessagingError('Login required to view messages.'));
+      return false;
+    }
+
+    runIfMounted(() => setMessagingError(null));
+    return true;
+  }, [isWebSocketEnabled, resolveMessagingToken, runIfMounted]);
+
+  const canStartWebSocketMessaging = useCallback(async () => {
+    if (!isWebSocketEnabled()) {
+      return false;
+    }
+    if (!featureFlags.isEnabled('USE_API_MESSAGING')) {
+      return false;
+    }
+    if (!API_BASE_URL_READY) {
+      runIfMounted(() => setMessagingError('Messaging unavailable in degraded mode.'));
+      return false;
+    }
+    const token = await resolveMessagingToken();
+    if (!token) {
+      runIfMounted(() => setMessagingError('Login required to view messages.'));
+      return false;
+    }
+    runIfMounted(() => setMessagingError(null));
+    return true;
+  }, [isWebSocketEnabled, resolveMessagingToken, runIfMounted]);
 
   // Load cached data on mount
   useEffect(() => {
@@ -331,6 +442,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const cached = await cacheUtils.get<Notification[]>('notifications');
         if (cached && isMountedRef.current) setNotifications(cached);
       }
+
+      // Load cached social accounts metadata (tokens are never stored on device)
+      const socialRaw = await AsyncStorage.getItem(STORAGE_KEYS.SOCIAL_ACCOUNTS);
+      if (socialRaw && isMountedRef.current) {
+        setSocialAccounts(safeParseJSON<CreatorSocialAccount[]>(socialRaw, []));
+      }
     } catch (error) {
       console.error('Error loading cached data:', error);
     } finally {
@@ -355,14 +472,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (__DEV__) {
               console.log('[Campaigns] Skipping fetch until auth token is ready.');
             }
+            runIfMounted(() => setError('Login required to load campaigns.'));
             return;
           }
         }
       }
 
-      setLoadingCampaigns(true);
-      setError(null);
-      setCampaignFilters(filters);
+      runIfMounted(() => {
+        setLoadingCampaigns(true);
+        setError(null);
+        setCampaignFilters(filters);
+      });
 
       try {
         if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
@@ -378,15 +498,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }));
 
           if (reset) {
-            setCampaigns(adaptedCampaigns);
-            setCampaignsPage(1);
+            runIfMounted(() => {
+              setCampaigns(adaptedCampaigns);
+              setCampaignsPage(1);
+            });
           } else {
-            setCampaigns((prev) => [...prev, ...adaptedCampaigns]);
-            setCampaignsPage((prev) => prev + 1);
+            runIfMounted(() => {
+              setCampaigns((prev) => [...prev, ...adaptedCampaigns]);
+              setCampaignsPage((prev) => prev + 1);
+            });
           }
 
-          setCampaignsHasMore(adapted.hasMore);
-          setCampaignsTotal(adapted.total);
+          runIfMounted(() => {
+            setCampaignsHasMore(adapted.hasMore);
+            setCampaignsTotal(adapted.total);
+          });
 
           // Cache campaigns
           await cacheUtils.set('campaigns', adaptedCampaigns);
@@ -394,24 +520,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } else {
           // Use mock data (fallback)
           const mockCampaigns: Campaign[] = [];
-          setCampaigns(mockCampaigns);
+          runIfMounted(() => setCampaigns(mockCampaigns));
         }
       } catch (err) {
         const apiError = handleAPIError(err);
-        setError(apiError.message);
+        runIfMounted(() => setError(apiError.message));
 
         // Load from cache on error
         if (isNetworkError(apiError)) {
           const cached = await cacheUtils.get<Campaign[]>('campaigns');
           if (cached) {
-            setCampaigns(cached);
+            runIfMounted(() => setCampaigns(cached));
           }
         }
       } finally {
-        setLoadingCampaigns(false);
+        runIfMounted(() => setLoadingCampaigns(false));
       }
     },
-    [loadingCampaigns, campaignsPage, savedCampaigns]
+    [loadingCampaigns, campaignsPage, savedCampaigns, runIfMounted]
   );
 
   /**
@@ -430,6 +556,64 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return campaigns.find((c) => c.id === id);
     },
     [campaigns]
+  );
+
+  /**
+   * Fetch campaign by ID from API and merge into state
+   */
+  const fetchCampaignById = useCallback(
+    async (id: string): Promise<Campaign | null> => {
+      if (!id) return null;
+
+      if (!API_BASE_URL_READY) {
+        runIfMounted(() => setError('Campaigns unavailable in degraded mode.'));
+        return null;
+      }
+
+      if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
+        const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+        if (!storedToken) {
+          const session = await getSession().catch(() => null);
+          if (!session?.access_token) {
+            if (__DEV__) {
+              console.log('[Campaigns] Skipping fetch until auth token is ready.');
+            }
+            runIfMounted(() => setError('Login required to load campaign.'));
+            return null;
+          }
+        }
+      }
+
+      try {
+        if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
+          const apiCampaign = await campaignService.getCampaign(id);
+          const adapted = adaptCampaign(apiCampaign);
+          const withUserState = {
+            ...adapted,
+            userState: savedCampaigns.includes(adapted.id) ? 'SAVED' : adapted.userState,
+          };
+
+          runIfMounted(() => {
+            setCampaigns((prev) => {
+              const existing = prev.find((c) => c.id === id);
+              if (existing) {
+                return prev.map((c) => (c.id === id ? withUserState : c));
+              }
+              return [withUserState, ...prev];
+            });
+          });
+
+          return withUserState;
+        }
+
+        return getCampaignById(id) ?? null;
+      } catch (err) {
+        const apiError = handleAPIError(err);
+        runIfMounted(() => setError(apiError.message));
+        return null;
+      }
+    },
+    [getCampaignById, runIfMounted, savedCampaigns]
   );
 
   /**
@@ -532,14 +716,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const apiApplication = await applicationService.submitApplication(request);
           const adapted = adaptApplication(apiApplication);
 
-          setApplications((prev) => [adapted, ...prev]);
+          runIfMounted(() => setApplications((prev) => [adapted, ...prev]));
 
           // Update campaign status
-          setCampaigns((prev) =>
-            prev.map((c) =>
-              c.id === campaignId
-                ? { ...c, userState: 'APPLIED', applicants: (c.applicants || 0) + 1 }
-                : c
+          runIfMounted(() =>
+            setCampaigns((prev) =>
+              prev.map((c) =>
+                c.id === campaignId
+                  ? { ...c, userState: 'APPLIED', applicants: (c.applicants || 0) + 1 }
+                  : c
+              )
             )
           );
 
@@ -563,15 +749,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
             status: 'APPLIED',
             submittedAt: new Date().toISOString(),
           };
-          setApplications((prev) => [mockApplication, ...prev]);
+          runIfMounted(() => setApplications((prev) => [mockApplication, ...prev]));
         }
       } catch (err) {
         const apiError = handleAPIError(err);
-        setError(apiError.message);
+        runIfMounted(() => setError(apiError.message));
         throw apiError;
       }
     },
-    [user.id]
+    [user.id, runIfMounted]
   );
 
   /**
@@ -592,13 +778,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (featureFlags.isEnabled('USE_API_APPLICATIONS')) {
           await applicationService.withdrawApplication(applicationId);
         }
-      setApplications((prev) => prev.filter((a) => a.id !== applicationId));
+      runIfMounted(() => setApplications((prev) => prev.filter((a) => a.id !== applicationId)));
     } catch (err) {
       const apiError = handleAPIError(err);
-      setError(apiError.message);
+      runIfMounted(() => setError(apiError.message));
       throw apiError;
     }
-  }, []);
+  }, [runIfMounted]);
 
   /**
    * Fetch applications
@@ -606,20 +792,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchApplications = useCallback(async () => {
     if (loadingApplications) return;
 
-    setLoadingApplications(true);
+    runIfMounted(() => setLoadingApplications(true));
     try {
       if (featureFlags.isEnabled('USE_API_APPLICATIONS')) {
         const result = await applicationService.getApplications(0, 100);
         const adapted = result.items.map(adaptApplication);
-        setApplications(adapted);
+        runIfMounted(() => setApplications(adapted));
       }
     } catch (err) {
       const apiError = handleAPIError(err);
-      setError(apiError.message);
+      runIfMounted(() => setError(apiError.message));
     } finally {
-      setLoadingApplications(false);
+      runIfMounted(() => setLoadingApplications(false));
     }
-  }, [loadingApplications]);
+  }, [loadingApplications, runIfMounted]);
 
   /**
    * Fetch wallet summary
@@ -636,32 +822,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (__DEV__) {
               console.log('[Wallet] Skipping fetch — no auth token yet');
             }
+            runIfMounted(() => {
+              setError('Login required to load wallet.');
+              setWalletError('Login required to load wallet.');
+            });
             return;
           }
         }
 
-        setWalletLoading(true);
-        setWalletError(null);
+        runIfMounted(() => {
+          setWalletLoading(true);
+          setWalletError(null);
+        });
+        if (__DEV__) {
+          console.log('[Wallet] Fetching summary');
+        }
         const apiWallet = await walletService.getWallet();
-        setWallet(apiWallet);
+        runIfMounted(() => setWallet(apiWallet));
         await cacheUtils.set('wallet', apiWallet);
         await AsyncStorage.setItem(STORAGE_KEYS.WALLET, JSON.stringify(apiWallet));
       } else {
-        setWallet(null);
+        runIfMounted(() => setWallet(null));
       }
     } catch (err) {
       const apiError = handleAPIError(err);
-      setError(apiError.message);
-      setWalletError(apiError.message);
+      runIfMounted(() => {
+        setError(apiError.message);
+        setWalletError(apiError.message);
+      });
 
       if (isNetworkError(apiError)) {
         const cached = await cacheUtils.get<WalletDTO>('wallet');
-        if (cached) setWallet(cached);
+        if (cached) runIfMounted(() => setWallet(cached));
       }
     } finally {
-      setWalletLoading(false);
+      runIfMounted(() => setWalletLoading(false));
     }
-  }, [walletLoading]);
+  }, [walletLoading, runIfMounted]);
 
   /**
    * Fetch transactions
@@ -669,9 +866,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchTransactions = useCallback(
     async ({ page = 0, size = 20, refresh = false } = {}) => {
       if (transactionsLoading) return;
+      const shouldReplace = refresh || page === 0;
 
       try {
         if (featureFlags.isEnabled('USE_API_WALLET')) {
+          if (shouldReplace) {
+            runIfMounted(() => {
+              setTransactions([]);
+              setTransactionsPage(0);
+              setTransactionsHasMore(true);
+            });
+          }
           const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
           if (!storedToken) {
             const session = await getSession().catch(() => null);
@@ -679,26 +884,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (__DEV__) {
                 console.log('[Wallet] Skipping transactions fetch — no auth token yet');
               }
+              runIfMounted(() => setError('Login required to load transactions.'));
+              runIfMounted(() => setTransactionsError('Login required to load transactions.'));
               return;
             }
           }
 
-          setTransactionsLoading(true);
-          setTransactionsError(null);
+          runIfMounted(() => {
+            setTransactionsLoading(true);
+            setTransactionsError(null);
+          });
+          if (__DEV__) {
+            console.log('[Wallet] Fetching transactions', { page, size });
+          }
           const result = await walletService.getTransactions(page, size);
-          setTransactions((prev) => (refresh || page === 0 ? result.items : [...prev, ...result.items]));
+          runIfMounted(() => {
+            setTransactions((prev) => {
+              if (shouldReplace) {
+                return result.items;
+              }
+              const existingIds = new Set(prev.map((item) => item.id));
+              const deduped = result.items.filter((item) => !existingIds.has(item.id));
+              return [...prev, ...deduped];
+            });
+            const loadedCount = page * size + result.items.length;
+            const totalCount = Number.isFinite(result.total) ? result.total : null;
+            setTransactionsHasMore(
+              totalCount !== null ? loadedCount < totalCount && result.items.length > 0 : result.items.length === size
+            );
+            setTransactionsPage(page);
+          });
         } else if (refresh || page === 0) {
-          setTransactions([]);
+          runIfMounted(() => {
+            setTransactions([]);
+            setTransactionsHasMore(false);
+            setTransactionsPage(0);
+          });
         }
       } catch (err) {
         const apiError = handleAPIError(err);
-        setError(apiError.message);
-        setTransactionsError(apiError.message);
+        runIfMounted(() => {
+          setError(apiError.message);
+          setTransactionsError(apiError.message);
+        });
       } finally {
-        setTransactionsLoading(false);
+        runIfMounted(() => setTransactionsLoading(false));
       }
     },
-    [transactionsLoading]
+    [transactionsLoading, runIfMounted]
   );
 
   /**
@@ -707,9 +940,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchWithdrawals = useCallback(
     async ({ page = 0, size = 20, refresh = false } = {}) => {
       if (withdrawalsLoading) return;
+      const shouldReplace = refresh || page === 0;
 
       try {
         if (featureFlags.isEnabled('USE_API_WALLET')) {
+          if (shouldReplace) {
+            runIfMounted(() => {
+              setWithdrawals([]);
+              setWithdrawalsPage(0);
+              setWithdrawalsHasMore(true);
+            });
+          }
           const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
           if (!storedToken) {
             const session = await getSession().catch(() => null);
@@ -717,26 +958,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (__DEV__) {
                 console.log('[Wallet] Skipping withdrawals fetch — no auth token yet');
               }
+              runIfMounted(() => setError('Login required to load withdrawals.'));
+              runIfMounted(() => setWithdrawalsError('Login required to load withdrawals.'));
               return;
             }
           }
 
-          setWithdrawalsLoading(true);
-          setWithdrawalsError(null);
+          runIfMounted(() => {
+            setWithdrawalsLoading(true);
+            setWithdrawalsError(null);
+          });
+          if (__DEV__) {
+            console.log('[Wallet] Fetching withdrawals', { page, size });
+          }
           const result = await walletService.getWithdrawals(page, size);
-          setWithdrawals((prev) => (refresh || page === 0 ? result.items : [...prev, ...result.items]));
+          runIfMounted(() => {
+            setWithdrawals((prev) => {
+              if (shouldReplace) {
+                return result.items;
+              }
+              const existingIds = new Set(prev.map((item) => item.id));
+              const deduped = result.items.filter((item) => !existingIds.has(item.id));
+              return [...prev, ...deduped];
+            });
+            const loadedCount = page * size + result.items.length;
+            const totalCount = Number.isFinite(result.total) ? result.total : null;
+            setWithdrawalsHasMore(
+              totalCount !== null ? loadedCount < totalCount && result.items.length > 0 : result.items.length === size
+            );
+            setWithdrawalsPage(page);
+          });
         } else if (refresh || page === 0) {
-          setWithdrawals([]);
+          runIfMounted(() => {
+            setWithdrawals([]);
+            setWithdrawalsHasMore(false);
+            setWithdrawalsPage(0);
+          });
         }
       } catch (err) {
         const apiError = handleAPIError(err);
-        setError(apiError.message);
-        setWithdrawalsError(apiError.message);
+        runIfMounted(() => {
+          setError(apiError.message);
+          setWithdrawalsError(apiError.message);
+        });
       } finally {
-        setWithdrawalsLoading(false);
+        runIfMounted(() => setWithdrawalsLoading(false));
       }
     },
-    [withdrawalsLoading]
+    [withdrawalsLoading, runIfMounted]
   );
 
   const refreshWalletAll = useCallback(async () => {
@@ -750,53 +1019,88 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /**
    * Fetch notifications
    */
-  const fetchNotifications = useCallback(async () => {
-    if (loadingNotifications) return;
+  const fetchNotifications = useCallback(
+    async ({ page = 0, size = 20, refresh = false }: { page?: number; size?: number; refresh?: boolean } = {}) => {
+      if (loadingNotifications) return;
 
-    setLoadingNotifications(true);
-    setNotificationsError(null);
-    setWalletError(null);
-    setTransactionsError(null);
-    setWithdrawalsError(null);
-    try {
-      if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
-        const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
-        if (!storedToken) {
-          const session = await getSession().catch(() => null);
-          if (!session?.access_token) {
-            if (__DEV__) {
-              console.log('[Notifications] Skipping fetch until auth token is ready.');
+      const shouldReplace = refresh || page === 0;
+
+      runIfMounted(() => {
+        setLoadingNotifications(true);
+        setNotificationsError(null);
+      });
+
+      try {
+        if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
+          const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          if (!storedToken) {
+            const session = await getSession().catch(() => null);
+            if (!session?.access_token) {
+              if (__DEV__) {
+                console.log('[Notifications] Skipping fetch until auth token is ready.');
+              }
+              runIfMounted(() => setLoadingNotifications(false));
+              runIfMounted(() => setError('Login required to load notifications.'));
+              return;
             }
-            return;
+          }
+
+          const result = await notificationService.getNotifications(page, size);
+          const adapted = result.items.map(adaptNotification);
+          let mergedNotifications: Notification[] = [];
+          runIfMounted(() => {
+            setNotifications((prev) => {
+              if (shouldReplace) {
+                mergedNotifications = adapted;
+                return adapted;
+              }
+              const existingIds = new Set(prev.map((item) => item.id));
+              const deduped = adapted.filter((item) => !existingIds.has(item.id));
+              mergedNotifications = [...prev, ...deduped];
+              return mergedNotifications;
+            });
+            setNotificationsPage(page);
+            const loadedCount = page * size + adapted.length;
+            const totalCount = Number.isFinite(result.total) ? result.total : null;
+            setNotificationsHasMore(
+              totalCount !== null ? loadedCount < totalCount && adapted.length > 0 : adapted.length === size
+            );
+          });
+          if (mergedNotifications.length > 0 || shouldReplace) {
+            await cacheUtils.set('notifications', mergedNotifications);
           }
         }
+        if (!featureFlags.isEnabled('USE_API_NOTIFICATIONS') && shouldReplace) {
+          runIfMounted(() => {
+            setNotificationsPage(0);
+            setNotificationsHasMore(false);
+          });
+        }
+      } catch (err) {
+        const apiError = handleAPIError(err);
+        runIfMounted(() => {
+          setError(apiError.message);
+          setNotificationsError(apiError.message);
+        });
 
-        const result = await notificationService.getNotifications(0, 100);
-        const adapted = result.items.map(adaptNotification);
-        setNotifications(adapted);
-        await cacheUtils.set('notifications', adapted);
+        // Load from cache
+        if (isNetworkError(apiError)) {
+          const cached = await cacheUtils.get<Notification[]>('notifications');
+          if (cached) runIfMounted(() => setNotifications(cached));
+        }
+      } finally {
+        runIfMounted(() => setLoadingNotifications(false));
       }
-    } catch (err) {
-      const apiError = handleAPIError(err);
-      setError(apiError.message);
-      setNotificationsError(apiError.message);
-
-      // Load from cache
-      if (isNetworkError(apiError)) {
-        const cached = await cacheUtils.get<Notification[]>('notifications');
-        if (cached) setNotifications(cached);
-      }
-    } finally {
-      setLoadingNotifications(false);
-    }
-  }, [loadingNotifications]);
+    },
+    [loadingNotifications, runIfMounted]
+  );
 
   /**
    * Fetch unread notification count
    */
   const fetchUnreadNotificationCount = useCallback(async () => {
     if (!featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
-      setUnreadNotificationCount(0);
+      runIfMounted(() => setUnreadNotificationCount(0));
       return;
     }
 
@@ -807,26 +1111,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (__DEV__) {
           console.log('[Notifications] Skipping unread count until auth token is ready.');
         }
+        runIfMounted(() => setNotificationsError('Login required to load notifications.'));
         return;
       }
     }
 
     try {
       const result = await notificationService.getUnreadCount();
-      setUnreadNotificationCount(result.count);
-      setNotificationsError(null);
+      runIfMounted(() => {
+        setUnreadNotificationCount(result.count);
+        setNotificationsError(null);
+      });
     } catch (err) {
       const apiError = handleAPIError(err);
-      setNotificationsError(apiError.message);
+      runIfMounted(() => setNotificationsError(apiError.message));
     }
-  }, []);
+  }, [runIfMounted]);
 
   // Bootstrap notifications when authenticated
   useEffect(() => {
     if (!featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
       return;
     }
-    fetchNotifications();
+    fetchNotifications({ page: 0, size: 20, refresh: true });
     fetchUnreadNotificationCount();
   }, [fetchNotifications, fetchUnreadNotificationCount]);
 
@@ -848,8 +1155,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const markNotificationRead = useCallback(
     async (id: string) => {
+      const prev = notifications.find((n) => n.id === id);
+      const previousReadState = prev?.read;
       // Optimistic update
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      runIfMounted(() =>
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+        )
+      );
 
       try {
         if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
@@ -858,11 +1171,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         // Revert on error
-        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: false } : n)));
+        if (previousReadState !== undefined) {
+          runIfMounted(() =>
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === id ? { ...n, read: previousReadState as boolean } : n))
+            )
+          );
+        }
         console.error('Error marking notification read:', err);
       }
     },
-    [fetchUnreadNotificationCount]
+    [fetchUnreadNotificationCount, notifications, runIfMounted]
   );
 
   /**
@@ -870,18 +1189,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const markAllNotificationsRead = useCallback(async () => {
     // Optimistic update
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    runIfMounted(() => setNotifications((prev) => prev.map((n) => ({ ...n, read: true }))));
 
     try {
       if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
-        const unread = notifications.filter((n) => !n.read);
-        await Promise.all(unread.map((n) => notificationService.markNotificationRead(n.id)));
+        await notificationService.markAllRead();
         await fetchUnreadNotificationCount();
       }
     } catch (err) {
       console.error('Error marking all notifications read:', err);
     }
-  }, [fetchUnreadNotificationCount, notifications]);
+  }, [fetchUnreadNotificationCount, runIfMounted]);
 
   /**
    * Add notification (local only)
@@ -898,27 +1216,190 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
+   * Social connect: fetch account metadata only.
+   * OAuth tokens are stored on the backend; the app never stores them.
+   */
+  const fetchSocialAccounts = useCallback(async () => {
+    if (!API_BASE_URL_READY) {
+      runIfMounted(() => setSocialAccountsError('Social connect unavailable in degraded mode.'));
+      return;
+    }
+
+    const token = await resolveAuthToken();
+    if (!token) {
+      runIfMounted(() => setSocialAccountsError('Login required to view social accounts.'));
+      return;
+    }
+
+    runIfMounted(() => {
+      setSocialAccountsLoading(true);
+      setSocialAccountsError(null);
+    });
+
+    try {
+      const accounts = await socialConnectService.getSocialAccounts();
+      runIfMounted(() => setSocialAccounts(accounts));
+      await AsyncStorage.setItem(STORAGE_KEYS.SOCIAL_ACCOUNTS, JSON.stringify(accounts));
+    } catch (err) {
+      const apiError = normalizeApiError(err);
+      runIfMounted(() => setSocialAccountsError(apiError.message));
+    } finally {
+      runIfMounted(() => setSocialAccountsLoading(false));
+    }
+  }, [resolveAuthToken, runIfMounted]);
+
+  useEffect(() => {
+    const supportedProviders = new Set<SocialProvider>(['instagram', 'facebook']);
+
+    const handleSocialCallback = async (url: string) => {
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname !== 'social-connect') return;
+
+        const provider = (parsed.searchParams.get('provider') || '').toLowerCase() as SocialProvider;
+        const status = parsed.searchParams.get('status') || '';
+        if (!supportedProviders.has(provider)) return;
+
+        if (status === 'success') {
+          await fetchSocialAccounts();
+          Alert.alert('Connected', `${provider} connected successfully.`);
+          return;
+        }
+
+        Alert.alert('Failed', 'Social connect failed. Please try again.');
+      } catch {
+        // Ignore malformed URLs.
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      void handleSocialCallback(url);
+    });
+
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        void handleSocialCallback(url);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [fetchSocialAccounts]);
+
+  // Trigger backend refresh to pull latest metrics.
+  const refreshSocialAccount = useCallback(
+    async (provider: SocialProvider) => {
+      if (!API_BASE_URL_READY) {
+        runIfMounted(() => setSocialAccountsError('Social connect unavailable in degraded mode.'));
+        return;
+      }
+
+      const token = await resolveAuthToken();
+      if (!token) {
+        runIfMounted(() => setSocialAccountsError('Login required to refresh social accounts.'));
+        return;
+      }
+
+      try {
+        await socialConnectService.refresh(provider);
+        await fetchSocialAccounts();
+      } catch (err) {
+        const apiError = normalizeApiError(err);
+        runIfMounted(() => setSocialAccountsError(apiError.message));
+      }
+    },
+    [fetchSocialAccounts, resolveAuthToken, runIfMounted]
+  );
+
+  // Disconnect provider on backend; removes access and stored tokens server-side.
+  const disconnectSocialAccount = useCallback(
+    async (provider: SocialProvider) => {
+      if (!API_BASE_URL_READY) {
+        runIfMounted(() => setSocialAccountsError('Social connect unavailable in degraded mode.'));
+        return;
+      }
+
+      const token = await resolveAuthToken();
+      if (!token) {
+        runIfMounted(() => setSocialAccountsError('Login required to disconnect social accounts.'));
+        return;
+      }
+
+      try {
+        await socialConnectService.disconnect(provider);
+        await fetchSocialAccounts();
+      } catch (err) {
+        const apiError = normalizeApiError(err);
+        runIfMounted(() => setSocialAccountsError(apiError.message));
+      }
+    },
+    [fetchSocialAccounts, resolveAuthToken, runIfMounted]
+  );
+
+  const getSocialConnectUrl = useCallback((provider: SocialProvider) => {
+    return socialConnectService.getConnectUrl(provider);
+  }, []);
+
+  /**
    * Fetch conversations
    */
   const fetchConversations = useCallback(async () => {
     if (loadingChats) return;
 
-    setLoadingChats(true);
+    runIfMounted(() => setLoadingChats(true));
     try {
       if (featureFlags.isEnabled('USE_API_MESSAGING')) {
+        if (!API_BASE_URL_READY) {
+          runIfMounted(() => setMessagingError('Messaging unavailable in degraded mode.'));
+          return;
+        }
+        const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+        if (!storedToken) {
+          const session = await getSession().catch(() => null);
+          if (!session?.access_token) {
+            runIfMounted(() => setMessagingError('Login required to view messages.'));
+            return;
+          }
+        }
+
         const apiConversations = await messagingService.getConversations();
         const adaptedChats = apiConversations.map((conv) =>
           adaptConversationToChatPreview(conv, user.id)
         );
-        setChats(adaptedChats);
+        runIfMounted(() => {
+          setChats((prev) => {
+            const prevById = new Map(prev.map((item) => [item.id, item]));
+            const merged = adaptedChats.map((chat) => {
+              const existing = prevById.get(chat.id);
+              if (!existing) return chat;
+              const hasNewUnread = chat.unread > existing.unread;
+              return {
+                ...chat,
+                lastMessage: chat.lastMessage || (hasNewUnread ? 'New message received' : existing.lastMessage),
+                time: chat.time || existing.time,
+                online: existing.online,
+              };
+            });
+            const mergedIds = new Set(merged.map((chat) => chat.id));
+            const extras = prev.filter((chat) => !mergedIds.has(chat.id));
+            return [...merged, ...extras];
+          });
+          setMessagingError(null);
+        });
       }
     } catch (err) {
       const apiError = handleAPIError(err);
-      setError(apiError.message);
+      runIfMounted(() => {
+        setError(apiError.message);
+        if (apiError.code === 'AUTH_REQUIRED' || apiError.status === 401 || apiError.code === 'CONFIG_MISSING') {
+          setMessagingError(apiError.message);
+        }
+      });
     } finally {
-      setLoadingChats(false);
+      runIfMounted(() => setLoadingChats(false));
     }
-  }, [loadingChats, user.id]);
+  }, [loadingChats, user.id, runIfMounted]);
 
   /**
    * Load messages for a conversation
@@ -927,135 +1408,451 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (conversationId: string, page: number = 0, size: number = 50) => {
       try {
         if (featureFlags.isEnabled('USE_API_MESSAGING')) {
+          if (!API_BASE_URL_READY) {
+            runIfMounted(() => setMessagingError('Messaging unavailable in degraded mode.'));
+            return;
+          }
+          const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          if (!storedToken) {
+            const session = await getSession().catch(() => null);
+            if (!session?.access_token) {
+              runIfMounted(() => setMessagingError('Login required to view messages.'));
+              return;
+            }
+          }
+
           const response = await messagingService.getMessages(conversationId, page, size);
           const items = Array.isArray(response) ? response : response.items ?? [];
           const adapted = items.map((message) => adaptMessage(message, user.id));
 
-          setMessagesByConversation((prev) => {
-            const existing = prev[conversationId] ?? [];
-            const mergedInput = page > 0 ? [...existing, ...adapted] : [...adapted, ...existing];
-            const merged = normalizeMessages(mergedInput);
-            return { ...prev, [conversationId]: merged };
+          let mergedMessages: Message[] = [];
+          runIfMounted(() => {
+            setMessagesByConversation((prev) => {
+              const existing = prev[conversationId] ?? [];
+              const mergedInput = page > 0 ? [...existing, ...adapted] : [...adapted, ...existing];
+              mergedMessages = normalizeMessages(mergedInput);
+              return { ...prev, [conversationId]: mergedMessages };
+            });
+            setChats((prev) => {
+              const latest = mergedMessages[mergedMessages.length - 1];
+              if (!latest) return prev;
+              return prev.map((chat) =>
+                chat.id === conversationId
+                  ? {
+                      ...chat,
+                      lastMessage: latest.text,
+                      time: latest.time,
+                    }
+                  : chat
+              );
+            });
+            setMessagingError(null);
           });
         } else {
-          setMessagesByConversation((prev) => ({
-            ...prev,
-            [conversationId]: normalizeMessages(prev[conversationId] ?? []),
-          }));
+          runIfMounted(() => {
+            setMessagesByConversation((prev) => ({
+              ...prev,
+              [conversationId]: normalizeMessages(prev[conversationId] ?? []),
+            }));
+          });
         }
       } catch (err) {
         const apiError = handleAPIError(err);
-        setError(apiError.message);
+        runIfMounted(() => {
+          setError(apiError.message);
+          if (apiError.code === 'AUTH_REQUIRED' || apiError.status === 401 || apiError.code === 'CONFIG_MISSING') {
+            setMessagingError(apiError.message);
+          } else if (isNetworkError(apiError)) {
+            setMessagingError('Network error. Retrying messages...');
+          }
+        });
+        if (apiError.code === 'AUTH_REQUIRED' || apiError.status === 401) {
+          stopConversationPolling();
+        }
       }
     },
-    [user.id]
+    [runIfMounted, user.id]
+  );
+
+  const upsertChatPreview = useCallback(
+    (conversation: Conversation) => {
+      const adapted = adaptConversationToChatPreview(conversation, user.id);
+      runIfMounted(() => {
+        setChats((prev) => {
+          const prevById = new Map(prev.map((item) => [item.id, item]));
+          const existing = prevById.get(adapted.id);
+          if (!existing) {
+            return [adapted, ...prev];
+          }
+          const hasNewUnread = adapted.unread > existing.unread;
+          return prev.map((chat) =>
+            chat.id === adapted.id
+              ? {
+                  ...adapted,
+                  lastMessage: adapted.lastMessage || (hasNewUnread ? 'New message received' : existing.lastMessage),
+                  time: adapted.time || existing.time,
+                  online: existing.online,
+                }
+              : chat
+          );
+        });
+      });
+    },
+    [runIfMounted, user.id]
+  );
+
+  const handleThreadEvent = useCallback(
+    (event: ThreadEvent) => {
+      const conversation = 'thread' in event ? event.thread : event;
+      if (!conversation?.id) return;
+      upsertChatPreview(conversation);
+    },
+    [upsertChatPreview]
+  );
+
+  const handleMessageEvent = useCallback(
+    (event: MessageEvent) => {
+      if (!event?.conversationId) return;
+      const adapted = adaptMessage(event, user.id);
+      runIfMounted(() => {
+        setMessagesByConversation((prev) => {
+          const existing = prev[adapted.chatId] ?? [];
+          const merged = normalizeMessages([...existing, adapted]);
+          return { ...prev, [adapted.chatId]: merged };
+        });
+        setChats((prev) =>
+          prev.map((chat) => {
+            if (chat.id !== adapted.chatId) return chat;
+            const shouldIncrementUnread =
+              adapted.sender === 'other' && activeConversationRef.current !== adapted.chatId;
+            return {
+              ...chat,
+              lastMessage: adapted.text,
+              time: adapted.time,
+              unread: shouldIncrementUnread ? chat.unread + 1 : chat.unread,
+            };
+          })
+        );
+      });
+    },
+    [runIfMounted, user.id]
   );
 
   const stopMessagesPolling = useCallback(() => {
     if (conversationsPollRef.current) {
-      clearTimeout(conversationsPollRef.current);
+      clearInterval(conversationsPollRef.current);
       conversationsPollRef.current = null;
     }
     conversationsPollInFlightRef.current = false;
+    chatListActiveRef.current = false;
+    if (wsThreadsUnsubRef.current) {
+      wsThreadsUnsubRef.current();
+      wsThreadsUnsubRef.current = null;
+    }
+    if (!activeConversationRef.current) {
+      webSocketService.disconnect();
+      wsFailedRef.current = false;
+    }
   }, []);
 
   const stopConversationPolling = useCallback(() => {
     if (messagesPollRef.current) {
-      clearTimeout(messagesPollRef.current);
+      clearInterval(messagesPollRef.current);
       messagesPollRef.current = null;
     }
     messagesPollInFlightRef.current = false;
     activeConversationRef.current = null;
+    if (wsMessagesUnsubRef.current) {
+      wsMessagesUnsubRef.current();
+      wsMessagesUnsubRef.current = null;
+    }
+    if (!chatListActiveRef.current) {
+      webSocketService.disconnect();
+      wsFailedRef.current = false;
+    }
   }, []);
 
-  const startMessagesPolling = useCallback(() => {
-    if (!featureFlags.isEnabled('USE_POLLING_MESSAGES')) return;
-    if (!featureFlags.isEnabled('USE_API_MESSAGING')) return;
-    if (featureFlags.isEnabled('USE_WS_MESSAGES')) return;
+  const stopPollingIntervalsOnly = useCallback(() => {
+    if (conversationsPollRef.current) {
+      clearInterval(conversationsPollRef.current);
+      conversationsPollRef.current = null;
+    }
+    if (messagesPollRef.current) {
+      clearInterval(messagesPollRef.current);
+      messagesPollRef.current = null;
+    }
+  }, []);
+
+  const startMessagesPollingInterval = useCallback(() => {
+    chatListActiveRef.current = true;
     if (conversationsPollRef.current) return;
 
-    conversationsBackoffRef.current = MESSAGE_POLL_INTERVAL;
-
-    const poll = async () => {
-      if (!isMountedRef.current) return;
-      if (conversationsPollInFlightRef.current) {
-        conversationsPollRef.current = setTimeout(poll, conversationsBackoffRef.current);
+    const start = async () => {
+      if (!(await canStartMessagingPolling())) {
+        stopMessagesPolling();
         return;
       }
-      conversationsPollInFlightRef.current = true;
-      try {
-        await fetchConversations();
-        conversationsBackoffRef.current = MESSAGE_POLL_INTERVAL;
-      } catch {
-        conversationsBackoffRef.current = Math.min(
-          conversationsBackoffRef.current * 2,
-          MESSAGE_POLL_MAX_BACKOFF
-        );
-      } finally {
-        conversationsPollInFlightRef.current = false;
+
+      const poll = async () => {
         if (!isMountedRef.current) return;
-        conversationsPollRef.current = setTimeout(poll, conversationsBackoffRef.current);
+        if (!chatListActiveRef.current) return;
+        if (appStateRef.current !== 'active') return;
+        if (!(await canStartMessagingPolling())) {
+          stopMessagesPolling();
+          return;
+        }
+        if (conversationsPollInFlightRef.current) return;
+        conversationsPollInFlightRef.current = true;
+        try {
+          await fetchConversations();
+          lastConversationsPollAtRef.current = Date.now();
+          if (__DEV__) {
+            console.log('[Messaging] Conversations polled', new Date(lastConversationsPollAtRef.current).toISOString());
+          }
+        } finally {
+          conversationsPollInFlightRef.current = false;
+        }
+      };
+
+      if (__DEV__) {
+        console.log('[Messaging] Start conversations polling');
+      }
+      poll();
+      conversationsPollRef.current = setInterval(poll, MESSAGE_POLL_INTERVAL);
+    };
+
+    void start();
+  }, [canStartMessagingPolling, fetchConversations, stopMessagesPolling]);
+
+  const startWebSocketThreads = useCallback(() => {
+    chatListActiveRef.current = true;
+    if (wsThreadsUnsubRef.current) return;
+
+    const start = async () => {
+      if (!(await canStartWebSocketMessaging())) {
+        wsFailedRef.current = true;
+        startMessagesPollingInterval();
+        return;
+      }
+
+      const token = await resolveMessagingToken();
+      if (!token) {
+        wsFailedRef.current = true;
+        startMessagesPollingInterval();
+        return;
+      }
+
+      try {
+        await webSocketService.connect(token);
+        if (webSocketService.connected && !wsThreadsUnsubRef.current) {
+          wsThreadsUnsubRef.current = webSocketService.subscribeToThreads(handleThreadEvent);
+        }
+        wsFailedRef.current = false;
+      } catch (error) {
+        wsFailedRef.current = true;
+        const apiError = normalizeApiError(error);
+        runIfMounted(() => setMessagingError(apiError.message));
+        startMessagesPollingInterval();
       }
     };
 
-    conversationsPollRef.current = setTimeout(poll, 0);
-  }, [fetchConversations]);
+    void start();
+  }, [
+    canStartWebSocketMessaging,
+    handleThreadEvent,
+    resolveMessagingToken,
+    runIfMounted,
+    startMessagesPollingInterval,
+  ]);
 
-  const startConversationPolling = useCallback(
+  const startMessagesPolling = useCallback(() => {
+    chatListActiveRef.current = true;
+    if (isWebSocketEnabled() && !wsFailedRef.current) {
+      return startWebSocketThreads();
+    }
+    return startMessagesPollingInterval();
+  }, [isWebSocketEnabled, startMessagesPollingInterval, startWebSocketThreads]);
+
+  const startConversationPollingInterval = useCallback(
     (conversationId: string) => {
       if (!conversationId) return;
-      if (!featureFlags.isEnabled('USE_POLLING_MESSAGES')) return;
-      if (!featureFlags.isEnabled('USE_API_MESSAGING')) return;
-      if (featureFlags.isEnabled('USE_WS_MESSAGES')) return;
-
       if (activeConversationRef.current !== conversationId) {
         stopConversationPolling();
         activeConversationRef.current = conversationId;
       }
-
       if (messagesPollRef.current) return;
 
-      messagesBackoffRef.current = MESSAGE_POLL_INTERVAL;
-
-      const poll = async () => {
-        if (!isMountedRef.current) return;
-        if (messagesPollInFlightRef.current) {
-          messagesPollRef.current = setTimeout(poll, messagesBackoffRef.current);
+      const start = async () => {
+        if (!(await canStartMessagingPolling())) {
+          stopConversationPolling();
           return;
         }
-        messagesPollInFlightRef.current = true;
-        try {
-          await loadMessages(conversationId, 0, 50);
-          messagesBackoffRef.current = MESSAGE_POLL_INTERVAL;
-        } catch {
-          messagesBackoffRef.current = Math.min(
-            messagesBackoffRef.current * 2,
-            MESSAGE_POLL_MAX_BACKOFF
-          );
-        } finally {
-          messagesPollInFlightRef.current = false;
+
+        const poll = async () => {
           if (!isMountedRef.current) return;
-          messagesPollRef.current = setTimeout(poll, messagesBackoffRef.current);
+          if (appStateRef.current !== 'active') return;
+          if (!(await canStartMessagingPolling())) {
+            stopConversationPolling();
+            return;
+          }
+          if (messagesPollInFlightRef.current) return;
+          messagesPollInFlightRef.current = true;
+          try {
+            await loadMessages(conversationId, 0, 50);
+            lastMessagesPollAtRef.current = Date.now();
+            if (__DEV__) {
+              console.log('[Messaging] Messages polled', new Date(lastMessagesPollAtRef.current).toISOString());
+            }
+          } finally {
+            messagesPollInFlightRef.current = false;
+          }
+        };
+
+        if (__DEV__) {
+          console.log('[Messaging] Start conversation polling', conversationId);
+        }
+        poll();
+        messagesPollRef.current = setInterval(poll, MESSAGE_POLL_INTERVAL);
+      };
+
+      void start();
+    },
+    [canStartMessagingPolling, loadMessages, stopConversationPolling]
+  );
+
+  const startWebSocketConversation = useCallback(
+    (conversationId: string) => {
+      if (!conversationId) return;
+      if (activeConversationRef.current !== conversationId) {
+        stopConversationPolling();
+        activeConversationRef.current = conversationId;
+      }
+      if (wsMessagesUnsubRef.current) return;
+
+      const start = async () => {
+        if (!(await canStartWebSocketMessaging())) {
+          wsFailedRef.current = true;
+          startConversationPollingInterval(conversationId);
+          return;
+        }
+
+        const token = await resolveMessagingToken();
+        if (!token) {
+          wsFailedRef.current = true;
+          startConversationPollingInterval(conversationId);
+          return;
+        }
+
+        try {
+          await webSocketService.connect(token);
+          if (webSocketService.connected && !wsMessagesUnsubRef.current) {
+            wsMessagesUnsubRef.current = webSocketService.subscribeToThreadMessages(conversationId, handleMessageEvent);
+          }
+          wsFailedRef.current = false;
+        } catch (error) {
+          wsFailedRef.current = true;
+          const apiError = normalizeApiError(error);
+          runIfMounted(() => setMessagingError(apiError.message));
+          startConversationPollingInterval(conversationId);
         }
       };
 
-      messagesPollRef.current = setTimeout(poll, 0);
+      void start();
     },
-    [loadMessages, stopConversationPolling]
+    [
+      canStartWebSocketMessaging,
+      handleMessageEvent,
+      resolveMessagingToken,
+      runIfMounted,
+      startConversationPollingInterval,
+      stopConversationPolling,
+    ]
+  );
+
+  const startConversationPolling = useCallback(
+    (conversationId: string) => {
+      if (!conversationId) return;
+      if (isWebSocketEnabled() && !wsFailedRef.current) {
+        return startWebSocketConversation(conversationId);
+      }
+      return startConversationPollingInterval(conversationId);
+    },
+    [isWebSocketEnabled, startConversationPollingInterval, startWebSocketConversation]
   );
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
+      appStateRef.current = state;
       if (state !== 'active') {
         stopMessagesPolling();
         stopConversationPolling();
+        webSocketService.disconnect();
+        return;
+      }
+      if (chatListActiveRef.current) {
+        startMessagesPolling();
+      }
+      if (activeConversationRef.current) {
+        startConversationPolling(activeConversationRef.current);
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [stopMessagesPolling, stopConversationPolling]);
+  }, [startConversationPolling, startMessagesPolling, stopMessagesPolling, stopConversationPolling]);
+
+  useEffect(() => {
+    const unsubscribeError = webSocketService.onError((error) => {
+      const apiError = normalizeApiError(error);
+      wsFailedRef.current = true;
+      runIfMounted(() => setMessagingError(apiError.message));
+      if (chatListActiveRef.current) {
+        startMessagesPollingInterval();
+      }
+      if (activeConversationRef.current) {
+        startConversationPollingInterval(activeConversationRef.current);
+      }
+    });
+
+    const unsubscribeDisconnect = webSocketService.onDisconnect(() => {
+      wsThreadsUnsubRef.current = null;
+      wsMessagesUnsubRef.current = null;
+      if (chatListActiveRef.current) {
+        startMessagesPollingInterval();
+      }
+      if (activeConversationRef.current) {
+        startConversationPollingInterval(activeConversationRef.current);
+      }
+    });
+
+    const unsubscribeConnect = webSocketService.onConnect(() => {
+      wsFailedRef.current = false;
+      stopPollingIntervalsOnly();
+      if (chatListActiveRef.current && !wsThreadsUnsubRef.current) {
+        wsThreadsUnsubRef.current = webSocketService.subscribeToThreads(handleThreadEvent);
+      }
+      if (activeConversationRef.current && !wsMessagesUnsubRef.current) {
+        wsMessagesUnsubRef.current = webSocketService.subscribeToThreadMessages(
+          activeConversationRef.current,
+          handleMessageEvent
+        );
+      }
+    });
+
+    return () => {
+      unsubscribeError();
+      unsubscribeDisconnect();
+      unsubscribeConnect();
+    };
+  }, [
+    handleMessageEvent,
+    handleThreadEvent,
+    runIfMounted,
+    startConversationPollingInterval,
+    startMessagesPollingInterval,
+    stopPollingIntervalsOnly,
+  ]);
 
   /**
    * Send message
@@ -1067,21 +1864,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const apiMessage = await messagingService.sendMessage(chatId, text);
           const adapted = adaptMessage(apiMessage, user.id);
 
-          setMessagesByConversation((prev) => {
-            const existing = prev[chatId] ?? [];
-            return { ...prev, [chatId]: normalizeMessages([...existing, adapted]) };
+          runIfMounted(() => {
+            setMessagesByConversation((prev) => {
+              const existing = prev[chatId] ?? [];
+              return { ...prev, [chatId]: normalizeMessages([...existing, adapted]) };
+            });
           });
 
           // Update chat preview
-          setChats((prev) =>
-            prev.map((c) =>
-              c.id === chatId
-                ? {
-                    ...c,
-                    lastMessage: text,
-                    time: 'Just now',
-                  }
-                : c
+          runIfMounted(() =>
+            setChats((prev) =>
+              prev.map((c) =>
+                c.id === chatId
+                  ? {
+                      ...c,
+                      lastMessage: text,
+                      time: 'Just now',
+                    }
+                  : c
+              )
             )
           );
         } else {
@@ -1096,18 +1897,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
             createdAt: new Date().toISOString(),
           };
 
-          setMessagesByConversation((prev) => {
-            const existing = prev[chatId] ?? [];
-            return { ...prev, [chatId]: normalizeMessages([...existing, mockMessage]) };
+          runIfMounted(() => {
+            setMessagesByConversation((prev) => {
+              const existing = prev[chatId] ?? [];
+              return { ...prev, [chatId]: normalizeMessages([...existing, mockMessage]) };
+            });
           });
         }
       } catch (err) {
         const apiError = handleAPIError(err);
-        setError(apiError.message);
+        runIfMounted(() => setError(apiError.message));
         throw apiError;
       }
     },
-    [user.id]
+    [runIfMounted, user.id]
   );
 
   /**
@@ -1126,7 +1929,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const markChatRead = useCallback(
     async (chatId: string) => {
       // Optimistic update
-      setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, unread: 0 } : c)));
+      runIfMounted(() => setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, unread: 0 } : c))));
 
       try {
         if (featureFlags.isEnabled('USE_API_MESSAGING')) {
@@ -1136,7 +1939,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Error marking chat read:', err);
       }
     },
-    []
+    [runIfMounted]
   );
 
   /**
@@ -1146,7 +1949,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (
       activeCampaignId: string,
       deliverableId: string,
-      file: { name: string; type: 'video' | 'image'; uri: string }
+      file: { name: string; type: 'video' | 'image'; uri: string },
+      description?: string
     ) => {
       try {
         if (featureFlags.isEnabled('USE_API_DELIVERABLES')) {
@@ -1169,35 +1973,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
             throw new Error('Unable to resolve application for this campaign.');
           }
 
-          await storageService.uploadDeliverable(file.uri, deliverableId);
-
           await deliverableService.submitDeliverable(applicationId, deliverableId, {
             file: {
               uri: file.uri,
               type: file.type === 'video' ? 'video/mp4' : 'image/jpeg',
               name: file.name,
             },
+            description,
           });
 
-          setDeliverables((prev) =>
-            prev.map((d) =>
-              d.id === deliverableId ? { ...d, status: 'submitted' as const } : d
+          runIfMounted(() =>
+            setDeliverables((prev) =>
+              prev.map((d) =>
+                d.id === deliverableId ? { ...d, status: 'submitted' as const } : d
+              )
             )
           );
         } else {
-          setDeliverables((prev) =>
-            prev.map((d) =>
-              d.id === deliverableId ? { ...d, status: 'submitted' as const } : d
+          runIfMounted(() =>
+            setDeliverables((prev) =>
+              prev.map((d) =>
+                d.id === deliverableId ? { ...d, status: 'submitted' as const } : d
+              )
             )
           );
         }
       } catch (err) {
         const apiError = handleAPIError(err);
-        setError(apiError.message);
+        runIfMounted(() => setError(apiError.message));
         throw apiError;
       }
     },
-    [activeCampaigns, applications]
+    [activeCampaigns, applications, runIfMounted]
   );
 
   /**
@@ -1303,24 +2110,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * Refresh all data
    */
   const refreshData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    setNotificationsError(null);
+    if (!API_BASE_URL_READY) {
+      return;
+    }
+
+    const requiresAuth =
+      featureFlags.isEnabled('USE_API_CAMPAIGNS') ||
+      featureFlags.isEnabled('USE_API_APPLICATIONS') ||
+      featureFlags.isEnabled('USE_API_WALLET') ||
+      featureFlags.isEnabled('USE_API_NOTIFICATIONS') ||
+      featureFlags.isEnabled('USE_API_MESSAGING');
+
+    if (requiresAuth) {
+      const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const session = storedToken ? null : await getSession().catch(() => null);
+      const token = storedToken || session?.access_token;
+      if (!token) {
+        return;
+      }
+    }
+
+    runIfMounted(() => {
+      setIsLoading(true);
+      setError(null);
+    });
 
     try {
-      await Promise.all([
-        fetchCampaigns({}, true),
-        fetchApplications(),
-        refreshWalletAll(),
-        fetchNotifications(),
-        fetchUnreadNotificationCount(),
-        fetchConversations(),
-      ]);
+      const tasks: Promise<void>[] = [];
+      if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
+        tasks.push(fetchCampaigns({}, true));
+      }
+      if (featureFlags.isEnabled('USE_API_APPLICATIONS')) {
+        tasks.push(fetchApplications());
+      }
+      if (featureFlags.isEnabled('USE_API_WALLET')) {
+        tasks.push(refreshWalletAll());
+      }
+      if (featureFlags.isEnabled('USE_API_NOTIFICATIONS')) {
+        tasks.push(fetchNotifications({ page: 0, size: 20, refresh: true }));
+        tasks.push(fetchUnreadNotificationCount());
+      }
+      if (featureFlags.isEnabled('USE_API_MESSAGING')) {
+        tasks.push(fetchConversations());
+      }
+      await Promise.all(tasks);
     } catch (err) {
       const apiError = handleAPIError(err);
-      setError(apiError.message);
+      runIfMounted(() => setError(apiError.message));
     } finally {
-      setIsLoading(false);
+      runIfMounted(() => setIsLoading(false));
     }
   }, [
     fetchCampaigns,
@@ -1348,6 +2186,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSavedCampaigns([]);
     setNotifications([]);
     setUnreadNotificationCount(0);
+    setSocialAccounts([]);
+    setSocialAccountsError(null);
+    setSocialAccountsLoading(false);
     setActiveCampaigns([]);
     setDarkMode(true);
     setIsLoading(false);
@@ -1447,6 +2288,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     notifications,
     unreadNotifications,
     unreadNotificationCount: resolvedUnreadNotificationCount,
+    notificationsHasMore,
+    notificationsPage,
+    socialAccounts,
+    socialAccountsLoading,
+    socialAccountsError,
     darkMode,
     isLoading,
     activeCampaigns,
@@ -1455,6 +2301,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     walletError,
     transactionsError,
     withdrawalsError,
+    messagingError,
+    transactionsHasMore,
+    transactionsPage,
+    withdrawalsHasMore,
+    withdrawalsPage,
 
     // Loading states
     loadingCampaigns,
@@ -1473,6 +2324,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchCampaigns,
     loadMoreCampaigns,
     getCampaignById,
+    fetchCampaignById,
     saveCampaign,
     unsaveCampaign,
     isCampaignSaved,
@@ -1489,6 +2341,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addNotification,
     fetchNotifications,
     fetchUnreadNotificationCount,
+    fetchSocialAccounts,
+    refreshSocialAccount,
+    disconnectSocialAccount,
+    getSocialConnectUrl,
     sendMessage,
     getConversation,
     markChatRead,
@@ -1522,6 +2378,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
+// NOTE: Keep all hooks/Provider logic above. Do not leave partial blocks before exports.
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {

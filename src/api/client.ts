@@ -4,8 +4,8 @@
 
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL, API_TIMEOUT, STORAGE_KEYS } from '@/src/config/env';
-import { ApiError } from './types';
+import { API_BASE_URL, API_BASE_URL_READY, API_TIMEOUT, STORAGE_KEYS } from '@/src/config/env';
+import { APIError, normalizeApiError } from './errors';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '@/src/lib/secureStore';
 import { getSession } from '@/src/lib/supabase';
 
@@ -19,7 +19,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: API_BASE_URL || undefined,
       timeout: API_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
@@ -37,11 +37,19 @@ class ApiClient {
     // Request interceptor - attach JWT token
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
+        if (!API_BASE_URL_READY) {
+          return Promise.reject(
+            normalizeApiError({ code: 'CONFIG_MISSING', message: 'API base URL missing. Configure EXPO_PUBLIC_API_BASE_URL.' })
+          );
+        }
+
         // Skip token attachment for auth endpoints
         if (config.url?.includes('/auth/register') || 
             config.url?.includes('/auth/login') ||
             config.url?.includes('/auth/forgot-password') ||
-            config.url?.includes('/auth/verify-otp')) {
+            config.url?.includes('/auth/verify-otp') ||
+            config.url?.includes('/auth/refresh-token') ||
+            config.url?.includes('/auth/refresh')) {
           return config;
         }
 
@@ -67,6 +75,11 @@ class ApiClient {
           }
           if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
+          }
+          if (!token) {
+            return Promise.reject(
+              normalizeApiError({ code: 'AUTH_REQUIRED', message: 'Login required to access this resource.' })
+            );
           }
         } catch (error) {
           console.error('Error getting token from storage:', error);
@@ -112,7 +125,7 @@ class ApiClient {
         }
         return response;
       },
-      async (error: AxiosError<ApiError>) => {
+      async (error: AxiosError<APIError>) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Handle 401 Unauthorized - try to refresh token
@@ -189,27 +202,18 @@ class ApiClient {
           }
         }
 
-        // Handle other errors
-        const apiError: ApiError = {
-          timestamp: error.response?.data?.timestamp || new Date().toISOString(),
-          status: error.response?.status || 500,
-          error: error.response?.data?.error || 'Unknown Error',
-          message: error.response?.data?.message || error.message || 'An unexpected error occurred',
-          path: error.response?.data?.path || originalRequest?.url || '',
-          details: error.response?.data?.details,
-        };
-
+        const normalizedError = normalizeApiError(error);
         if (__DEV__) {
           console.warn('[API Error]', {
             url: originalRequest?.url,
             method: originalRequest?.method,
-            status: apiError.status,
-            message: apiError.message,
-            error: apiError.error,
+            status: normalizedError.status,
+            message: normalizedError.message,
+            code: normalizedError.code,
           });
         }
 
-        return Promise.reject(apiError);
+        return Promise.reject(normalizedError);
       }
     );
   }

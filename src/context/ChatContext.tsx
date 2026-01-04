@@ -15,6 +15,7 @@ import {
 } from '@/src/lib/websocket';
 import { useAuth } from './AuthContext';
 import { messagingService } from '@/src/api/services/messagingService';
+import { adaptConversationToChatPreview, adaptMessage } from '@/src/api/adapters';
 import { Message, Conversation } from '@/src/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { featureFlags } from '@/src/config/featureFlags';
@@ -111,7 +112,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       console.error('Failed to connect WebSocket:', error);
       setConnected(false);
     }
-  }, [user]);
+  }, [user, handleIncomingMessage]);
 
   const disconnect = useCallback(() => {
     disconnectWebSocket();
@@ -119,31 +120,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleIncomingMessage = useCallback((messageData: any) => {
-    const message: Message = {
-      id: messageData.id,
-      text: messageData.content,
-      sender: messageData.senderId === user?.id ? 'user' : 'other',
-      time: new Date(messageData.createdAt).toISOString(),
-      status: messageData.read ? 'read' : 'delivered',
-      chatId: messageData.conversationId,
-    };
+    if (!user?.id || !messageData?.conversationId) return;
+    const message = adaptMessage(messageData, user.id);
 
     // Update messages map
     setMessages((prev) => {
-      const conversationMessages = prev.get(messageData.conversationId) || [];
+      const conversationMessages = prev.get(message.chatId || messageData.conversationId) || [];
       const updated = new Map(prev);
-      updated.set(messageData.conversationId, [...conversationMessages, message]);
+      updated.set(message.chatId || messageData.conversationId, [...conversationMessages, message]);
       return updated;
     });
 
     // Update conversation last message
     setConversations((prev) =>
       prev.map((conv) => {
-        if (conv.chatId === messageData.conversationId) {
+        if (conv.chatId === message.conversationId) {
           return {
             ...conv,
             lastMessage: message.text,
-            unread: messageData.senderId !== user?.id ? (conv.unread || 0) + 1 : conv.unread,
+            unread: message.sender === 'other' ? (conv.unread || 0) + 1 : conv.unread,
           };
         }
         return conv;
@@ -151,7 +146,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     );
 
     // Update unread count
-    if (messageData.senderId !== user?.id) {
+    if (message.sender === 'other') {
       setUnreadCount((prev) => prev + 1);
     }
   }, [user]);
@@ -226,20 +221,35 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const data = await messagingService.getConversations();
-      setConversations(data);
+      const adapted = data.map((conversation) => {
+        const preview = adaptConversationToChatPreview(conversation, user?.id || '');
+        const mapped: Conversation = {
+          chatId: preview.id,
+          name: preview.name,
+          lastMessage: preview.lastMessage,
+          unread: preview.unread,
+          online: preview.online,
+          type: preview.type,
+        };
+        return mapped;
+      });
+      setConversations(adapted);
+      setUnreadCount(adapted.reduce((sum, conv) => sum + (conv.unread || 0), 0));
     } catch (error) {
       console.error('Failed to load conversations:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
-      const data = await messagingService.getMessages(conversationId);
+      const response = await messagingService.getMessages(conversationId, 0, 50);
+      const items = Array.isArray(response) ? response : response.items ?? [];
+      const adapted = items.map((message) => adaptMessage(message, user?.id || ''));
       setMessages((prev) => {
         const updated = new Map(prev);
-        updated.set(conversationId, data);
+        updated.set(conversationId, adapted);
         return updated;
       });
 
@@ -255,7 +265,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Failed to load messages:', error);
     }
-  }, [connected, handleIncomingMessage]);
+  }, [connected, handleIncomingMessage, user?.id]);
 
   const loadUnreadCount = useCallback(async () => {
     try {

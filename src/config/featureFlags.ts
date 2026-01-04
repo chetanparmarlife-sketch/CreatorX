@@ -14,6 +14,8 @@ export type FeatureFlag =
   | 'USE_API_DELIVERABLES'
   | 'USE_API_WALLET'
   | 'USE_API_MESSAGING'
+  | 'USE_API_MESSAGING_POLLING'
+  | 'USE_WS_MESSAGING'
   | 'USE_POLLING_MESSAGES'
   | 'USE_WS_MESSAGES'
   | 'USE_API_NOTIFICATIONS'
@@ -26,6 +28,8 @@ interface FeatureFlags {
   USE_API_DELIVERABLES: boolean;
   USE_API_WALLET: boolean;
   USE_API_MESSAGING: boolean;
+  USE_API_MESSAGING_POLLING: boolean;
+  USE_WS_MESSAGING: boolean;
   USE_POLLING_MESSAGES: boolean;
   USE_WS_MESSAGES: boolean;
   USE_API_NOTIFICATIONS: boolean;
@@ -39,6 +43,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
   USE_API_DELIVERABLES: true,
   USE_API_WALLET: true,
   USE_API_MESSAGING: false,
+  USE_API_MESSAGING_POLLING: true,
+  USE_WS_MESSAGING: false,
   USE_POLLING_MESSAGES: true,
   USE_WS_MESSAGES: false,
   USE_API_NOTIFICATIONS: true,
@@ -83,6 +89,8 @@ class FeatureFlagManager {
 }
 
 export const featureFlags = new FeatureFlagManager();
+
+export const POLL_INTERVAL_MS = 15000;
 
 // Initialize on import
 featureFlags.loadFlags();

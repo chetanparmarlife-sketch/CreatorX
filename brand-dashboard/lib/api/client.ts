@@ -27,7 +27,7 @@ class ApiClient {
   }> = []
 
   constructor() {
-    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:8080/api/v1'
+    const baseURL = resolveBaseUrl()
 
     this.client = axios.create({
       baseURL,
@@ -218,6 +218,24 @@ class ApiClient {
   }
 }
 
+function resolveBaseUrl(): string {
+  const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || ''
+  const isProd = process.env.NODE_ENV === 'production'
+  const isLocal = baseURL.includes('localhost') || baseURL.includes('127.0.0.1')
+
+  if (!baseURL) {
+    if (isProd) {
+      throw new Error('NEXT_PUBLIC_API_BASE_URL is required in production.')
+    }
+    console.warn('[API] NEXT_PUBLIC_API_BASE_URL is not set; API calls will fail.')
+  }
+
+  if (isProd && isLocal) {
+    throw new Error('Refusing to use localhost API base URL in production.')
+  }
+
+  return baseURL
+}
+
 // Export singleton instance
 export const apiClient = new ApiClient()
-

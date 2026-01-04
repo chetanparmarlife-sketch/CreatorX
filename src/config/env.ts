@@ -56,15 +56,6 @@ const getEnvBaseURL = (): string | undefined => {
   return undefined;
 };
 
-const getDefaultApiUrl = (env: Environment): string => {
-  const defaultURLs: Record<Environment, string> = {
-    dev: 'http://localhost:8080/api/v1',
-    staging: 'https://api-staging.creatorx.com/api/v1',
-    prod: 'https://api.creatorx.com/api/v1',
-  };
-  return defaultURLs[env];
-};
-
 const getWebSocketURL = (env: Environment): string => {
   // Check for explicit environment variable (highest priority)
   // @ts-ignore - Expo environment variables
@@ -77,35 +68,36 @@ const getWebSocketURL = (env: Environment): string => {
   }
   
   // Auto-generate WebSocket URL from API URL if not explicitly set
-  const apiUrl = API_BASE_URL || getDefaultApiUrl(env);
-  if (apiUrl && apiUrl.startsWith('http://localhost')) {
+  if (!API_BASE_URL) {
+    return '';
+  }
+  if (API_BASE_URL.startsWith('http://localhost')) {
     return 'ws://localhost:8080/ws';
-  } else if (apiUrl && apiUrl.startsWith('https://')) {
+  } else if (API_BASE_URL.startsWith('https://')) {
     // Extract domain from API URL and convert to WebSocket
     try {
-      const url = new URL(apiUrl);
+      const url = new URL(API_BASE_URL);
       return `wss://${url.hostname}/ws`;
     } catch {
       // Fallback to default
     }
   }
-  
-  // Default URLs based on environment
-  const defaultURLs: Record<Environment, string> = {
-    dev: 'ws://localhost:8080/ws',
-    staging: 'wss://api-staging.creatorx.com/ws',
-    prod: 'wss://api.creatorx.com/ws',
-  };
-  
-  return defaultURLs[env];
+
+  return '';
 };
 
 const explicitApiBaseUrl = getEnvBaseURL();
+const resolvedApiBaseUrl = explicitApiBaseUrl || '';
 
-export const API_BASE_URL = explicitApiBaseUrl || getDefaultApiUrl(ENV);
+export const API_BASE_URL = resolvedApiBaseUrl || '';
+export const API_BASE_URL_READY = Boolean(API_BASE_URL);
 export const API_TIMEOUT = 30000;
 export const WS_BASE_URL = getWebSocketURL(ENV);
 export const CURRENT_ENV = ENV;
+
+export const getApiBaseUrlOrNull = (): string | null => {
+  return API_BASE_URL_READY ? API_BASE_URL : null;
+};
 
 const isLocalhostBaseUrl =
   API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1');
@@ -125,9 +117,9 @@ if (__DEV__) {
   }
 }
 
-if (!__DEV__ && (isLocalhostBaseUrl || !API_BASE_URL)) {
-  throw new Error(
-    'API_BASE_URL is invalid for production builds. Set EXPO_PUBLIC_API_BASE_URL=https://<host>/api/v1.'
+if (!__DEV__ && (isLocalhostBaseUrl || !API_BASE_URL_READY)) {
+  console.warn(
+    '⚠️  API_BASE_URL is invalid for production builds. Set EXPO_PUBLIC_API_BASE_URL=https://<host>/api/v1.'
   );
 }
 

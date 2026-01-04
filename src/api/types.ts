@@ -367,25 +367,36 @@ export interface SubmitKYCRequest {
 export interface Conversation {
   id: string;
   campaignId?: string;
-  creatorId: string;
-  brandId: string;
+  lastMessage?: {
+    id?: string;
+    text: string;
+    senderId?: string;
+    sentAt?: string;
+    createdAt?: string;
+  } | null;
+  unreadCount: number;
   lastMessageAt?: string;
-  creatorUnreadCount: number;
-  brandUnreadCount: number;
   createdAt: string;
   updatedAt: string;
   campaign?: Campaign;
   creator?: User;
   brand?: User;
+  // Legacy fields retained for backward compatibility with older payloads.
+  creatorId?: string;
+  brandId?: string;
+  creatorUnreadCount?: number;
+  brandUnreadCount?: number;
 }
 
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  content: string;
-  read: boolean;
+  text: string;
+  status?: 'SENT' | 'DELIVERED' | 'READ';
+  read?: boolean;
   readAt?: string;
+  sentAt?: string;
   createdAt: string;
   sender?: User;
 }

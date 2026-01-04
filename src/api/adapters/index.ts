@@ -151,22 +151,28 @@ export function adaptConversationToChatPreview(
   apiConversation: ApiConversation,
   currentUserId: string
 ): ChatPreview {
+  const creatorId = (apiConversation as any).creatorId ?? apiConversation.creator?.id;
+  const brandId = (apiConversation as any).brandId ?? apiConversation.brand?.id;
+  const lastMessage = (apiConversation as any).lastMessage;
+  const unreadCount =
+    (apiConversation as any).unreadCount ??
+    (currentUserId === creatorId
+      ? (apiConversation as any).creatorUnreadCount
+      : (apiConversation as any).brandUnreadCount) ??
+    0;
   const otherUser =
-    currentUserId === apiConversation.creatorId
+    currentUserId === creatorId
       ? apiConversation.brand
       : apiConversation.creator;
 
   return {
     id: apiConversation.id,
     name: otherUser?.name || 'Unknown',
-    lastMessage: '', // Will be populated when messages are loaded
+    lastMessage: lastMessage?.text || '',
     time: apiConversation.lastMessageAt
       ? formatTimeAgo(apiConversation.lastMessageAt)
       : 'No messages',
-    unread:
-      currentUserId === apiConversation.creatorId
-        ? apiConversation.creatorUnreadCount
-        : apiConversation.brandUnreadCount,
+    unread: unreadCount,
     online: false, // Not available from API
     type: 'brand',
   };
@@ -176,15 +182,18 @@ export function adaptConversationToChatPreview(
  * Transform API message to app Message
  */
 export function adaptMessage(apiMessage: ApiMessage, currentUserId: string): Message {
+  const messageText = (apiMessage as any).content ?? (apiMessage as any).text ?? '';
+  const createdAt = (apiMessage as any).createdAt ?? (apiMessage as any).sentAt ?? new Date().toISOString();
+  const isRead = (apiMessage as any).read ?? (apiMessage as any).status === 'READ';
   return {
     id: apiMessage.id,
-    text: apiMessage.content,
+    text: messageText,
     sender: apiMessage.senderId === currentUserId ? 'user' : 'other',
-    time: formatMessageTime(apiMessage.createdAt),
-    status: apiMessage.read ? 'read' : 'sent',
+    time: formatMessageTime(createdAt),
+    status: isRead ? 'read' : 'sent',
     conversationId: apiMessage.conversationId,
     chatId: apiMessage.conversationId,
-    createdAt: apiMessage.createdAt,
+    createdAt,
   };
 }
 

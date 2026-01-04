@@ -1,4 +1,4 @@
-export type SocialPlatform = 'instagram' | 'youtube' | 'linkedin';
+export type SocialPlatform = 'instagram' | 'facebook' | 'linkedin';
 
 export interface SocialConnectResult {
   platform: SocialPlatform;
@@ -12,13 +12,13 @@ const MOCK_DELAY = 1500;
 
 const MOCK_FOLLOWER_COUNTS: Record<SocialPlatform, number> = {
   instagram: 2500,
-  youtube: 15000,
+  facebook: 6200,
   linkedin: 800,
 };
 
 const MOCK_HANDLES: Record<SocialPlatform, string> = {
   instagram: '@creator_demo',
-  youtube: 'CreatorChannel',
+  facebook: 'Creator Demo Page',
   linkedin: 'creator-demo',
 };
 
@@ -38,16 +38,17 @@ export async function connectSocialPlatform(
   });
 }
 
-export function isEligible(followerCount: number): boolean {
-  return followerCount >= 1000;
+// Eligibility gates are intentionally disabled for CreatorX creators.
+export function isEligible(_followerCount?: number): boolean {
+  return true;
 }
 
 export function getPlatformDisplayName(platform: SocialPlatform): string {
   switch (platform) {
     case 'instagram':
       return 'Instagram';
-    case 'youtube':
-      return 'YouTube';
+    case 'facebook':
+      return 'Facebook';
     case 'linkedin':
       return 'LinkedIn';
     default:

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -103,6 +103,7 @@ export default function ExploreScreen() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isMountedRef = useRef(true);
   const isAuthReady = initialized && !authLoading && !!session?.access_token;
 
   const apiFilters = useMemo(() => ({}), []);
@@ -116,6 +117,12 @@ export default function ExploreScreen() {
     if (!isAuthReady) return;
     fetchCampaigns(apiFilters, true);
   }, [fetchCampaigns, apiFilters, isAuthReady]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const openCampaigns = useMemo(() => {
     return campaigns.filter(c => c.status === 'ACTIVE');
@@ -187,16 +194,22 @@ export default function ExploreScreen() {
   const handleSubmitApplication = useCallback(async (data: ApplicationFormData) => {
     if (!selectedCampaign) return;
 
-    setIsSubmitting(true);
+    if (isMountedRef.current) {
+      setIsSubmitting(true);
+    }
     try {
       await applyCampaign(selectedCampaign.id, data);
       await Promise.all([fetchApplications(), fetchCampaigns(apiFilters, true)]);
-      setShowApplicationModal(false);
-      setSelectedCampaign(null);
+      if (isMountedRef.current) {
+        setShowApplicationModal(false);
+        setSelectedCampaign(null);
+      }
     } catch (err) {
       Alert.alert('Application Failed', getApplyErrorMessage(err));
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   }, [selectedCampaign, applyCampaign, fetchApplications, fetchCampaigns, getApplyErrorMessage, apiFilters]);
 

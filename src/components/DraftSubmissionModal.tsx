@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, borderRadius, typography } from '@/src/theme';
@@ -12,7 +12,11 @@ interface DraftSubmissionModalProps {
   visible: boolean;
   onClose: () => void;
   deliverable: Deliverable | null;
-  onSubmit: (deliverableId: string, file: { name: string; type: 'video' | 'image'; uri: string }) => Promise<void>;
+  onSubmit: (
+    deliverableId: string,
+    file: { name: string; type: 'video' | 'image'; uri: string },
+    description?: string
+  ) => Promise<void>;
 }
 
 export const DraftSubmissionModal = memo(function DraftSubmissionModal({
@@ -22,6 +26,7 @@ export const DraftSubmissionModal = memo(function DraftSubmissionModal({
   onSubmit,
 }: DraftSubmissionModalProps) {
   const [selectedFile, setSelectedFile] = useState<{ name: string; type: 'video' | 'image'; uri: string } | null>(null);
+  const [description, setDescription] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   if (!deliverable) return null;
@@ -61,11 +66,17 @@ export const DraftSubmissionModal = memo(function DraftSubmissionModal({
       Alert.alert('No File Selected', 'Please select a video or image to upload.');
       return;
     }
+    const trimmedDescription = description.trim();
+    if (trimmedDescription.length > 0 && (trimmedDescription.length < 20 || trimmedDescription.length > 500)) {
+      Alert.alert('Description Required', 'Description must be 20–500 characters if provided.');
+      return;
+    }
 
     setIsUploading(true);
     try {
-      await onSubmit(deliverable.id, selectedFile);
+      await onSubmit(deliverable.id, selectedFile, trimmedDescription || undefined);
       setSelectedFile(null);
+      setDescription('');
     } catch (error) {
       console.error('Deliverable submission failed:', error);
     } finally {
@@ -75,6 +86,7 @@ export const DraftSubmissionModal = memo(function DraftSubmissionModal({
 
   const handleClose = () => {
     setSelectedFile(null);
+    setDescription('');
     onClose();
   };
 
@@ -174,6 +186,20 @@ export const DraftSubmissionModal = memo(function DraftSubmissionModal({
           </TouchableOpacity>
         </View>
       )}
+
+      <View style={styles.descriptionCard}>
+        <Text style={styles.descriptionLabel}>Description (optional)</Text>
+        <TextInput
+          style={styles.descriptionInput}
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Add brief context for the brand (20-500 chars)"
+          placeholderTextColor={colors.textMuted}
+          multiline
+          maxLength={500}
+          textAlignVertical="top"
+        />
+      </View>
 
       {isUploading && (
         <View style={styles.uploadingOverlay}>
@@ -322,6 +348,27 @@ const styles = StyleSheet.create({
   selectedFileType: {
     ...typography.xs,
     color: colors.textMuted,
+  },
+  descriptionCard: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  descriptionLabel: {
+    ...typography.xs,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  descriptionInput: {
+    minHeight: 90,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    padding: spacing.md,
+    color: colors.text,
+    backgroundColor: colors.card,
+    fontSize: 14,
   },
   uploadingOverlay: {
     alignItems: 'center',
