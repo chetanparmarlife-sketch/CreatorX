@@ -109,7 +109,7 @@ jobs:
         continue-on-error: true
       
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
@@ -118,7 +118,7 @@ jobs:
             backend/**/build/reports/jacoco/**/*
       
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: success()
         with:
           name: build-artifacts
@@ -159,14 +159,14 @@ jobs:
         continue-on-error: true
       
       - name: Upload Checkstyle results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: checkstyle-results
           path: backend/**/build/reports/checkstyle/**
       
       - name: Upload SpotBugs results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: spotbugs-results
