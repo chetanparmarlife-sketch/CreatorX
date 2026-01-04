@@ -28,6 +28,11 @@ spring:
     redis:
       repositories:
         enabled: false
+  
+  # Disable scheduled tasks during tests
+  task:
+    scheduling:
+      enabled: false
 
 # Disable Supabase in tests (use mocks)
 supabase:
@@ -35,6 +40,27 @@ supabase:
   service:
     role:
       key: test-key
+
+# JWT Configuration for tests
+jwt:
+  secret: ${JWT_SECRET:test-jwt-secret-key-minimum-32-characters-for-tests}
+
+# Social account and compliance configuration for tests
+creatorx:
+  social:
+    token-secret: ${CREATORX_SOCIAL_TOKEN_SECRET:test-social-token-encryption-secret-key-minimum-32-chars}
+    meta:
+      enabled: false
+    linkedin:
+      enabled: false
+    refresh:
+      auto-hours: 6
+      manual-minutes: 10
+      cron: "-" # Disable cron during tests
+  compliance:
+    regulatory:
+      cron: "-" # Disable cron during tests
+    retention-cron: "-" # Disable cron during tests
 
 # Logging
 logging:

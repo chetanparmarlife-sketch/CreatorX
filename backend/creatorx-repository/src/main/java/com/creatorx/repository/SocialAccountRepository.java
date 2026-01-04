@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SocialAccountRepository extends JpaRepository<SocialAccount, String> {
-    List<SocialAccount> findAllByUserId(String userId);
+    List<SocialAccount> findAllByUser_Id(String userId);
 
-    Optional<SocialAccount> findByUserIdAndProvider(String userId, SocialProvider provider);
+    Optional<SocialAccount> findByUser_IdAndProvider(String userId, SocialProvider provider);
 
     @Query("""
         SELECT account
