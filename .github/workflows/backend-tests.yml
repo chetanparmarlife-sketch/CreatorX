@@ -54,6 +54,24 @@ jobs:
         run: chmod +x backend/gradlew
         working-directory: backend
       
+      - name: Fix Gradle wrapper if corrupted
+        working-directory: backend
+        run: |
+          # Remove potentially corrupted wrapper cache
+          rm -rf ~/.gradle/wrapper/dists/gradle-8.* || true
+          # Test wrapper and fix if corrupted
+          if ! timeout 30 ./gradlew --version > /dev/null 2>&1; then
+            echo "Gradle wrapper appears corrupted, downloading fresh wrapper JAR..."
+            # Download a fresh wrapper JAR from Gradle's official source
+            # Using the wrapper JAR from Gradle 8.10 release
+            curl -L -f --retry 3 --retry-delay 2 \
+              https://raw.githubusercontent.com/gradle/gradle/v8.10.0/gradle/wrapper/gradle-wrapper.jar \
+              -o gradle/wrapper/gradle-wrapper.jar.new && \
+              mv gradle/wrapper/gradle-wrapper.jar.new gradle/wrapper/gradle-wrapper.jar
+            # Verify the new wrapper works
+            ./gradlew --version || echo "Warning: Wrapper fix may not have worked"
+          fi
+      
       - name: Run tests
         working-directory: backend
         run: ./gradlew test --no-daemon
