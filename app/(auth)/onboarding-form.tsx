@@ -11,6 +11,13 @@ const STORAGE_KEYS = {
   CREATOR_PROFILE: '@creator_profile',
 };
 
+const PLATFORM_LABELS: Record<PlatformId, string> = {
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  linkedin: 'LinkedIn',
+  facebook: 'Facebook',
+};
+
 const CATEGORIES = [
   'Fashion & Lifestyle',
   'Tech & Gaming',
@@ -97,6 +104,8 @@ export default function OnboardingFormScreen() {
   const handleSkip = () => {
     router.push('/(auth)/onboarding-social');
   };
+
+  const getPlatformDisplayName = (platform: PlatformId) => PLATFORM_LABELS[platform] ?? platform;
 
   return (
     <View style={styles.container}>
