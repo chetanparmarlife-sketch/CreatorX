@@ -5,6 +5,15 @@ plugins {
     id 'jacoco' // JaCoCo plugin for code coverage
 }
 
+// Disable bootJar at root level - main class is in creatorx-api submodule
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = false
+}
+
 allprojects {
     group = 'com.creatorx'
     version = '1.0.0'
