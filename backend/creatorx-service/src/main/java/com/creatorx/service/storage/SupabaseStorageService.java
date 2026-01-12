@@ -162,7 +162,7 @@ public class SupabaseStorageService {
                     .fileUrl(fileUrl)
                     .fileName(fileName)
                     .fileType(contentType)
-                    .fileSize(content.length)
+                    .fileSize((long) content.length)
                     .bucket(exportsBucket)
                     .path(path)
                     .build();

@@ -70,4 +70,8 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Count active applications (not WITHDRAWN or REJECTED) for a creator
     @Query("SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId AND a.status NOT IN ('WITHDRAWN', 'REJECTED')")
     long countActiveApplicationsByCreatorId(@Param("creatorId") String creatorId);
+    
+    // Find applications by user ID (alias for findByCreatorId - used by ComplianceService)
+    @Query("SELECT a FROM Application a WHERE a.creator.id = :userId ORDER BY a.appliedAt DESC")
+    Page<Application> findByUserId(@Param("userId") String userId, Pageable pageable);
 }

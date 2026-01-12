@@ -9,10 +9,14 @@ import com.creatorx.repository.*;
 import com.creatorx.service.dto.SystemHealthSummaryDTO;
 import com.creatorx.service.dto.AdminSummaryDTO;
 import com.creatorx.common.enums.UserRole;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.search.Search;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthComponent;
 import org.springframework.boot.actuate.health.HealthEndpoint;
-import org.springframework.boot.actuate.metrics.MetricsEndpoint;
+import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.actuate.health.CompositeHealth;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +40,7 @@ public class AdminSystemService {
     private final AdminSessionEventRepository adminSessionEventRepository;
     private final AdminFeedbackRepository adminFeedbackRepository;
     private final HealthEndpoint healthEndpoint;
-    private final MetricsEndpoint metricsEndpoint;
+    private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
     public AdminSummaryDTO getSummary() {
@@ -81,74 +85,65 @@ public class AdminSystemService {
 
     @Transactional(readOnly = true)
     public SystemHealthSummaryDTO getHealthSummary() {
-        Health health = healthEndpoint.health();
-        Map<String, String> componentStatuses = extractComponentStatuses(health);
+        HealthComponent healthComponent = healthEndpoint.health();
+        String statusCode = healthComponent.getStatus().getCode();
+        Map<String, String> componentStatuses = extractComponentStatuses(healthComponent);
 
         Map<String, Double> metrics = new HashMap<>();
         Double httpAvgMs = computeHttpAverageMs();
-        Double httpMaxMs = getMetricValue("http.server.requests", "MAX");
+        Double httpMaxMs = getMetricValue("http.server.requests.max");
         metrics.put("httpAvgMs", httpAvgMs);
         metrics.put("httpMaxMs", httpMaxMs != null ? httpMaxMs * 1000 : null);
-        metrics.put("dbActive", getMetricValue("hikaricp.connections.active", "VALUE"));
-        metrics.put("dbMax", getMetricValue("hikaricp.connections.max", "VALUE"));
-        metrics.put("jvmHeapUsed", getMetricValue("jvm.memory.used", "VALUE"));
-        metrics.put("queueDepth", getMetricValue("executor.queue.size", "VALUE"));
+        metrics.put("dbActive", getMetricValue("hikaricp.connections.active"));
+        metrics.put("dbMax", getMetricValue("hikaricp.connections.max"));
+        metrics.put("jvmHeapUsed", getMetricValue("jvm.memory.used"));
+        metrics.put("queueDepth", getMetricValue("executor.queue.remaining"));
 
         return SystemHealthSummaryDTO.builder()
-                .status(health.getStatus().getCode())
+                .status(statusCode)
                 .components(componentStatuses)
                 .metrics(metrics)
                 .build();
     }
 
-    private Map<String, String> extractComponentStatuses(Health health) {
+    private Map<String, String> extractComponentStatuses(HealthComponent healthComponent) {
         Map<String, String> statuses = new HashMap<>();
-        if (health.getDetails() == null) {
-            return statuses;
+        if (healthComponent instanceof CompositeHealth compositeHealth) {
+            compositeHealth.getComponents().forEach((name, component) -> {
+                statuses.put(name, component.getStatus().getCode());
+            });
         }
-        health.getDetails().forEach((name, detail) -> {
-            if (detail instanceof Health nested) {
-                statuses.put(name, nested.getStatus().getCode());
-            } else if (detail instanceof Map<?, ?> detailMap) {
-                Object status = detailMap.get("status");
-                statuses.put(name, status != null ? status.toString() : "UNKNOWN");
-            } else {
-                statuses.put(name, "UNKNOWN");
-            }
-        });
         return statuses;
     }
 
     private Double computeHttpAverageMs() {
-        MetricsEndpoint.MetricResponse response = metricsEndpoint.metric("http.server.requests", null);
-        if (response == null || response.getMeasurements() == null) {
-            return null;
+        try {
+            Timer timer = meterRegistry.find("http.server.requests").timer();
+            if (timer != null && timer.count() > 0) {
+                return timer.mean(java.util.concurrent.TimeUnit.MILLISECONDS);
+            }
+        } catch (Exception e) {
+            // Metric not available
         }
-        Double totalTime = response.getMeasurements().stream()
-                .filter(measurement -> "TOTAL_TIME".equalsIgnoreCase(measurement.getStatistic().name()))
-                .map(MetricsEndpoint.Measurement::getValue)
-                .findFirst()
-                .orElse(null);
-        Double count = response.getMeasurements().stream()
-                .filter(measurement -> "COUNT".equalsIgnoreCase(measurement.getStatistic().name()))
-                .map(MetricsEndpoint.Measurement::getValue)
-                .findFirst()
-                .orElse(null);
-        if (totalTime == null || count == null || count == 0) {
-            return null;
-        }
-        return (totalTime / count) * 1000;
+        return null;
     }
 
-    private Double getMetricValue(String metricName, String statistic) {
-        MetricsEndpoint.MetricResponse response = metricsEndpoint.metric(metricName, null);
-        if (response == null || response.getMeasurements() == null) {
-            return null;
+    private Double getMetricValue(String metricName) {
+        try {
+            Search search = meterRegistry.find(metricName);
+            if (search.gauge() != null) {
+                return search.gauge().value();
+            }
+            if (search.counter() != null) {
+                return search.counter().count();
+            }
+            if (search.timer() != null) {
+                return (double) search.timer().count();
+            }
+        } catch (Exception e) {
+            // Metric not available
         }
-        return response.getMeasurements().stream()
-                .filter(measurement -> statistic.equalsIgnoreCase(measurement.getStatistic().name()))
-                .map(MetricsEndpoint.Measurement::getValue)
-                .findFirst()
-                .orElse(null);
+        return null;
     }
 }
+

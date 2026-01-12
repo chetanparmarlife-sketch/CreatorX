@@ -302,10 +302,10 @@ public class ComplianceService {
         });
 
         kycDocumentRepository.findByUserId(userId).forEach(doc -> {
-            if (doc.getFileUrl() != null) {
-                storageService.deleteFile(doc.getFileUrl());
+            if (doc.getDocumentUrl() != null) {
+                storageService.deleteFile(doc.getDocumentUrl());
             }
-            doc.setFileUrl(null);
+            doc.setDocumentUrl(null);
             kycDocumentRepository.save(doc);
         });
     }
