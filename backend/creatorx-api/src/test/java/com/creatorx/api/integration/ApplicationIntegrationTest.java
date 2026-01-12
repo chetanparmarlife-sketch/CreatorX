@@ -105,13 +105,18 @@ class ApplicationIntegrationTest extends BaseIntegrationTest {
                 """.formatted(newCampaign.getId());
         
         // Note: This test will fail KYC check unless we set up KYC documents
-        // For now, we'll test the endpoint structure
-        mockMvc.perform(post("/api/v1/applications")
+        // For now, we'll test the endpoint structure and accept either outcome
+        var result = mockMvc.perform(post("/api/v1/applications")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(applicationRequest))
-                .andExpect(status().isBadRequest() // Will fail KYC check
-                        .or(status().isCreated())); // Or succeed if KYC is set up
+                .andReturn();
+        
+        int status = result.getResponse().getStatus();
+        // Accept either 201 (success) or 400 (KYC check fails) as valid outcomes
+        org.assertj.core.api.Assertions.assertThat(status)
+                .as("Expected 201 CREATED or 400 BAD_REQUEST")
+                .isIn(201, 400);
     }
     
     @Test
