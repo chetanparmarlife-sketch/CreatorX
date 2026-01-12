@@ -5,6 +5,7 @@ import com.creatorx.common.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import lombok.Builder;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
