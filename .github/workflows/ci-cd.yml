@@ -101,8 +101,7 @@ jobs:
       
       - name: Run unit tests
         working-directory: ./backend
-        continue-on-error: true
-        run: ./gradlew test --no-daemon --stacktrace || true
+        run: ./gradlew test --no-daemon --stacktrace
         env:
           SPRING_PROFILES_ACTIVE: test
           TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/creatorx_test
@@ -119,8 +118,7 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./backend
-        run: ./gradlew integrationTest --no-daemon || ./gradlew test --tests "*IntegrationTest" --no-daemon
-        continue-on-error: false
+        run: ./gradlew test --tests "*IntegrationTest" --no-daemon --stacktrace
       
       - name: Generate JaCoCo report
         working-directory: ./backend
