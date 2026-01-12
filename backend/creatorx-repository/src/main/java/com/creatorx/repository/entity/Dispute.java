@@ -4,7 +4,8 @@ import com.creatorx.common.enums.DisputeStatus;
 import com.creatorx.common.enums.DisputeType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -22,7 +23,7 @@ import java.time.LocalDateTime;
     @Index(name = "idx_open", columnList = "status")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = {"campaign", "creator", "brand", "resolvedBy"})

@@ -2,7 +2,8 @@ package com.creatorx.repository.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
     @Index(name = "idx_brand_verification_status", columnList = "status")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "brand")

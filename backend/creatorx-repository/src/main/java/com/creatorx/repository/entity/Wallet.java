@@ -3,7 +3,8 @@ package com.creatorx.repository.entity;
 import com.creatorx.common.enums.CurrencyType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -17,7 +18,7 @@ import java.math.BigDecimal;
     @Index(name = "idx_wallets_balance", columnList = "balance")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "user")

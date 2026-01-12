@@ -4,7 +4,8 @@ import com.creatorx.common.enums.ModerationRuleSeverity;
 import com.creatorx.common.enums.ModerationRuleStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
     @Index(name = "idx_moderation_rules_severity", columnList = "severity")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ModerationRule extends BaseEntity {

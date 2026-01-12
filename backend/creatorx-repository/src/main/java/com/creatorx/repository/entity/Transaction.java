@@ -4,7 +4,8 @@ import com.creatorx.common.enums.TransactionStatus;
 import com.creatorx.common.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -26,7 +27,7 @@ import java.util.Map;
     @Index(name = "idx_transactions_razorpay_payment_id", columnList = "razorpay_payment_id")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = {"user", "campaign", "application"})

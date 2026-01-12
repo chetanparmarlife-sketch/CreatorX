@@ -3,7 +3,8 @@ package com.creatorx.repository.entity;
 import com.creatorx.common.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -18,7 +19,7 @@ import java.util.List;
     @Index(name = "idx_campaign", columnList = "campaign_id")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ActiveCampaign extends BaseEntity {

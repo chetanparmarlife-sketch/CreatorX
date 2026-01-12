@@ -4,7 +4,8 @@ import com.creatorx.common.enums.CampaignPlatform;
 import com.creatorx.common.enums.CampaignStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -26,7 +27,7 @@ import java.util.List;
     @Index(name = "idx_campaigns_status_dates", columnList = "status,start_date,end_date")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = {"brand", "campaignDeliverables", "applications", "activeCampaigns"})

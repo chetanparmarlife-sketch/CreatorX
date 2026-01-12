@@ -3,7 +3,8 @@ package com.creatorx.repository.entity;
 import com.creatorx.common.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -23,7 +24,7 @@ import java.util.Map;
     @Index(name = "idx_notifications_user_unread", columnList = "user_id,created_at")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "user")

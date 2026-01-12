@@ -4,7 +4,8 @@ import com.creatorx.common.enums.ComplianceReportStatus;
 import com.creatorx.common.enums.ComplianceReportType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -23,7 +24,7 @@ import java.util.Map;
     @Index(name = "idx_compliance_reports_created_at", columnList = "created_at")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "generatedBy")

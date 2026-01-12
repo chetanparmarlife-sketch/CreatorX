@@ -3,7 +3,8 @@ package com.creatorx.repository.entity;
 import com.creatorx.common.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -21,7 +22,7 @@ import java.time.LocalDateTime;
     @Index(name = "idx_creator_status", columnList = "creator_id,status")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = {"campaign", "creator"})

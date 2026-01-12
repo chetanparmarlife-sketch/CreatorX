@@ -4,7 +4,8 @@ import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.experimental.SuperBuilder;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -22,7 +23,7 @@ import java.util.List;
     @Index(name = "idx_users_created_at", columnList = "created_at")
 })
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = {"socialLinks", "userProfile", "creatorProfile", "brandProfile", "kycDocuments"})
