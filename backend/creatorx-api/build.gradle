@@ -2,6 +2,9 @@ plugins {
     id 'org.springframework.boot'
 }
 
+springBoot {
+    mainClass = 'com.creatorx.api.CreatorXApplication'
+}
 dependencies {
     // Service module
     implementation project(':creatorx-service')
