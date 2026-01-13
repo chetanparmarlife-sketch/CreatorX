@@ -162,6 +162,60 @@ public class SocialAccountService {
         return refreshed;
     }
 
+    /**
+     * Connect a social account after OAuth callback.
+     * Stores encrypted tokens, never returns them to the caller.
+     */
+    @Transactional
+    public SocialAccountDTO connectSocialAccount(
+            String userId,
+            SocialProvider provider,
+            String accessToken,
+            String refreshToken,
+            LocalDateTime tokenExpiresAt
+    ) {
+        User user = validateCreator(userId);
+
+        SocialAccount account = socialAccountRepository.findByUserIdAndProvider(user.getId(), provider)
+                .orElseGet(() -> {
+                    SocialAccount newAccount = new SocialAccount();
+                    newAccount.setUser(user);
+                    newAccount.setProvider(provider);
+                    newAccount.setSyncStatus(SocialSyncStatus.PENDING);
+                    return newAccount;
+                });
+
+        // Encrypt and store tokens (never returned to client)
+        account.setAccessTokenEncrypted(tokenEncryptionService.encrypt(accessToken));
+        if (refreshToken != null) {
+            account.setRefreshTokenEncrypted(tokenEncryptionService.encrypt(refreshToken));
+        }
+        account.setTokenExpiresAt(tokenExpiresAt);
+        account.setConnected(true);
+        account.setSyncStatus(SocialSyncStatus.CONNECTED);
+        account.setLastFailureAt(null);
+        account.setLastFailureMessage(null);
+        account.setFailureCount(0);
+
+        // Fetch initial metrics
+        try {
+            SocialMetrics metrics = socialProviderClient.fetchMetrics(provider, accessToken);
+            if (metrics != null) {
+                account.setUsername(metrics.getUsername());
+                account.setProfileUrl(metrics.getProfileUrl());
+                account.setFollowerCount(metrics.getFollowerCount());
+                account.setEngagementRate(metrics.getEngagementRate());
+                account.setAvgViews(metrics.getAvgViews());
+            }
+            account.setLastSyncedAt(LocalDateTime.now());
+        } catch (Exception e) {
+            log.warn("Failed to fetch initial metrics for {} user {}: {}", provider, userId, e.getMessage());
+            // Still save the account, can sync later
+        }
+
+        return toDto(socialAccountRepository.save(account));
+    }
+
     private User validateCreator(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));

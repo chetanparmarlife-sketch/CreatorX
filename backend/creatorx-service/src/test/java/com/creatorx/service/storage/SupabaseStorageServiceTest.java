@@ -39,10 +39,10 @@ class SupabaseStorageServiceTest {
     @BeforeEach
     void setUp() throws IOException {
         multipartFile = mock(MultipartFile.class);
-        when(multipartFile.getOriginalFilename()).thenReturn("test.jpg");
-        when(multipartFile.getContentType()).thenReturn("image/jpeg");
-        when(multipartFile.getSize()).thenReturn(1024L);
-        when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
+        lenient().when(multipartFile.getOriginalFilename()).thenReturn("test.jpg");
+        lenient().when(multipartFile.getContentType()).thenReturn("image/jpeg");
+        lenient().when(multipartFile.getSize()).thenReturn(1024L);
+        lenient().when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
     }
     
     @Test

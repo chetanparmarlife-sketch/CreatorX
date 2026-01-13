@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FEATURE_FLAG_STORAGE_KEY = '@feature_flags';
 
-export type FeatureFlag = 
+export type FeatureFlag =
   | 'USE_API_AUTH'
   | 'USE_API_CAMPAIGNS'
   | 'USE_API_APPLICATIONS'
@@ -42,13 +42,13 @@ const DEFAULT_FLAGS: FeatureFlags = {
   USE_API_APPLICATIONS: true,
   USE_API_DELIVERABLES: true,
   USE_API_WALLET: true,
-  USE_API_MESSAGING: false,
+  USE_API_MESSAGING: true,
   USE_API_MESSAGING_POLLING: true,
   USE_WS_MESSAGING: false,
   USE_POLLING_MESSAGES: true,
   USE_WS_MESSAGES: false,
   USE_API_NOTIFICATIONS: true,
-  USE_API_PROFILE: false,
+  USE_API_PROFILE: true,
 };
 
 class FeatureFlagManager {

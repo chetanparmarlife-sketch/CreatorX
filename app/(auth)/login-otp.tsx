@@ -3,7 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { colors } from '@/src/theme';
-import { sendOTP, verifyOTP, formatPhoneNumber } from '@/src/services/otpMock';
+import { sendOTP, verifyOTP, formatPhoneNumber } from '@/src/services/supabasePhoneAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/src/context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -58,9 +58,10 @@ export default function LoginOTPScreen() {
     try {
       const result = await verifyOTP(phoneNumber, otp);
       if (result.success) {
-        devLogin();
+        // Supabase session is automatically set via AuthContext's onAuthStateChange listener
+        // which also handles token storage and backend linking
         const onboardingComplete = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE);
-        
+
         if (onboardingComplete === '1') {
           router.replace('/(app)/(tabs)/explore');
         } else {
@@ -119,11 +120,11 @@ export default function LoginOTPScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -177,8 +178,8 @@ export default function LoginOTPScreen() {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.termsRow} 
+              <TouchableOpacity
+                style={styles.termsRow}
                 onPress={() => setTermsAccepted(!termsAccepted)}
               >
                 <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>

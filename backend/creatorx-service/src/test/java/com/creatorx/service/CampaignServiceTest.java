@@ -159,13 +159,16 @@ class CampaignServiceTest {
         campaignDTO.setStartDate(LocalDate.now().plusDays(1));
         campaignDTO.setEndDate(LocalDate.now().plusDays(30));
         
+        Campaign newCampaign = new Campaign();
+        newCampaign.setId("new-campaign-id");
+        
         when(userService.findById(brandUser.getId())).thenReturn(brandUser);
-        when(campaignMapper.toEntity(campaignDTO)).thenReturn(campaign);
-        when(campaignRepository.save(any(Campaign.class))).thenReturn(campaign);
+        when(campaignMapper.toEntity(campaignDTO)).thenReturn(newCampaign);
+        when(campaignRepository.save(any(Campaign.class))).thenReturn(newCampaign);
         
         CampaignDTO savedDTO = new CampaignDTO();
-        savedDTO.setId(campaign.getId());
-        when(campaignMapper.toDTO(campaign)).thenReturn(savedDTO);
+        savedDTO.setId(newCampaign.getId());
+        when(campaignMapper.toDTO(newCampaign)).thenReturn(savedDTO);
         
         // When
         CampaignDTO result = campaignService.createCampaign(campaignDTO, brandUser.getId());
@@ -173,8 +176,8 @@ class CampaignServiceTest {
         // Then
         assertNotNull(result);
         verify(campaignRepository).save(any(Campaign.class));
-        verify(campaign).setBrand(brandUser);
-        verify(campaign).setStatus(CampaignStatus.DRAFT);
+        assertThat(newCampaign.getBrand()).isEqualTo(brandUser);
+        assertThat(newCampaign.getStatus()).isEqualTo(CampaignStatus.DRAFT);
     }
     
     @Test
@@ -183,7 +186,6 @@ class CampaignServiceTest {
         // Given
         CampaignDTO campaignDTO = new CampaignDTO();
         when(userService.findById(creatorUser.getId())).thenReturn(creatorUser);
-        when(campaignMapper.toEntity(campaignDTO)).thenReturn(campaign);
         
         // When/Then
         assertThatThrownBy(() -> campaignService.createCampaign(campaignDTO, creatorUser.getId()))

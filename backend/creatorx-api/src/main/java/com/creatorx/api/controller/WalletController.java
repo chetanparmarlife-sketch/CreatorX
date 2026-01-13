@@ -1,6 +1,7 @@
 package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.BankAccountRequest;
+import com.creatorx.api.dto.PageResponse;
 import com.creatorx.api.dto.TransactionRequest;
 import com.creatorx.api.dto.WithdrawalRequestDTO;
 import com.creatorx.service.BankAccountService;
@@ -51,7 +52,7 @@ public class WalletController {
      */
     @GetMapping("/transactions")
     @PreAuthorize("hasAnyRole('CREATOR', 'BRAND')")
-    public ResponseEntity<Page<TransactionDTO>> getTransactions(
+    public ResponseEntity<PageResponse<TransactionDTO>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication
@@ -61,7 +62,7 @@ public class WalletController {
         int validatedSize = Math.min(size, 100);
         Pageable pageable = PageRequest.of(page, validatedSize);
         Page<TransactionDTO> transactions = walletService.getTransactions(currentUser.getId(), pageable);
-        return ResponseEntity.ok(transactions);
+        return ResponseEntity.ok(PageResponse.from(transactions));
     }
     
     /**
@@ -87,7 +88,7 @@ public class WalletController {
      */
     @GetMapping("/withdrawals")
     @PreAuthorize("hasRole('CREATOR')")
-    public ResponseEntity<Page<WithdrawalDTO>> getWithdrawals(
+    public ResponseEntity<PageResponse<WithdrawalDTO>> getWithdrawals(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication
@@ -97,7 +98,7 @@ public class WalletController {
         int validatedSize = Math.min(size, 100);
         Pageable pageable = PageRequest.of(page, validatedSize);
         Page<WithdrawalDTO> withdrawals = withdrawalService.getWithdrawals(currentUser.getId(), pageable);
-        return ResponseEntity.ok(withdrawals);
+        return ResponseEntity.ok(PageResponse.from(withdrawals));
     }
     
     /**

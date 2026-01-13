@@ -109,10 +109,10 @@ class DeliverableServiceTest {
                 .build();
         
         mockFile = mock(MultipartFile.class);
-        when(mockFile.isEmpty()).thenReturn(false);
-        when(mockFile.getOriginalFilename()).thenReturn("test.jpg");
-        when(mockFile.getContentType()).thenReturn("image/jpeg");
-        when(mockFile.getSize()).thenReturn(1024L);
+        lenient().when(mockFile.isEmpty()).thenReturn(false);
+        lenient().when(mockFile.getOriginalFilename()).thenReturn("test.jpg");
+        lenient().when(mockFile.getContentType()).thenReturn("image/jpeg");
+        lenient().when(mockFile.getSize()).thenReturn(1024L);
     }
     
     @Test

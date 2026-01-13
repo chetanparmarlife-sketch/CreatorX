@@ -15,6 +15,7 @@ import com.creatorx.service.dto.CampaignDTO;
 import com.creatorx.service.dto.CampaignDeliverableDTO;
 import com.creatorx.service.dto.DeliverableDTO;
 import com.creatorx.service.dto.ApplicationDTO;
+import com.creatorx.api.dto.PageResponse;
 import com.creatorx.service.mapper.CampaignMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -55,7 +56,7 @@ public class CampaignController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get campaigns", description = "Get paginated list of campaigns with filters")
-    public ResponseEntity<Page<CampaignDTO>> getCampaigns(
+    public ResponseEntity<PageResponse<CampaignDTO>> getCampaigns(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) CampaignPlatform platform,
             @RequestParam(required = false) BigDecimal budgetMin,
@@ -83,7 +84,7 @@ public class CampaignController {
                 currentUser
         );
         
-        return ResponseEntity.ok(campaigns);
+        return ResponseEntity.ok(PageResponse.from(campaigns));
     }
     
     /**
@@ -223,7 +224,7 @@ public class CampaignController {
     @GetMapping("/search")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Search campaigns", description = "Full-text search campaigns")
-    public ResponseEntity<Page<CampaignDTO>> searchCampaigns(
+    public ResponseEntity<PageResponse<CampaignDTO>> searchCampaigns(
             @RequestParam 
             @jakarta.validation.constraints.NotBlank(message = "Search query is required")
             @jakarta.validation.constraints.Size(max = 200, message = "Search query must not exceed 200 characters")
@@ -242,7 +243,7 @@ public class CampaignController {
         
         Page<CampaignDTO> campaigns = campaignService.searchCampaigns(query, pageable, currentUser);
         
-        return ResponseEntity.ok(campaigns);
+        return ResponseEntity.ok(PageResponse.from(campaigns));
     }
     
     /**

@@ -1,6 +1,7 @@
 package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.FCMTokenRequest;
+import com.creatorx.api.dto.PageResponse;
 import com.creatorx.common.enums.NotificationType;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.NotificationService;
@@ -38,7 +39,7 @@ public class NotificationController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get notifications", description = "Get paginated notifications for current user")
-    public ResponseEntity<Page<NotificationDTO>> getNotifications(
+    public ResponseEntity<PageResponse<NotificationDTO>> getNotifications(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication
@@ -46,7 +47,7 @@ public class NotificationController {
         String userId = authentication.getName();
         Pageable pageable = PageRequest.of(page, size);
         Page<NotificationDTO> notifications = notificationService.getNotifications(userId, pageable);
-        return ResponseEntity.ok(notifications);
+        return ResponseEntity.ok(PageResponse.from(notifications));
     }
     
     /**

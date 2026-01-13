@@ -1,5 +1,6 @@
 package com.creatorx.api.controller;
 
+import com.creatorx.api.dto.PageResponse;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.ConversationService;
 import com.creatorx.service.MessageService;
@@ -66,14 +67,14 @@ public class MessageController {
     @GetMapping("/conversation/{conversationId}")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get messages", description = "Get paginated messages for a conversation")
-    public ResponseEntity<Page<MessageDTO>> getMessages(
+    public ResponseEntity<PageResponse<MessageDTO>> getMessages(
             @PathVariable String conversationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
         User currentUser = getCurrentUser();
         Page<MessageDTO> messages = messageService.getMessages(conversationId, page, size, currentUser.getId());
-        return ResponseEntity.ok(messages);
+        return ResponseEntity.ok(PageResponse.from(messages));
     }
     
     /**

@@ -101,7 +101,6 @@ jobs:
       
       - name: Run unit tests
         working-directory: ./backend
-        continue-on-error: true  # Tests need fixing - tracked separately
         run: ./gradlew test --no-daemon --stacktrace
         env:
           SPRING_PROFILES_ACTIVE: test
@@ -119,7 +118,6 @@ jobs:
       
       - name: Run integration tests
         working-directory: ./backend
-        continue-on-error: true  # Tests need fixing - tracked separately
         run: ./gradlew test --tests "*IntegrationTest" --no-daemon --stacktrace
       
       - name: Generate JaCoCo report
@@ -146,6 +144,7 @@ jobs:
           name: test-results
           path: |
             backend/**/build/test-results/**/*.xml
+            backend/**/build/reports/tests/**/*
             backend/**/build/reports/jacoco/**/*
           if-no-files-found: warn
       

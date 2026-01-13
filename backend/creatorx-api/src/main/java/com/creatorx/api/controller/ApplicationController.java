@@ -1,6 +1,7 @@
 package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.ApplicationRequest;
+import com.creatorx.api.dto.PageResponse;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.ApplicationService;
@@ -57,7 +58,7 @@ public class ApplicationController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get applications", description = "Get paginated list of applications. Creators see their own, Brands see applications to their campaigns.")
-    public ResponseEntity<Page<ApplicationDTO>> getApplications(
+    public ResponseEntity<PageResponse<ApplicationDTO>> getApplications(
             @RequestParam(required = false) String campaignId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false, defaultValue = "0") int page,
@@ -99,7 +100,7 @@ public class ApplicationController {
             applications = applicationService.getApplications(currentUser.getId(), pageable);
         }
         
-        return ResponseEntity.ok(applications);
+        return ResponseEntity.ok(PageResponse.from(applications));
     }
     
     /**

@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  Campaign, 
-  Transaction, 
-  ChatPreview, 
-  Notification, 
-  Deliverable, 
-  Message, 
+import {
+  Campaign,
+  Transaction,
+  ChatPreview,
+  Notification,
+  Deliverable,
+  Message,
   Conversation,
   UserProfile,
   WalletData,
@@ -15,6 +15,8 @@ import {
   ActiveCampaign,
   CampaignApplication,
 } from '@/src/types';
+import { profileService } from '@/src/api/services/profileService';
+import { featureFlags } from '@/src/config/featureFlags';
 
 interface ApplicationFormData {
   pitch: string;
@@ -63,7 +65,9 @@ interface AppContextType {
   requestDeliverableChanges: (activeCampaignId: string, deliverableId: string, feedback: string) => void;
   markDeliverablePosted: (activeCampaignId: string, deliverableId: string, postUrl?: string) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-  updateUser: (updates: Partial<UserProfile>) => void;
+  updateUser: (updates: Partial<UserProfile>) => Promise<void>;
+  fetchProfile: () => Promise<void>;
+  uploadAvatar: (file: { uri: string; type: string; name: string }) => Promise<string | null>;
   sendMessage: (chatId: string, text: string) => void;
   getConversation: (chatId: string) => Message[];
   markChatRead: (chatId: string) => void;
@@ -771,11 +775,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deliverables: ac.deliverables.map((d) =>
           d.id === deliverableId
             ? {
-                ...d,
-                status: 'brand_reviewing' as const,
-                submittedFile: { name: file.name, type: file.type, uri: file.uri },
-                submittedAt: new Date().toISOString(),
-              }
+              ...d,
+              status: 'brand_reviewing' as const,
+              submittedFile: { name: file.name, type: file.type, uri: file.uri },
+              submittedAt: new Date().toISOString(),
+            }
             : d
         ),
       };
@@ -1018,8 +1022,70 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateUser = useCallback(async (updates: Partial<UserProfile>) => {
     const updated = { ...user, ...updates };
     setUser(updated);
+
+    // Always cache locally
     await saveToStorage(STORAGE_KEYS.USER, updated);
+
+    // If API profile flag is enabled, persist to backend
+    if (featureFlags.isEnabled('USE_API_PROFILE')) {
+      try {
+        // Map local fields to API fields
+        await profileService.updateProfile({
+          fullName: updated.name,
+          bio: updated.bio,
+          location: updated.address,
+          dateOfBirth: updated.birthDate,
+        });
+      } catch (error) {
+        console.error('Failed to persist profile to API:', error);
+        // Continue with local state, don't throw
+      }
+    }
   }, [user, saveToStorage]);
+
+  const fetchProfile = useCallback(async () => {
+    if (!featureFlags.isEnabled('USE_API_PROFILE')) {
+      return; // Use local storage only
+    }
+
+    try {
+      const apiProfile = await profileService.getProfile();
+      // Map API profile (fullName, location) to local UserProfile (name, address)
+      const mappedProfile: UserProfile = {
+        ...user,
+        id: apiProfile.id || user.id,
+        name: apiProfile.fullName || user.name,
+        bio: apiProfile.bio || user.bio,
+        avatarUrl: apiProfile.avatarUrl,
+        address: apiProfile.location,
+        birthDate: apiProfile.dateOfBirth,
+      };
+
+      setUser(mappedProfile);
+      // Cache locally for offline access
+      await saveToStorage(STORAGE_KEYS.USER, mappedProfile);
+    } catch (error) {
+      console.error('Failed to fetch profile from API:', error);
+      // Fall back to cached data, already loaded in loadStoredData
+    }
+  }, [user, saveToStorage]);
+
+  const uploadAvatar = useCallback(async (file: { uri: string; type: string; name: string }): Promise<string | null> => {
+    if (!featureFlags.isEnabled('USE_API_PROFILE')) {
+      // Store locally only
+      await updateUser({ avatarUrl: file.uri });
+      return file.uri;
+    }
+
+    try {
+      const result = await profileService.uploadAvatar(file);
+      await updateUser({ avatarUrl: result.avatarUrl });
+      return result.avatarUrl;
+    } catch (error) {
+      console.error('Failed to upload avatar:', error);
+      return null;
+    }
+  }, [updateUser]);
 
   const sendMessage = useCallback(async (chatId: string, text: string) => {
     const newMessage: Message = {
@@ -1032,7 +1098,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const existingConvo = conversations.find((c) => c.chatId === chatId);
     let updatedConversations: Conversation[];
-    
+
     if (existingConvo) {
       updatedConversations = conversations.map((c) =>
         c.chatId === chatId
@@ -1042,7 +1108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } else {
       updatedConversations = [...conversations, { chatId, messages: [newMessage] }];
     }
-    
+
     setConversations(updatedConversations);
     await saveToStorage(STORAGE_KEYS.CONVERSATIONS, updatedConversations);
 
@@ -1058,11 +1124,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const deliveredConversations = updatedConversations.map((c) =>
         c.chatId === chatId
           ? {
-              ...c,
-              messages: c.messages.map((m) =>
-                m.id === newMessage.id ? { ...m, status: 'delivered' as const } : m
-              ),
-            }
+            ...c,
+            messages: c.messages.map((m) =>
+              m.id === newMessage.id ? { ...m, status: 'delivered' as const } : m
+            ),
+          }
           : c
       );
       setConversations(deliveredConversations);
@@ -1138,6 +1204,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await saveToStorage(STORAGE_KEYS.ACTIVE_CAMPAIGNS, updated);
   }, [activeCampaigns, saveToStorage]);
 
+  // Fetch profile from API on mount if flag enabled
+  useEffect(() => {
+    if (!isLoading) {
+      fetchProfile();
+    }
+  }, [isLoading, fetchProfile]);
+
   const unreadNotifications = notifications.filter((n) => !n.read).length;
 
   return (
@@ -1186,6 +1259,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateActiveCampaign,
         completeCampaign,
         processPayment,
+        fetchProfile,
+        uploadAvatar,
       }}
     >
       {children}
