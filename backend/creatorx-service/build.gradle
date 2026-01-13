@@ -1,3 +1,7 @@
+plugins {
+    id 'java-test-fixtures'
+}
+
 dependencies {
     // Repository module
     implementation project(':creatorx-repository')

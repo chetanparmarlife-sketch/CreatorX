@@ -41,4 +41,7 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'io.rest-assured:spring-mock-mvc'
+    
+    // Test fixtures from service module (TestDataBuilder)
+    testImplementation testFixtures(project(':creatorx-service'))
 }
