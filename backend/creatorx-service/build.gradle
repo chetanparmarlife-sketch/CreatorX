@@ -40,4 +40,10 @@ dependencies {
 
     // Firebase Admin SDK
     implementation 'com.google.firebase:firebase-admin:9.2.0'
+    
+    // Test fixtures dependencies (for TestDataBuilder to access entities and enums)
+    testFixturesApi project(':creatorx-repository')
+    testFixturesApi project(':creatorx-common')
+    testFixturesCompileOnly 'org.projectlombok:lombok'
+    testFixturesAnnotationProcessor 'org.projectlombok:lombok'
 }
