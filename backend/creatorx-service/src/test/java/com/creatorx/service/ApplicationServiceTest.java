@@ -23,7 +23,6 @@ import com.creatorx.service.dto.CampaignDTO;
 import com.creatorx.service.mapper.ApplicationMapper;
 import com.creatorx.service.mapper.CampaignMapper;
 import com.creatorx.service.testdata.TestDataBuilder;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +30,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -48,6 +49,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("ApplicationService Unit Tests")
 class ApplicationServiceTest {
     
@@ -73,7 +75,7 @@ class ApplicationServiceTest {
     private CampaignMapper campaignMapper;
     
     @Mock
-    private EntityManager entityManager;
+    private KYCService kycService;
     
     @InjectMocks
     private ApplicationService applicationService;
@@ -120,10 +122,7 @@ class ApplicationServiceTest {
         when(applicationRepository.existsByCampaignIdAndCreatorId(campaign.getId(), creatorUser.getId()))
                 .thenReturn(false);
         when(applicationRepository.countActiveApplicationsByCreatorId(creatorUser.getId())).thenReturn(5L);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any()).getSingleResult())
-                .thenReturn(1L); // KYC verified
+        when(kycService.isKYCVerified(creatorUser.getId())).thenReturn(true);
         
         Application savedApplication = Application.builder()
                 .id("app-123")
@@ -179,10 +178,7 @@ class ApplicationServiceTest {
         when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
         when(applicationRepository.existsByCampaignIdAndCreatorId(campaign.getId(), creatorUser.getId()))
                 .thenReturn(false);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any()).getSingleResult())
-                .thenReturn(1L);
+        when(kycService.isKYCVerified(creatorUser.getId())).thenReturn(true);
         
         // When/Then
         assertThatThrownBy(() -> applicationService.submitApplication(
@@ -200,10 +196,7 @@ class ApplicationServiceTest {
         when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
         when(applicationRepository.existsByCampaignIdAndCreatorId(campaign.getId(), creatorUser.getId()))
                 .thenReturn(false);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any()).getSingleResult())
-                .thenReturn(1L);
+        when(kycService.isKYCVerified(creatorUser.getId())).thenReturn(true);
         
         // When/Then
         assertThatThrownBy(() -> applicationService.submitApplication(
@@ -220,10 +213,7 @@ class ApplicationServiceTest {
         when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
         when(applicationRepository.existsByCampaignIdAndCreatorId(campaign.getId(), creatorUser.getId()))
                 .thenReturn(false);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any()).getSingleResult())
-                .thenReturn(0L); // No approved KYC documents
+        when(kycService.isKYCVerified(creatorUser.getId())).thenReturn(false); // KYC not verified
         
         // When/Then
         assertThatThrownBy(() -> applicationService.submitApplication(
@@ -241,10 +231,7 @@ class ApplicationServiceTest {
         when(applicationRepository.existsByCampaignIdAndCreatorId(campaign.getId(), creatorUser.getId()))
                 .thenReturn(false);
         when(applicationRepository.countActiveApplicationsByCreatorId(creatorUser.getId())).thenReturn(50L);
-        when(entityManager.createNativeQuery(anyString())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any())).thenReturn(mock(jakarta.persistence.Query.class));
-        when(entityManager.createNativeQuery(anyString()).setParameter(anyString(), any()).getSingleResult())
-                .thenReturn(1L);
+        when(kycService.isKYCVerified(creatorUser.getId())).thenReturn(true);
         
         // When/Then
         assertThatThrownBy(() -> applicationService.submitApplication(

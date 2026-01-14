@@ -137,21 +137,21 @@ class NotificationServiceTest {
     @DisplayName("Should mark notification as read")
     void shouldMarkNotificationAsRead() {
         // Given
-        when(notificationRepository.markAsRead("notification-id", user.getId(), any(LocalDateTime.class)))
+        when(notificationRepository.markAsRead(eq("notification-id"), eq(user.getId()), any(LocalDateTime.class)))
                 .thenReturn(1);
         
         // When
         notificationService.markAsRead(user.getId(), "notification-id");
         
         // Then
-        verify(notificationRepository).markAsRead("notification-id", user.getId(), any(LocalDateTime.class));
+        verify(notificationRepository).markAsRead(eq("notification-id"), eq(user.getId()), any(LocalDateTime.class));
     }
     
     @Test
     @DisplayName("Should throw exception when notification not found for mark as read")
     void shouldThrowExceptionWhenNotificationNotFoundForMarkAsRead() {
         // Given
-        when(notificationRepository.markAsRead("invalid-id", user.getId(), any(LocalDateTime.class)))
+        when(notificationRepository.markAsRead(eq("invalid-id"), eq(user.getId()), any(LocalDateTime.class)))
                 .thenReturn(0);
         
         // When/Then
@@ -163,14 +163,14 @@ class NotificationServiceTest {
     @DisplayName("Should mark all notifications as read")
     void shouldMarkAllNotificationsAsRead() {
         // Given
-        when(notificationRepository.markAllReadForUser(user.getId(), any(LocalDateTime.class)))
+        when(notificationRepository.markAllReadForUser(eq(user.getId()), any(LocalDateTime.class)))
                 .thenReturn(5);
         
         // When
         notificationService.markAllAsRead(user.getId());
         
         // Then
-        verify(notificationRepository).markAllReadForUser(user.getId(), any(LocalDateTime.class));
+        verify(notificationRepository).markAllReadForUser(eq(user.getId()), any(LocalDateTime.class));
     }
     
     @Test

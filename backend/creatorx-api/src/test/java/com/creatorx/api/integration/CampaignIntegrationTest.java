@@ -40,11 +40,10 @@ class CampaignIntegrationTest extends BaseIntegrationTest {
     
     @BeforeEach
     void setUp() {
-        // Clean up
-        campaignRepository.deleteAll();
-        userRepository.deleteAll();
+        // Note: Do NOT call userRepository.deleteAll() as it breaks base class test users
+        // @Transactional on BaseIntegrationTest ensures test isolation via rollback
         
-        // Create test users
+        // Create test users for this test class
         brandUser = TestDataBuilder.user()
                 .asBrand()
                 .withEmail("brand@test.com")

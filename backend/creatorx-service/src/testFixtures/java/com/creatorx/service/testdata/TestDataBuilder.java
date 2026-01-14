@@ -6,6 +6,7 @@ import com.creatorx.common.enums.CampaignStatus;
 import com.creatorx.common.enums.DeliverableStatus;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.enums.UserStatus;
+import com.creatorx.repository.entity.ActiveCampaign;
 import com.creatorx.repository.entity.Application;
 import com.creatorx.repository.entity.Campaign;
 import com.creatorx.repository.entity.Deliverable;
@@ -296,7 +297,6 @@ public class TestDataBuilder {
         
         public Wallet build() {
             return Wallet.builder()
-                    .id(id)
                     .user(user)
                     .balance(balance)
                     .pendingBalance(pendingBalance)
@@ -308,12 +308,12 @@ public class TestDataBuilder {
     
     public static class DeliverableBuilder {
         private String id = UUID.randomUUID().toString();
-        private Application application = TestDataBuilder.application().build();
+        private ActiveCampaign activeCampaign;
         private String title = "Test Deliverable";
         private String description = "Test deliverable description";
         private DeliverableStatus status = DeliverableStatus.PENDING;
         private LocalDate dueDate = LocalDate.now().plusDays(14);
-        private String mediaUrl;
+        private String submittedFileUrl;
         private String feedback;
         
         public DeliverableBuilder withId(String id) {
@@ -321,8 +321,8 @@ public class TestDataBuilder {
             return this;
         }
         
-        public DeliverableBuilder withApplication(Application application) {
-            this.application = application;
+        public DeliverableBuilder withActiveCampaign(ActiveCampaign activeCampaign) {
+            this.activeCampaign = activeCampaign;
             return this;
         }
         
@@ -346,9 +346,9 @@ public class TestDataBuilder {
             return this;
         }
         
-        public DeliverableBuilder submitted(String mediaUrl) {
+        public DeliverableBuilder submitted(String submittedFileUrl) {
             this.status = DeliverableStatus.SUBMITTED;
-            this.mediaUrl = mediaUrl;
+            this.submittedFileUrl = submittedFileUrl;
             return this;
         }
         
@@ -358,7 +358,7 @@ public class TestDataBuilder {
         }
         
         public DeliverableBuilder rejected(String feedback) {
-            this.status = DeliverableStatus.REVISION_REQUESTED;
+            this.status = DeliverableStatus.CHANGES_REQUESTED;
             this.feedback = feedback;
             return this;
         }
@@ -366,12 +366,12 @@ public class TestDataBuilder {
         public Deliverable build() {
             return Deliverable.builder()
                     .id(id)
-                    .application(application)
+                    .activeCampaign(activeCampaign)
                     .title(title)
                     .description(description)
                     .status(status)
                     .dueDate(dueDate)
-                    .mediaUrl(mediaUrl)
+                    .submittedFileUrl(submittedFileUrl)
                     .feedback(feedback)
                     .build();
         }

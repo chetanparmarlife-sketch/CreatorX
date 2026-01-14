@@ -41,14 +41,15 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
     );
     
     // Full-text search using PostgreSQL tsvector (native query for better performance)
+    // Note: Using string comparison instead of CAST to work with both Hibernate enums and test DDL
     @Query(value = "SELECT * FROM campaigns c WHERE " +
-           "c.status = CAST(:status AS campaign_status) AND " +
+           "c.status = :status AND " +
            "(:category IS NULL OR c.category = :category) AND " +
-           "(:platform IS NULL OR c.platform = CAST(:platform AS campaign_platform)) AND " +
+           "(:platform IS NULL OR c.platform = :platform) AND " +
            "(:minBudget IS NULL OR c.budget >= :minBudget) AND " +
            "(:maxBudget IS NULL OR c.budget <= :maxBudget) AND " +
-           "(:search IS NULL OR to_tsvector('english', c.title || ' ' || c.description) @@ plainto_tsquery('english', :search)) " +
-           "ORDER BY CASE WHEN :search IS NULL THEN c.created_at DESC ELSE ts_rank(to_tsvector('english', c.title || ' ' || c.description), plainto_tsquery('english', :search)) DESC END",
+           "(:search IS NULL OR to_tsvector('english', coalesce(c.title, '') || ' ' || coalesce(c.description, '')) @@ plainto_tsquery('english', :search)) " +
+           "ORDER BY CASE WHEN :search IS NULL THEN c.created_at ELSE ts_rank(to_tsvector('english', coalesce(c.title, '') || ' ' || coalesce(c.description, '')), plainto_tsquery('english', :search)) END DESC",
            nativeQuery = true)
     Page<Campaign> searchCampaignsWithFullText(
         @Param("status") String status,
