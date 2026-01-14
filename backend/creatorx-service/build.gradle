@@ -20,6 +20,12 @@ dependencies {
     // Actuator (system health metrics)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     
+    // Micrometer for Prometheus metrics
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    
+    // OpenTelemetry (optional - enable via OTEL_ENABLED=true)
+    implementation 'io.opentelemetry:opentelemetry-api:1.32.0'
+    
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
     implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
@@ -41,9 +47,13 @@ dependencies {
     // Firebase Admin SDK
     implementation 'com.google.firebase:firebase-admin:9.2.0'
     
+    // SendGrid SDK for email service
+    implementation 'com.sendgrid:sendgrid-java:4.10.1'
+    
     // Test fixtures dependencies (for TestDataBuilder to access entities and enums)
     testFixturesApi project(':creatorx-repository')
     testFixturesApi project(':creatorx-common')
     testFixturesCompileOnly 'org.projectlombok:lombok'
     testFixturesAnnotationProcessor 'org.projectlombok:lombok'
 }
+
