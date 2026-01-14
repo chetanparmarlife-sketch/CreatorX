@@ -60,8 +60,8 @@ jest.mock('@/src/components', () => ({
     },
 }));
 
-// Import after mocks are set up
-import ExploreScreen from '../../../../app/(app)/(tabs)/explore';
+// Import the explore screen from app directory
+import ExploreScreen from '@/app/(app)/(tabs)/explore';
 
 // Sample campaigns fixture
 const sampleCampaigns: Campaign[] = [
