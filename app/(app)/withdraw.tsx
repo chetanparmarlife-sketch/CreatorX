@@ -7,6 +7,7 @@ import { useTheme } from '@/src/hooks';
 import { useApp } from '@/src/context';
 import { spacing, borderRadius } from '@/src/theme';
 import { formatCurrencyAmount } from '@/src/utils/walletFormatting';
+import { featureFlags } from '@/src/config/featureFlags';
 
 const withdrawalMethods = [
   {
@@ -42,7 +43,9 @@ export default function WithdrawScreen() {
   const { colors } = useTheme();
   const { wallet } = useApp();
   const [selectedMethod, setSelectedMethod] = useState('bank');
-  const withdrawalsEnabled = false;
+
+  // Controlled by feature flag - disabled until Phase 4
+  const withdrawalsEnabled = featureFlags.isEnabled('USE_WITHDRAWALS_UI');
 
   const walletSummary = useMemo(
     () =>

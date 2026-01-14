@@ -19,7 +19,10 @@ export type FeatureFlag =
   | 'USE_POLLING_MESSAGES'
   | 'USE_WS_MESSAGES'
   | 'USE_API_NOTIFICATIONS'
-  | 'USE_API_PROFILE';
+  | 'USE_API_PROFILE'
+  | 'USE_API_SOCIAL_CONNECT'
+  | 'USE_API_KYC'
+  | 'USE_WITHDRAWALS_UI';
 
 interface FeatureFlags {
   USE_API_AUTH: boolean;
@@ -34,10 +37,13 @@ interface FeatureFlags {
   USE_WS_MESSAGES: boolean;
   USE_API_NOTIFICATIONS: boolean;
   USE_API_PROFILE: boolean;
+  USE_API_SOCIAL_CONNECT: boolean;
+  USE_API_KYC: boolean;
+  USE_WITHDRAWALS_UI: boolean;
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
-  USE_API_AUTH: false, // Start with mock
+  USE_API_AUTH: false, // Controls auth path: true = API backend, false = Supabase only
   USE_API_CAMPAIGNS: true,
   USE_API_APPLICATIONS: true,
   USE_API_DELIVERABLES: true,
@@ -49,10 +55,14 @@ const DEFAULT_FLAGS: FeatureFlags = {
   USE_WS_MESSAGES: false,
   USE_API_NOTIFICATIONS: true,
   USE_API_PROFILE: true,
+  USE_API_SOCIAL_CONNECT: true, // Controls social account connect flows
+  USE_API_KYC: true, // Controls KYC verification flows
+  USE_WITHDRAWALS_UI: false, // Disabled until Phase 4 - shows "Coming Soon"
 };
 
 class FeatureFlagManager {
   private flags: FeatureFlags = { ...DEFAULT_FLAGS };
+  private initialized = false;
 
   async loadFlags(): Promise<void> {
     try {
@@ -60,8 +70,11 @@ class FeatureFlagManager {
       if (stored) {
         this.flags = { ...DEFAULT_FLAGS, ...JSON.parse(stored) };
       }
+      this.initialized = true;
+      this.logEnabledFlags();
     } catch (error) {
       console.error('Error loading feature flags:', error);
+      this.initialized = true;
     }
   }
 
@@ -85,6 +98,28 @@ class FeatureFlagManager {
   async resetFlags(): Promise<void> {
     this.flags = { ...DEFAULT_FLAGS };
     await AsyncStorage.setItem(FEATURE_FLAG_STORAGE_KEY, JSON.stringify(this.flags));
+    this.logEnabledFlags();
+  }
+
+  /**
+   * Dev log: List enabled flags at startup
+   */
+  private logEnabledFlags(): void {
+    if (__DEV__) {
+      const enabled = Object.entries(this.flags)
+        .filter(([_, value]) => value)
+        .map(([key]) => key);
+      const disabled = Object.entries(this.flags)
+        .filter(([_, value]) => !value)
+        .map(([key]) => key);
+
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('🚩 FEATURE FLAGS AUDIT');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('✅ ENABLED:', enabled.join(', ') || 'None');
+      console.log('❌ DISABLED:', disabled.join(', ') || 'None');
+      console.log('═══════════════════════════════════════════════════════');
+    }
   }
 }
 

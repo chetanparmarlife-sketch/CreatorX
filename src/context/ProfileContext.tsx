@@ -196,6 +196,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
      * Fetch social accounts
      */
     const fetchSocialAccounts = useCallback(async () => {
+        // Check feature flag first
+        if (!featureFlags.isEnabled('USE_API_SOCIAL_CONNECT')) {
+            runIfMounted(() => setSocialAccountsError(null));
+            return; // Use cached data only
+        }
+
         if (!API_BASE_URL_READY) {
             runIfMounted(() => setSocialAccountsError('Social connect unavailable in degraded mode.'));
             return;
@@ -229,6 +235,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
      */
     const refreshSocialAccount = useCallback(
         async (provider: SocialProvider) => {
+            // Check feature flag first
+            if (!featureFlags.isEnabled('USE_API_SOCIAL_CONNECT')) {
+                runIfMounted(() => setSocialAccountsError('Social connect is disabled.'));
+                return;
+            }
+
             if (!API_BASE_URL_READY) {
                 runIfMounted(() => setSocialAccountsError('Social connect unavailable in degraded mode.'));
                 return;
@@ -256,6 +268,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
      */
     const disconnectSocialAccount = useCallback(
         async (provider: SocialProvider) => {
+            // Check feature flag first
+            if (!featureFlags.isEnabled('USE_API_SOCIAL_CONNECT')) {
+                runIfMounted(() => setSocialAccountsError('Social connect is disabled.'));
+                return;
+            }
+
             if (!API_BASE_URL_READY) {
                 runIfMounted(() => setSocialAccountsError('Social connect unavailable in degraded mode.'));
                 return;
@@ -282,6 +300,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
      * Get social connect URL
      */
     const getSocialConnectUrl = useCallback((provider: SocialProvider): string | null => {
+        // Check feature flag first
+        if (!featureFlags.isEnabled('USE_API_SOCIAL_CONNECT')) {
+            return null; // Disable connect URLs when flag is off
+        }
         return socialConnectService.getConnectUrl(provider);
     }, []);
 

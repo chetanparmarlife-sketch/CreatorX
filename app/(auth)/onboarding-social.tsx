@@ -115,6 +115,13 @@ export default function OnboardingSocialScreen() {
 
   const handleConnect = useCallback(
     async (provider: SocialProvider) => {
+      // Check feature flag for social connect
+      const { featureFlags } = await import('@/src/config/featureFlags');
+      if (!featureFlags.isEnabled('USE_API_SOCIAL_CONNECT')) {
+        Alert.alert('Coming Soon', 'Social connect will be available soon.');
+        return;
+      }
+
       if (!API_BASE_URL_READY) {
         Alert.alert('Unavailable', 'Social connect is unavailable in degraded mode.');
         return;
