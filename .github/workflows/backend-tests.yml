@@ -104,8 +104,7 @@ jobs:
       
       - name: Generate JaCoCo report
         working-directory: backend
-        continue-on-error: true
-        run: ./gradlew jacocoRootReport --no-daemon || echo "JaCoCo report generation failed"
+        run: ./gradlew jacocoRootReport --no-daemon || echo "JaCoCo report generation skipped (no coverage data)"
       
       - name: Upload coverage to Codecov
         if: always()
@@ -118,8 +117,7 @@ jobs:
       
       - name: Check coverage threshold
         working-directory: backend
-        continue-on-error: true
-        run: ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage verification failed"
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage threshold not met - review required"
       
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -135,7 +133,6 @@ jobs:
       - name: Publish test report
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
-        continue-on-error: true
         with:
           files: 'backend/**/build/test-results/**/*.xml'
           check_name: 'Backend Unit Tests'

@@ -134,8 +134,7 @@ jobs:
       
       - name: Check coverage threshold
         working-directory: ./backend
-        run: ./gradlew jacocoTestCoverageVerification --no-daemon
-        continue-on-error: true
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage threshold not met - review required"
       
       - name: Upload test results
         uses: actions/upload-artifact@v4

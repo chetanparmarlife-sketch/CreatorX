@@ -3,11 +3,14 @@ package com.creatorx.service.testdata;
 import com.creatorx.common.enums.ApplicationStatus;
 import com.creatorx.common.enums.CampaignPlatform;
 import com.creatorx.common.enums.CampaignStatus;
+import com.creatorx.common.enums.DeliverableStatus;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.enums.UserStatus;
 import com.creatorx.repository.entity.Application;
 import com.creatorx.repository.entity.Campaign;
+import com.creatorx.repository.entity.Deliverable;
 import com.creatorx.repository.entity.User;
+import com.creatorx.repository.entity.Wallet;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,6 +33,14 @@ public class TestDataBuilder {
     
     public static ApplicationBuilder application() {
         return new ApplicationBuilder();
+    }
+    
+    public static WalletBuilder wallet() {
+        return new WalletBuilder();
+    }
+    
+    public static DeliverableBuilder deliverable() {
+        return new DeliverableBuilder();
     }
     
     public static class UserBuilder {
@@ -236,5 +247,135 @@ public class TestDataBuilder {
                     .build();
         }
     }
+    
+    public static class WalletBuilder {
+        private String id = UUID.randomUUID().toString();
+        private User user = TestDataBuilder.user().asCreator().build();
+        private BigDecimal balance = new BigDecimal("1000.00");
+        private BigDecimal pendingBalance = new BigDecimal("500.00");
+        private BigDecimal totalEarned = new BigDecimal("2000.00");
+        private BigDecimal totalWithdrawn = new BigDecimal("1000.00");
+        
+        public WalletBuilder withId(String id) {
+            this.id = id;
+            return this;
+        }
+        
+        public WalletBuilder withUser(User user) {
+            this.user = user;
+            return this;
+        }
+        
+        public WalletBuilder withBalance(BigDecimal balance) {
+            this.balance = balance;
+            return this;
+        }
+        
+        public WalletBuilder withPendingBalance(BigDecimal pendingBalance) {
+            this.pendingBalance = pendingBalance;
+            return this;
+        }
+        
+        public WalletBuilder withTotalEarned(BigDecimal totalEarned) {
+            this.totalEarned = totalEarned;
+            return this;
+        }
+        
+        public WalletBuilder withTotalWithdrawn(BigDecimal totalWithdrawn) {
+            this.totalWithdrawn = totalWithdrawn;
+            return this;
+        }
+        
+        public WalletBuilder empty() {
+            this.balance = BigDecimal.ZERO;
+            this.pendingBalance = BigDecimal.ZERO;
+            this.totalEarned = BigDecimal.ZERO;
+            this.totalWithdrawn = BigDecimal.ZERO;
+            return this;
+        }
+        
+        public Wallet build() {
+            return Wallet.builder()
+                    .id(id)
+                    .user(user)
+                    .balance(balance)
+                    .pendingBalance(pendingBalance)
+                    .totalEarned(totalEarned)
+                    .totalWithdrawn(totalWithdrawn)
+                    .build();
+        }
+    }
+    
+    public static class DeliverableBuilder {
+        private String id = UUID.randomUUID().toString();
+        private Application application = TestDataBuilder.application().build();
+        private String title = "Test Deliverable";
+        private String description = "Test deliverable description";
+        private DeliverableStatus status = DeliverableStatus.PENDING;
+        private LocalDate dueDate = LocalDate.now().plusDays(14);
+        private String mediaUrl;
+        private String feedback;
+        
+        public DeliverableBuilder withId(String id) {
+            this.id = id;
+            return this;
+        }
+        
+        public DeliverableBuilder withApplication(Application application) {
+            this.application = application;
+            return this;
+        }
+        
+        public DeliverableBuilder withTitle(String title) {
+            this.title = title;
+            return this;
+        }
+        
+        public DeliverableBuilder withDescription(String description) {
+            this.description = description;
+            return this;
+        }
+        
+        public DeliverableBuilder withStatus(DeliverableStatus status) {
+            this.status = status;
+            return this;
+        }
+        
+        public DeliverableBuilder withDueDate(LocalDate dueDate) {
+            this.dueDate = dueDate;
+            return this;
+        }
+        
+        public DeliverableBuilder submitted(String mediaUrl) {
+            this.status = DeliverableStatus.SUBMITTED;
+            this.mediaUrl = mediaUrl;
+            return this;
+        }
+        
+        public DeliverableBuilder approved() {
+            this.status = DeliverableStatus.APPROVED;
+            return this;
+        }
+        
+        public DeliverableBuilder rejected(String feedback) {
+            this.status = DeliverableStatus.REVISION_REQUESTED;
+            this.feedback = feedback;
+            return this;
+        }
+        
+        public Deliverable build() {
+            return Deliverable.builder()
+                    .id(id)
+                    .application(application)
+                    .title(title)
+                    .description(description)
+                    .status(status)
+                    .dueDate(dueDate)
+                    .mediaUrl(mediaUrl)
+                    .feedback(feedback)
+                    .build();
+        }
+    }
 }
+
 
