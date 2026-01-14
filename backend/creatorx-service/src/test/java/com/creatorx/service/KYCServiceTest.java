@@ -9,6 +9,7 @@ import com.creatorx.repository.KYCDocumentRepository;
 import com.creatorx.repository.UserRepository;
 import com.creatorx.repository.entity.KYCDocument;
 import com.creatorx.repository.entity.User;
+import com.creatorx.service.admin.AdminAuditService;
 import com.creatorx.service.dto.FileUploadResponse;
 import com.creatorx.service.dto.KYCDocumentDTO;
 import com.creatorx.service.dto.KYCStatusDTO;
@@ -51,6 +52,9 @@ class KYCServiceTest {
     
     @Mock
     private NotificationService notificationService;
+    
+    @Mock
+    private AdminAuditService adminAuditService;
     
     @InjectMocks
     private KYCService kycService;

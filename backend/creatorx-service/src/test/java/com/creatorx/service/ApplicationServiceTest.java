@@ -66,7 +66,7 @@ class ApplicationServiceTest {
     private ConversationRepository conversationRepository;
     
     @Mock
-    private NotificationRepository notificationRepository;
+    private NotificationService notificationService;
     
     @Mock
     private ApplicationMapper applicationMapper;
@@ -150,7 +150,7 @@ class ApplicationServiceTest {
         // Then
         assertNotNull(result);
         verify(applicationRepository).save(any(Application.class));
-        verify(notificationRepository).save(any());
+        verify(notificationService).createNotification(anyString(), any(), anyString(), anyString(), any());
     }
     
     @Test
@@ -161,6 +161,7 @@ class ApplicationServiceTest {
         when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
         when(applicationRepository.existsByCampaignIdAndCreatorId(campaign.getId(), creatorUser.getId()))
                 .thenReturn(true);
+        when(kycService.isKYCVerified(creatorUser.getId())).thenReturn(true);
         
         // When/Then
         assertThatThrownBy(() -> applicationService.submitApplication(
@@ -276,7 +277,7 @@ class ApplicationServiceTest {
         // Then
         verify(applicationRepository).save(application);
         assertEquals(ApplicationStatus.WITHDRAWN, application.getStatus());
-        verify(notificationRepository).save(any());
+        verify(notificationService).createNotification(anyString(), any(), anyString(), anyString(), any());
     }
     
     @Test
@@ -305,7 +306,7 @@ class ApplicationServiceTest {
         // Then
         verify(applicationRepository).save(application);
         assertEquals(ApplicationStatus.SHORTLISTED, application.getStatus());
-        verify(notificationRepository).save(any());
+        verify(notificationService).createNotification(anyString(), any(), anyString(), anyString(), any());
     }
     
     @Test
@@ -333,7 +334,7 @@ class ApplicationServiceTest {
         verify(applicationRepository).save(application);
         assertEquals(ApplicationStatus.SELECTED, application.getStatus());
         verify(conversationRepository).save(any(Conversation.class));
-        verify(notificationRepository).save(any());
+        verify(notificationService).createNotification(anyString(), any(), anyString(), anyString(), any());
     }
     
     @Test
@@ -350,7 +351,7 @@ class ApplicationServiceTest {
         // Then
         verify(applicationRepository).save(application);
         assertEquals(ApplicationStatus.REJECTED, application.getStatus());
-        verify(notificationRepository).save(any());
+        verify(notificationService).createNotification(anyString(), any(), anyString(), anyString(), any());
     }
 }
 

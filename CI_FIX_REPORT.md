@@ -131,3 +131,32 @@ After these fixes:
 2. **TestContainers Isolation**: The `BaseIntegrationTest` uses `@Transactional` which means each test runs in a transaction that's rolled back after the test. This provides test isolation without needing `deleteAll()`.
 
 3. **PostgreSQL tsvector**: The full-text search still works correctly. Using `coalesce()` prevents NULL concatenation issues.
+
+---
+
+### Issue 3: Unit Test Failures (Mockito Strictness & NullPointerExceptions)
+
+**Location**: `creatorx-service` module (ApplicationServiceTest, CampaignServiceTest, DeliverableServiceTest, various)
+
+**Symptom**: 31 Unit test failures including `UnnecessaryStubbingException`, `NullPointerException`, `BusinessException` (validation), and `ArgumentsAreDifferent` verification errors.
+
+**Root Causes**:
+1.  **Mockito Strictness**: Default strictness flagged unused stubs in lenient test scenarios.
+2.  **Missing Mocks**: Services like `AdminAuditService`, `SearchQuerySanitizer`, `PlatformSettingsResolver` were not mocked, causing NPEs when called.
+3.  **Missing Stubs**: Void methods (e.g., `deleteFile`) and repository methods (`countBy`, `findLatestBy`) were not stubbed where needed.
+4.  **Property Injection**: `@Value` properties (e.g., bucket names) were null in unit tests, causing `uploadFile` logic to fail.
+5.  **Validation Logic**: Test DTOs were missing required fields (Platform, Category) or had invalid data (short description) causing `BusinessException`.
+
+**Fixes Applied**:
+1.  **Strictness**: Added `@MockitoSettings(strictness = Strictness.LENIENT)` to 6 test classes.
+2.  **Mocks & Stubs**:
+    -   Added mocks for `AdminAuditService`, `SearchQuerySanitizer`, `PlatformSettingsResolver`.
+    -   Stubbed `isCategoryAllowed` to return `true`.
+    -   Stubbed `fileValidationService.validateFile` to do nothing.
+    -   Stubbed repository methods for `DeliverableService` logic.
+3.  **Property Injection**: Used `ReflectionTestUtils.setField` to inject bucket names in `SupabaseStorageServiceTest`.
+4.  **Data & Verification**:
+    -   Updated Campaign DTOs with valid dates, platform, category, and description length.
+    -   Fixed `campaignRepository.findByStatus` and `searchCampaigns` verification to match service arguments (`any(Pageable.class)` and `eq("ACTIVE")`).
+
+**Result**: All 99 unit tests in `creatorx-service` passed successfully (31 failures -> 0).

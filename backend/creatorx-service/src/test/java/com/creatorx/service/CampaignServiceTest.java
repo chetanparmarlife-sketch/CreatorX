@@ -13,9 +13,12 @@ import com.creatorx.repository.CampaignRepository;
 import com.creatorx.repository.SavedCampaignRepository;
 import com.creatorx.repository.entity.Campaign;
 import com.creatorx.repository.entity.User;
+import com.creatorx.service.admin.ModerationService;
 import com.creatorx.service.dto.CampaignDTO;
 import com.creatorx.service.mapper.CampaignMapper;
 import com.creatorx.service.testdata.TestDataBuilder;
+import com.creatorx.service.util.SearchQuerySanitizer;
+import com.creatorx.service.PlatformSettingsResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,6 +64,15 @@ class CampaignServiceTest {
     @Mock
     private CampaignMapper campaignMapper;
     
+    @Mock
+    private ModerationService moderationService;
+    
+    @Mock
+    private SearchQuerySanitizer searchQuerySanitizer;
+    
+    @Mock
+    private PlatformSettingsResolver platformSettingsResolver;
+    
     @InjectMocks
     private CampaignService campaignService;
     
@@ -84,6 +96,21 @@ class CampaignServiceTest {
                 .withBrand(brandUser)
                 .active()
                 .build();
+        
+        CampaignDTO campaignDTO = new CampaignDTO();
+        campaignDTO.setId(campaign.getId());
+        campaignDTO.setTitle(campaign.getTitle());
+        campaignDTO.setStatus(com.creatorx.common.enums.CampaignStatus.ACTIVE);
+        
+        lenient().when(campaignMapper.toDTO(any(Campaign.class))).thenReturn(campaignDTO);
+        lenient().when(campaignMapper.toEntity(any(CampaignDTO.class))).thenReturn(campaign);
+        lenient().when(campaignMapper.toEntity(any(CampaignDTO.class))).thenReturn(campaign);
+        // Initialize applications list to avoid NPE in getCampaignById
+        campaign.setApplications(new java.util.ArrayList<>());
+        
+        // Stub sanitizer and platform settings
+        lenient().when(searchQuerySanitizer.sanitize(anyString())).thenAnswer(i -> i.getArgument(0));
+        lenient().when(platformSettingsResolver.isCategoryAllowed(anyString())).thenReturn(true);
     }
     
     @Test
@@ -155,8 +182,10 @@ class CampaignServiceTest {
         // Given
         CampaignDTO campaignDTO = new CampaignDTO();
         campaignDTO.setTitle("New Campaign");
-        campaignDTO.setDescription("Description");
+        campaignDTO.setDescription("This is a sufficiently long description for validation");
         campaignDTO.setBudget(new BigDecimal("5000.00"));
+        campaignDTO.setPlatform(CampaignPlatform.INSTAGRAM);
+        campaignDTO.setCategory("Tech");
         campaignDTO.setPlatform(CampaignPlatform.INSTAGRAM);
         campaignDTO.setCategory("Tech");
         campaignDTO.setStartDate(LocalDate.now().plusDays(1));
@@ -166,6 +195,13 @@ class CampaignServiceTest {
         newCampaign.setId("new-campaign-id");
         
         when(userService.findById(brandUser.getId())).thenReturn(brandUser);
+        
+        // Add valid dates and budget for validation
+        campaignDTO.setBudget(new BigDecimal("1000.00"));
+        campaignDTO.setStartDate(LocalDate.now().plusDays(1));
+        campaignDTO.setEndDate(LocalDate.now().plusDays(30));
+        campaignDTO.setApplicationDeadline(LocalDate.now().plusDays(15));
+        
         when(campaignMapper.toEntity(campaignDTO)).thenReturn(newCampaign);
         when(campaignRepository.save(any(Campaign.class))).thenReturn(newCampaign);
         
@@ -368,7 +404,7 @@ class CampaignServiceTest {
         // Given
         Pageable pageable = PageRequest.of(0, 1000);
         Page<Campaign> campaignPage = new PageImpl<>(List.of(campaign));
-        when(campaignRepository.findByStatus(CampaignStatus.ACTIVE, pageable)).thenReturn(campaignPage);
+        when(campaignRepository.findByStatus(eq(CampaignStatus.ACTIVE), any(Pageable.class))).thenReturn(campaignPage);
         when(savedCampaignRepository.existsByCreatorIdAndCampaignId(anyString(), anyString()))
                 .thenReturn(false);
         
@@ -383,7 +419,7 @@ class CampaignServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(campaignRepository).findByStatus(CampaignStatus.ACTIVE, pageable);
+        verify(campaignRepository).findByStatus(eq(CampaignStatus.ACTIVE), any(Pageable.class));
     }
     
     @Test

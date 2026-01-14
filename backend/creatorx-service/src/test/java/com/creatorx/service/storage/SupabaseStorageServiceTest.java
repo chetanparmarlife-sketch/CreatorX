@@ -46,6 +46,17 @@ class SupabaseStorageServiceTest {
         lenient().when(multipartFile.getContentType()).thenReturn("image/jpeg");
         lenient().when(multipartFile.getSize()).thenReturn(1024L);
         lenient().when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
+        
+        // Stub validateFile to do nothing (prevents BusinessException)
+        lenient().doNothing().when(fileValidationService).validateFile(any(), any());
+        
+        // Stub getFileExtension
+        lenient().when(fileValidationService.getFileExtension(anyString())).thenReturn("jpg");
+        
+        // Inject properties
+        org.springframework.test.util.ReflectionTestUtils.setField(storageService, "avatarsBucket", "avatars");
+        org.springframework.test.util.ReflectionTestUtils.setField(storageService, "kycBucket", "kyc-documents");
+        org.springframework.test.util.ReflectionTestUtils.setField(storageService, "deliverablesBucket", "deliverables");
     }
     
     @Test

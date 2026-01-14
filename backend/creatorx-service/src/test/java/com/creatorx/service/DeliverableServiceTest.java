@@ -62,7 +62,7 @@ class DeliverableServiceTest {
     private UserRepository userRepository;
     
     @Mock
-    private NotificationRepository notificationRepository;
+    private NotificationService notificationService;
     
     @Mock
     private DeliverableMapper deliverableMapper;
@@ -197,7 +197,7 @@ class DeliverableServiceTest {
                 application.getId(),
                 campaignDeliverable.getId(),
                 mockFile,
-                "Test description"
+                "Test description for deliverable submission"
         );
         
         // Then
@@ -206,7 +206,7 @@ class DeliverableServiceTest {
         verify(storageService).uploadFile(any(), eq("deliverables"), anyString(), 
                 eq(FileValidationService.FileCategory.DELIVERABLE));
         verify(deliverableRepository).save(any());
-        verify(notificationRepository).save(any());
+        verify(notificationService).createNotification(anyString(), any(), anyString(), anyString(), any());
     }
     
     @Test
@@ -347,6 +347,13 @@ class DeliverableServiceTest {
                 .thenReturn(uploadResponse);
         
         when(deliverableRepository.save(any())).thenReturn(existingSubmission);
+    
+    // Stub for enrichDeliverableDTO
+    when(deliverableRepository.countByApplicationIdAndCampaignDeliverableId(anyString(), anyString()))
+            .thenReturn(1L);
+    Page<DeliverableSubmission> page = new PageImpl<>(List.of(existingSubmission));
+    when(deliverableRepository.findLatestByApplicationIdAndCampaignDeliverableId(anyString(), anyString(), any(Pageable.class)))
+            .thenReturn(page);
         
         DeliverableDTO dto = DeliverableDTO.builder()
                 .id("submission-id")
@@ -360,7 +367,7 @@ class DeliverableServiceTest {
                 creatorUser.getId(),
                 "submission-id",
                 mockFile,
-                "Updated description"
+                "Updated description for deliverable resubmission"
         );
         
         // Then
@@ -422,7 +429,7 @@ class DeliverableServiceTest {
         
         // Then
         verify(deliverableRepository).save(any());
-        verify(notificationRepository).save(any());
+        verify(notificationService).createNotification(anyString(), any(), anyString(), anyString(), any());
     }
     
     @Test
