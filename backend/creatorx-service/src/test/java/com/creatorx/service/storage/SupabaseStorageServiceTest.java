@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
@@ -49,6 +50,12 @@ class SupabaseStorageServiceTest {
 
                 // Stub validateFile to do nothing (prevents BusinessException)
                 lenient().doNothing().when(fileValidationService).validateFile(any(), any());
+
+                // Inject @Value fields that are null without Spring context
+                ReflectionTestUtils.setField(storageService, "avatarsBucket", "avatars");
+                ReflectionTestUtils.setField(storageService, "kycBucket", "kyc-documents");
+                ReflectionTestUtils.setField(storageService, "deliverablesBucket", "deliverables");
+                ReflectionTestUtils.setField(storageService, "portfolioBucket", "portfolio");
         }
 
         @Test
@@ -85,7 +92,7 @@ class SupabaseStorageServiceTest {
                 String fileUrl = "https://storage.example.com/avatars/users/user-123/uuid.jpg";
 
                 when(fileValidationService.getFileExtension("image/jpeg")).thenReturn("jpg");
-                when(storageClient.uploadFile(any(), any(String.class), anyString(), eq("image/jpeg"), eq(1024L)))
+                when(storageClient.uploadFile(any(), eq("avatars"), anyString(), eq("image/jpeg"), eq(1024L)))
                                 .thenReturn(Mono.just(fileUrl));
 
                 // When
@@ -106,7 +113,7 @@ class SupabaseStorageServiceTest {
                 String fileUrl = "https://storage.example.com/kyc-documents/users/user-123/aadhaar/uuid.jpg";
 
                 when(fileValidationService.getFileExtension("image/jpeg")).thenReturn("jpg");
-                when(storageClient.uploadFile(any(), any(String.class), any(String.class), eq("image/jpeg"), eq(1024L)))
+                when(storageClient.uploadFile(any(), eq("kyc-documents"), anyString(), eq("image/jpeg"), eq(1024L)))
                                 .thenReturn(Mono.just(fileUrl));
 
                 // When
