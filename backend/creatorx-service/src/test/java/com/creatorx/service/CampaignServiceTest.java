@@ -17,6 +17,7 @@ import com.creatorx.service.admin.ModerationService;
 import com.creatorx.service.dto.CampaignDTO;
 import com.creatorx.service.mapper.CampaignMapper;
 import com.creatorx.service.testdata.TestDataBuilder;
+import com.creatorx.service.util.SearchQuerySanitizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,12 @@ class CampaignServiceTest {
         @Mock
         private ModerationService moderationService;
 
+        @Mock
+        private PlatformSettingsResolver platformSettingsResolver;
+
+        @Mock
+        private SearchQuerySanitizer searchQuerySanitizer;
+
         @InjectMocks
         private CampaignService campaignService;
 
@@ -90,6 +97,12 @@ class CampaignServiceTest {
                                 .build();
                 // Initialize applications list to avoid NPE in getCampaignById
                 campaign.setApplications(new java.util.ArrayList<>());
+
+                // Mock platform settings for validation - allow all categories
+                lenient().when(platformSettingsResolver.isCategoryAllowed(anyString())).thenReturn(true);
+
+                // Mock search query sanitizer - return input as-is for testing
+                lenient().when(searchQuerySanitizer.sanitize(anyString())).thenAnswer(inv -> inv.getArgument(0));
         }
 
         @Test
@@ -158,7 +171,7 @@ class CampaignServiceTest {
                 // Given
                 CampaignDTO campaignDTO = new CampaignDTO();
                 campaignDTO.setTitle("New Campaign");
-                campaignDTO.setDescription("Description");
+                campaignDTO.setDescription("This is a detailed campaign description that is at least 20 characters");
                 campaignDTO.setBudget(new BigDecimal("5000.00"));
                 campaignDTO.setPlatform(CampaignPlatform.INSTAGRAM);
                 campaignDTO.setCategory("Tech");
@@ -385,7 +398,7 @@ class CampaignServiceTest {
                 // Then
                 assertNotNull(result);
                 assertEquals(1, result.size());
-                verify(campaignRepository).findByStatus(CampaignStatus.ACTIVE, pageable);
+                verify(campaignRepository).findByStatus(eq(CampaignStatus.ACTIVE), any(Pageable.class));
         }
 
         @Test
