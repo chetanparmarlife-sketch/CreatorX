@@ -347,13 +347,6 @@ class DeliverableServiceTest {
                 .thenReturn(uploadResponse);
         
         when(deliverableRepository.save(any())).thenReturn(existingSubmission);
-    
-    // Stub for enrichDeliverableDTO
-    when(deliverableRepository.countByApplicationIdAndCampaignDeliverableId(anyString(), anyString()))
-            .thenReturn(1L);
-    Page<DeliverableSubmission> page = new PageImpl<>(List.of(existingSubmission));
-    when(deliverableRepository.findLatestByApplicationIdAndCampaignDeliverableId(anyString(), anyString(), any(Pageable.class)))
-            .thenReturn(page);
         
         DeliverableDTO dto = DeliverableDTO.builder()
                 .id("submission-id")

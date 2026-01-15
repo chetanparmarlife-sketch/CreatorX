@@ -161,7 +161,6 @@ class ApplicationServiceTest {
         when(campaignRepository.findById(campaign.getId())).thenReturn(Optional.of(campaign));
         when(applicationRepository.existsByCampaignIdAndCreatorId(campaign.getId(), creatorUser.getId()))
                 .thenReturn(true);
-        when(kycService.isKYCVerified(creatorUser.getId())).thenReturn(true);
         
         // When/Then
         assertThatThrownBy(() -> applicationService.submitApplication(
