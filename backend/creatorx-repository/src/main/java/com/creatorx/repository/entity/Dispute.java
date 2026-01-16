@@ -15,39 +15,39 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "disputes", indexes = {
-    @Index(name = "idx_campaign_id", columnList = "campaign_id"),
-    @Index(name = "idx_creator_id", columnList = "creator_id"),
-    @Index(name = "idx_brand_id", columnList = "brand_id"),
-    @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_type", columnList = "type"),
-    @Index(name = "idx_created_at", columnList = "created_at"),
-    @Index(name = "idx_open", columnList = "status")
+        @Index(name = "idx_disputes_campaign_id", columnList = "campaign_id"),
+        @Index(name = "idx_disputes_creator_id", columnList = "creator_id"),
+        @Index(name = "idx_brand_id", columnList = "brand_id"),
+        @Index(name = "idx_disputes_status", columnList = "status"),
+        @Index(name = "idx_disputes_type", columnList = "type"),
+        @Index(name = "idx_disputes_created_at", columnList = "created_at"),
+        @Index(name = "idx_open", columnList = "status")
 })
 @Data
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"campaign", "creator", "brand", "resolvedBy"})
+@ToString(exclude = { "campaign", "creator", "brand", "resolvedBy" })
 public class Dispute extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campaign_id")
     private Campaign campaign;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
     private User creator;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id", nullable = false)
     private User brand;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DisputeType type;
-    
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -71,11 +71,11 @@ public class Dispute extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String resolution;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resolved_by")
     private User resolvedBy;
-    
+
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 }

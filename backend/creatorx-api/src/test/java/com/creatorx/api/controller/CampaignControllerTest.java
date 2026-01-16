@@ -1,156 +1,107 @@
 package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.CampaignCreateRequest;
+import com.creatorx.api.integration.BaseIntegrationTest;
 import com.creatorx.common.enums.CampaignPlatform;
 import com.creatorx.common.enums.CampaignStatus;
+import com.creatorx.repository.CampaignRepository;
+import com.creatorx.repository.entity.Campaign;
 import com.creatorx.service.CampaignService;
-import com.creatorx.service.ApplicationService;
-import com.creatorx.service.DeliverableService;
 import com.creatorx.service.dto.CampaignDTO;
-import com.creatorx.service.mapper.CampaignMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(value = CampaignController.class, excludeAutoConfiguration = {
-                org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-                org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
-})
-@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("CampaignController API Tests")
-class CampaignControllerTest {
+class CampaignControllerTest extends BaseIntegrationTest {
 
         @Autowired
-        private MockMvc mockMvc;
-
-        @MockBean
         private CampaignService campaignService;
 
-        @MockBean
-        private CampaignMapper campaignMapper;
-
-        @MockBean
-        private ApplicationService applicationService;
-
-        @MockBean
-        private DeliverableService deliverableService;
-
-        @MockBean
-        private com.creatorx.service.JwtService jwtService;
-
-        @MockBean
-        private com.creatorx.service.UserService userService;
-
-        @MockBean
-        private com.creatorx.service.SupabaseJwtService supabaseJwtService;
-
-        @MockBean
-        private com.creatorx.repository.UserRepository userRepository;
+        @Autowired
+        private CampaignRepository campaignRepository;
 
         @Autowired
         private ObjectMapper objectMapper;
 
-        private CampaignDTO campaignDTO;
         private CampaignCreateRequest createRequest;
 
         @BeforeEach
-        void setUp() {
-                campaignDTO = CampaignDTO.builder()
-                                .id("campaign-1")
-                                .title("Test Campaign")
-                                .description("Test Description")
-                                .budget(new BigDecimal("10000.00"))
-                                .platform(CampaignPlatform.INSTAGRAM)
-                                .category("Fashion")
-                                .status(CampaignStatus.ACTIVE)
-                                .build();
+        @Override
+        public void setUpBaseTest() {
+                super.setUpBaseTest();
 
+                // Set up test data
                 createRequest = new CampaignCreateRequest();
-                createRequest.setTitle("New Campaign");
-                createRequest.setDescription("Description");
-                createRequest.setBudget(new BigDecimal("5000.00"));
+                createRequest.setTitle("Test Campaign");
+                createRequest.setDescription(
+                                "Test campaign description that meets minimum length requirements for validation");
+                createRequest.setBudget(BigDecimal.valueOf(5000));
                 createRequest.setPlatform(CampaignPlatform.INSTAGRAM);
-                createRequest.setCategory("Tech");
-                createRequest.setDeliverableTypes(List.of("IMAGE", "VIDEO"));
-                createRequest.setStartDate(LocalDate.now().plusDays(1));
-                createRequest.setEndDate(LocalDate.now().plusDays(30));
+                createRequest.setCategory("Fashion");
+                createRequest.setRequirements("Test requirements");
+                createRequest.setStartDate(LocalDate.now().plusDays(7));
+                createRequest.setEndDate(LocalDate.now().plusDays(37));
+                createRequest.setApplicationDeadline(LocalDate.now().plusDays(5));
+                createRequest.setMaxApplicants(50);
+                createRequest.setDeliverableTypes(java.util.List.of("INSTAGRAM_POST", "INSTAGRAM_STORY"));
         }
 
         @Test
         @DisplayName("GET /api/v1/campaigns should return paginated campaigns")
         void testGetCampaigns_Success() throws Exception {
-                // Given
-                Page<CampaignDTO> page = new PageImpl<>(List.of(campaignDTO));
-                when(campaignService.getCampaigns(
-                                any(), any(), any(), any(), any(), any(),
-                                anyString(), anyString(), anyInt(), anyInt(), any())).thenReturn(page);
+                authenticateAsBrand();
 
-                // When/Then
                 mockMvc.perform(get("/api/v1/campaigns")
-                                .param("page", "0")
-                                .param("size", "20"))
+                                .with(csrf()))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.content").isArray())
-                                .andExpect(jsonPath("$.content[0].id").value("campaign-1"))
-                                .andExpect(jsonPath("$.content[0].title").value("Test Campaign"));
+                                .andExpect(jsonPath("$.items").isArray());
         }
 
         @Test
         @DisplayName("GET /api/v1/campaigns/{id} should return campaign details")
         void testGetCampaignById_Success() throws Exception {
-                // Given
-                when(campaignService.getCampaignById("campaign-1", any())).thenReturn(campaignDTO);
+                authenticateAsBrand();
 
-                // When/Then
-                mockMvc.perform(get("/api/v1/campaigns/campaign-1"))
+                // Create a campaign first
+                CampaignDTO campaign = createTestCampaign();
+
+                mockMvc.perform(get("/api/v1/campaigns/" + campaign.getId())
+                                .with(csrf()))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.id").value("campaign-1"))
-                                .andExpect(jsonPath("$.title").value("Test Campaign"));
+                                .andExpect(jsonPath("$.id").value(campaign.getId()))
+                                .andExpect(jsonPath("$.title").value(campaign.getTitle()));
         }
 
         @Test
         @DisplayName("POST /api/v1/campaigns should create campaign (Brand only)")
-        @WithMockUser(roles = "BRAND")
         void testCreateCampaign_Success() throws Exception {
-                // Given
-                when(campaignService.createCampaign(any(CampaignDTO.class), anyString()))
-                                .thenReturn(campaignDTO);
+                authenticateAsBrand();
 
-                // When/Then
                 mockMvc.perform(post("/api/v1/campaigns")
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(createRequest)))
                                 .andExpect(status().isCreated())
-                                .andExpect(jsonPath("$.id").value("campaign-1"));
+                                .andExpect(jsonPath("$.title").value("Test Campaign"))
+                                .andExpect(jsonPath("$.brand.id").value(testBrand.getId()));
         }
 
         @Test
         @DisplayName("POST /api/v1/campaigns should return 403 for non-brand users")
-        @WithMockUser(roles = "CREATOR")
         void testCreateCampaign_Forbidden() throws Exception {
-                // When/Then
+                authenticateAsCreator();
+
                 mockMvc.perform(post("/api/v1/campaigns")
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -160,73 +111,116 @@ class CampaignControllerTest {
 
         @Test
         @DisplayName("POST /api/v1/campaigns should return 400 for invalid request")
-        @WithMockUser(roles = "BRAND")
         void testCreateCampaign_ValidationError() throws Exception {
-                // Given
-                createRequest.setTitle(""); // Invalid
+                authenticateAsBrand();
 
-                // When/Then
+                // Create invalid request (missing required field)
+                CampaignCreateRequest invalidRequest = new CampaignCreateRequest();
+                invalidRequest.setTitle(""); // Invalid: empty title
+
                 mockMvc.perform(post("/api/v1/campaigns")
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(createRequest)))
+                                .content(objectMapper.writeValueAsString(invalidRequest)))
                                 .andExpect(status().isBadRequest());
         }
 
         @Test
         @DisplayName("PUT /api/v1/campaigns/{id} should update campaign")
-        @WithMockUser(roles = "BRAND")
         void testUpdateCampaign_Success() throws Exception {
-                // Given
-                when(campaignService.updateCampaign(eq("campaign-1"), any(CampaignDTO.class), anyString()))
-                                .thenReturn(campaignDTO);
+                authenticateAsBrand();
 
-                // When/Then
-                mockMvc.perform(put("/api/v1/campaigns/campaign-1")
+                CampaignDTO campaign = createTestCampaign();
+
+                createRequest.setTitle("Updated Campaign Title");
+
+                mockMvc.perform(put("/api/v1/campaigns/" + campaign.getId())
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"title\":\"Updated Title\"}"))
-                                .andExpect(status().isOk());
+                                .content(objectMapper.writeValueAsString(createRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.title").value("Updated Campaign Title"));
         }
 
         @Test
         @DisplayName("DELETE /api/v1/campaigns/{id} should delete campaign")
-        @WithMockUser(roles = "BRAND")
         void testDeleteCampaign_Success() throws Exception {
-                // Given
-                doNothing().when(campaignService).deleteCampaign("campaign-1", anyString());
+                authenticateAsBrand();
 
-                // When/Then
-                mockMvc.perform(delete("/api/v1/campaigns/campaign-1")
+                CampaignDTO campaign = createTestCampaign();
+
+                mockMvc.perform(delete("/api/v1/campaigns/" + campaign.getId())
                                 .with(csrf()))
                                 .andExpect(status().isNoContent());
         }
 
         @Test
         @DisplayName("POST /api/v1/campaigns/{id}/save should save campaign (Creator only)")
-        @WithMockUser(roles = "CREATOR")
         void testSaveCampaign_Success() throws Exception {
-                // Given
-                doNothing().when(campaignService).saveCampaign(anyString(), eq("campaign-1"));
+                authenticateAsBrand();
+                // Save campaign requires ACTIVE status
+                CampaignDTO campaign = createActiveCampaign();
 
-                // When/Then
-                mockMvc.perform(post("/api/v1/campaigns/campaign-1/save")
+                authenticateAsCreator();
+
+                mockMvc.perform(post("/api/v1/campaigns/" + campaign.getId() + "/save")
                                 .with(csrf()))
                                 .andExpect(status().isOk());
         }
 
         @Test
         @DisplayName("GET /api/v1/campaigns/saved should return saved campaigns")
-        @WithMockUser(roles = "CREATOR")
         void testGetSavedCampaigns_Success() throws Exception {
-                // Given
-                when(campaignService.getSavedCampaigns(anyString()))
-                                .thenReturn(List.of(campaignDTO));
+                authenticateAsCreator();
 
-                // When/Then
-                mockMvc.perform(get("/api/v1/campaigns/saved"))
+                mockMvc.perform(get("/api/v1/campaigns/saved")
+                                .with(csrf()))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$").isArray())
-                                .andExpect(jsonPath("$[0].id").value("campaign-1"));
+                                .andExpect(jsonPath("$").isArray());
+        }
+
+        // Helper methods
+
+        private CampaignDTO createTestCampaign() {
+                CampaignDTO campaignDTO = new CampaignDTO();
+                campaignDTO.setTitle("Test Campaign");
+                campaignDTO.setDescription("Test campaign description that meets minimum length requirements");
+                campaignDTO.setBudget(BigDecimal.valueOf(5000));
+                campaignDTO.setPlatform(CampaignPlatform.INSTAGRAM);
+                campaignDTO.setCategory("Fashion");
+                campaignDTO.setRequirements("Test requirements");
+                campaignDTO.setStartDate(LocalDate.now().plusDays(7));
+                campaignDTO.setEndDate(LocalDate.now().plusDays(37));
+                campaignDTO.setApplicationDeadline(LocalDate.now().plusDays(5));
+                campaignDTO.setMaxApplicants(50);
+                campaignDTO.setStatus(CampaignStatus.DRAFT);
+
+                return campaignService.createCampaign(campaignDTO, testBrand.getId());
+        }
+
+        private CampaignDTO createActiveCampaign() {
+                // First create a draft campaign
+                CampaignDTO campaignDTO = new CampaignDTO();
+                campaignDTO.setTitle("Active Campaign");
+                campaignDTO.setDescription("Test campaign description that meets minimum length requirements");
+                campaignDTO.setBudget(BigDecimal.valueOf(5000));
+                campaignDTO.setPlatform(CampaignPlatform.INSTAGRAM);
+                campaignDTO.setCategory("Fashion");
+                campaignDTO.setRequirements("Test requirements");
+                campaignDTO.setStartDate(LocalDate.now().plusDays(7));
+                campaignDTO.setEndDate(LocalDate.now().plusDays(37));
+                campaignDTO.setApplicationDeadline(LocalDate.now().plusDays(5));
+                campaignDTO.setMaxApplicants(50);
+
+                CampaignDTO created = campaignService.createCampaign(campaignDTO, testBrand.getId());
+
+                // Directly update status to ACTIVE via repository (bypassing service
+                // validation)
+                Campaign campaign = campaignRepository.findById(created.getId()).orElseThrow();
+                campaign.setStatus(CampaignStatus.ACTIVE);
+                campaignRepository.save(campaign);
+
+                created.setStatus(CampaignStatus.ACTIVE);
+                return created;
         }
 }

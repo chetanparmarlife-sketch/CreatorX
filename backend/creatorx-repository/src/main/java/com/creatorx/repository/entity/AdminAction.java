@@ -18,10 +18,10 @@ import java.util.Map;
 
 @Entity
 @Table(name = "admin_actions", indexes = {
-    @Index(name = "idx_admin_id", columnList = "admin_id"),
-    @Index(name = "idx_action_type", columnList = "action_type"),
-    @Index(name = "idx_entity", columnList = "entity_type,entity_id"),
-    @Index(name = "idx_created_at", columnList = "created_at")
+        @Index(name = "idx_admin_id", columnList = "admin_id"),
+        @Index(name = "idx_action_type", columnList = "action_type"),
+        @Index(name = "idx_entity", columnList = "entity_type,entity_id"),
+        @Index(name = "idx_admin_actions_created_at", columnList = "created_at")
 })
 @Data
 @SuperBuilder
@@ -32,26 +32,25 @@ public class AdminAction extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id", nullable = false)
     private User admin;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "action_type", nullable = false)
     private AdminActionType actionType;
-    
+
     @Column(name = "entity_type", nullable = false, length = 50)
     private String entityType;
-    
+
     @Column(name = "entity_id")
     private String entityId;
-    
+
     @Column(name = "details_json", columnDefinition = "JSONB")
     @JdbcTypeCode(SqlTypes.JSON)
     @Builder.Default
     private Map<String, Object> detailsJson = new HashMap<>();
-    
+
     @Column(name = "ip_address")
     private InetAddress ipAddress;
-    
+
     @Column(name = "user_agent", columnDefinition = "TEXT")
     private String userAgent;
 }
-

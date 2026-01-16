@@ -44,4 +44,12 @@ dependencies {
     
     // Test fixtures from service module (TestDataBuilder)
     testImplementation testFixtures(project(':creatorx-service'))
+    
+    // H2 in-memory database for tests (used when Docker is not available)
+    testRuntimeOnly 'com.h2database:h2'
+    
+    // Testcontainers for PostgreSQL integration tests
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
 }

@@ -12,13 +12,17 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, String>, JpaSpecificationExecutor<User> {
     Optional<User> findByEmail(String email);
+
     Optional<User> findBySupabaseId(String supabaseId);
-    Optional<User> findByUsername(String username);
+
+    // Note: User entity does not have 'username' field - use
+    // CreatorProfileRepository.findByUsername() instead
     boolean existsByEmail(String email);
-    boolean existsByUsername(String username);
-    boolean existsByReferralCode(String referralCode);
+
+    // Note: 'referralCode' is not a User field - Referral entity has referral codes
     Optional<User> findFirstByRoleOrderByCreatedAtAsc(UserRole role);
+
     long countByRole(UserRole role);
+
     long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
 }
-

@@ -15,31 +15,31 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
-    
+
     @Transactional(readOnly = true)
-    @Cacheable(value = "user_profile", key = "#id")
+    @Cacheable(value = "user_profile", key = "#id", condition = "#id != null")
     public User findById(String id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
-    
+
     @Transactional(readOnly = true)
     public User findBySupabaseId(String supabaseId) {
         return userRepository.findBySupabaseId(supabaseId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "supabaseId: " + supabaseId));
     }
-    
+
     @Transactional(readOnly = true)
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email: " + email));
     }
-    
+
     @Transactional
     public User save(User user) {
         return userRepository.save(user);
     }
-    
+
     @Transactional
     public User createOrUpdateFromSupabase(String supabaseId, String email, String name) {
         return userRepository.findBySupabaseId(supabaseId)
@@ -76,6 +76,3 @@ public class UserService {
         userProfileRepository.save(profile);
     }
 }
-
-
-
