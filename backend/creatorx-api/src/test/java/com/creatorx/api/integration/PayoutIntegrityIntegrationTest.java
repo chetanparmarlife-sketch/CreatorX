@@ -45,6 +45,8 @@ import static org.assertj.core.api.Assertions.*;
 @ActiveProfiles("test-postgres")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Payout Integrity Integration Tests")
+@org.junit.jupiter.api.Tag("postgres")
+@org.junit.jupiter.api.Tag("integration")
 class PayoutIntegrityIntegrationTest {
 
     @Container

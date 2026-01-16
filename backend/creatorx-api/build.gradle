@@ -53,3 +53,64 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
     testImplementation 'org.testcontainers:postgresql:1.19.3'
 }
+
+// ============================================================
+// Test Task Configuration: Separate H2 and PostgreSQL tests
+// ============================================================
+
+// Default test task: runs H2 fast tests only (excludes PostgreSQL integration tests)
+test {
+    useJUnitPlatform {
+        excludeTags 'postgres', 'integration'
+    }
+    systemProperty 'spring.profiles.active', 'test'
+}
+
+// PostgreSQL Integration Tests (requires Docker)
+tasks.register('integrationTest', Test) {
+    description = 'Runs PostgreSQL integration tests using Testcontainers'
+    group = 'verification'
+    
+    useJUnitPlatform {
+        includeTags 'postgres', 'integration'
+    }
+    systemProperty 'spring.profiles.active', 'test-postgres'
+    
+    // Run after unit tests
+    shouldRunAfter test
+    
+    // These tests require Docker
+    onlyIf {
+        // Check if we're in CI or if Docker is likely available
+        System.getenv('CI') != null || 
+        new File('/var/run/docker.sock').exists() ||
+        System.getenv('DOCKER_HOST') != null ||
+        System.getProperty('os.name').toLowerCase().contains('windows')
+    }
+}
+
+// PostgreSQL tests only (alternative name)
+tasks.register('postgresTest', Test) {
+    description = 'Runs PostgreSQL integration tests (alias for integrationTest)'
+    group = 'verification'
+    
+    useJUnitPlatform {
+        includeTags 'postgres', 'integration'
+    }
+    systemProperty 'spring.profiles.active', 'test-postgres'
+}
+
+// All tests: H2 + PostgreSQL
+tasks.register('allTests') {
+    description = 'Runs all tests (H2 unit + PostgreSQL integration)'
+    group = 'verification'
+    dependsOn test, integrationTest
+}
+
+// CI task: runs all tests for CI pipeline
+tasks.register('ciTest') {
+    description = 'Runs all tests for CI pipeline'
+    group = 'verification'
+    dependsOn test, integrationTest
+}
+
