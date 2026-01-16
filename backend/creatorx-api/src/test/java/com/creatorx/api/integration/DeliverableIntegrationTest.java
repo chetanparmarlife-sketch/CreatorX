@@ -18,7 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockPart;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -104,6 +106,7 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 .fileUrl("https://storage.example.com/file.jpg")
                                 .description("Test deliverable")
                                 .status(SubmissionStatus.PENDING)
+                                .submittedAt(java.time.LocalDateTime.now())
                                 .build();
                 deliverableRepository.save(submission);
 
@@ -124,11 +127,19 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 MediaType.IMAGE_JPEG_VALUE,
                                 "test image content".getBytes());
 
+                // Use MockPart for @RequestPart parameters
+                MockPart applicationIdPart = new MockPart("applicationId",
+                                application.getId().getBytes(StandardCharsets.UTF_8));
+                MockPart campaignDeliverableIdPart = new MockPart("campaignDeliverableId",
+                                campaignDeliverable.getId().getBytes(StandardCharsets.UTF_8));
+                MockPart descriptionPart = new MockPart("description",
+                                "This is a test deliverable submission".getBytes(StandardCharsets.UTF_8));
+
                 mockMvc.perform(multipart("/api/v1/deliverables")
                                 .file(file)
-                                .param("applicationId", application.getId())
-                                .param("campaignDeliverableId", campaignDeliverable.getId())
-                                .param("description", "This is a test deliverable submission")
+                                .part(applicationIdPart)
+                                .part(campaignDeliverableIdPart)
+                                .part(descriptionPart)
                                 .with(csrf()))
                                 .andExpect(status().isCreated())
                                 .andExpect(jsonPath("$.id").exists())
@@ -140,10 +151,26 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
         void shouldFailWhenSubmittingWithoutFile() throws Exception {
                 authenticateAs(creatorUser);
 
+                // Use MockPart for @RequestPart parameters - no file provided
+                MockPart applicationIdPart = new MockPart("applicationId",
+                                application.getId().getBytes(StandardCharsets.UTF_8));
+                MockPart campaignDeliverableIdPart = new MockPart("campaignDeliverableId",
+                                campaignDeliverable.getId().getBytes(StandardCharsets.UTF_8));
+                MockPart descriptionPart = new MockPart("description",
+                                "This is a test deliverable submission".getBytes(StandardCharsets.UTF_8));
+
+                // Create empty file to trigger validation
+                MockMultipartFile emptyFile = new MockMultipartFile(
+                                "file",
+                                "",
+                                MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                                new byte[0]);
+
                 mockMvc.perform(multipart("/api/v1/deliverables")
-                                .param("applicationId", application.getId())
-                                .param("campaignDeliverableId", campaignDeliverable.getId())
-                                .param("description", "This is a test deliverable submission")
+                                .file(emptyFile)
+                                .part(applicationIdPart)
+                                .part(campaignDeliverableIdPart)
+                                .part(descriptionPart)
                                 .with(csrf()))
                                 .andExpect(status().isBadRequest());
         }
@@ -167,11 +194,19 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 MediaType.IMAGE_JPEG_VALUE,
                                 "test image content".getBytes());
 
+                // Use MockPart for @RequestPart parameters
+                MockPart applicationIdPart = new MockPart("applicationId",
+                                appliedApplication.getId().getBytes(StandardCharsets.UTF_8));
+                MockPart campaignDeliverableIdPart = new MockPart("campaignDeliverableId",
+                                campaignDeliverable.getId().getBytes(StandardCharsets.UTF_8));
+                MockPart descriptionPart = new MockPart("description",
+                                "This is a test deliverable submission".getBytes(StandardCharsets.UTF_8));
+
                 mockMvc.perform(multipart("/api/v1/deliverables")
                                 .file(file)
-                                .param("applicationId", appliedApplication.getId())
-                                .param("campaignDeliverableId", campaignDeliverable.getId())
-                                .param("description", "This is a test deliverable submission")
+                                .part(applicationIdPart)
+                                .part(campaignDeliverableIdPart)
+                                .part(descriptionPart)
                                 .with(csrf()))
                                 .andExpect(status().isBadRequest());
         }
@@ -188,6 +223,7 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 .fileUrl("https://storage.example.com/old-file.jpg")
                                 .description("Old description")
                                 .status(SubmissionStatus.REVISION_REQUESTED)
+                                .submittedAt(java.time.LocalDateTime.now())
                                 .build();
                 submission = deliverableRepository.save(submission);
 
@@ -197,9 +233,17 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 MediaType.IMAGE_JPEG_VALUE,
                                 "new test image content".getBytes());
 
+                MockPart descriptionPart = new MockPart("description",
+                                "Updated description after revision".getBytes(StandardCharsets.UTF_8));
+
+                // Use PUT method for resubmit endpoint
                 mockMvc.perform(multipart("/api/v1/deliverables/{id}", submission.getId())
                                 .file(file)
-                                .param("description", "Updated description after revision")
+                                .part(descriptionPart)
+                                .with(request -> {
+                                        request.setMethod("PUT");
+                                        return request;
+                                })
                                 .with(csrf()))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id").value(submission.getId()))
@@ -218,6 +262,7 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 .fileUrl("https://storage.example.com/file.jpg")
                                 .description("Test deliverable")
                                 .status(SubmissionStatus.PENDING)
+                                .submittedAt(java.time.LocalDateTime.now())
                                 .build();
                 submission = deliverableRepository.save(submission);
 
@@ -239,6 +284,7 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 .fileUrl("https://storage.example.com/file.jpg")
                                 .description("Test deliverable")
                                 .status(SubmissionStatus.PENDING)
+                                .submittedAt(java.time.LocalDateTime.now())
                                 .build();
                 submission = deliverableRepository.save(submission);
 
@@ -268,6 +314,7 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                                 .fileUrl("https://storage.example.com/file.jpg")
                                 .description("Test deliverable")
                                 .status(SubmissionStatus.PENDING)
+                                .submittedAt(java.time.LocalDateTime.now())
                                 .build();
                 submission = deliverableRepository.save(submission);
 
