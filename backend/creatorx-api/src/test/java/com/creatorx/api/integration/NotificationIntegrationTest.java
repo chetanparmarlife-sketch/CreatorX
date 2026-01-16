@@ -6,6 +6,7 @@ import com.creatorx.repository.NotificationRepository;
 import com.creatorx.repository.entity.FCMToken;
 import com.creatorx.repository.entity.Notification;
 import com.creatorx.repository.entity.User;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class NotificationIntegrationTest extends BaseIntegrationTest {
 
         @Autowired
         protected FCMTokenRepository fcmTokenRepository;
+
+        @Autowired
+        protected EntityManager entityManager;
 
         private User user;
         private Notification notification;
@@ -77,9 +81,14 @@ class NotificationIntegrationTest extends BaseIntegrationTest {
                                 .with(csrf()))
                                 .andExpect(status().isNoContent());
 
+                // Clear entity cache to see the @Modifying update
+                entityManager.flush();
+                entityManager.clear();
+
                 // Verify notification is marked as read
                 Notification updated = notificationRepository.findById(notification.getId()).orElseThrow();
-                assert updated.getRead();
+                org.junit.jupiter.api.Assertions.assertTrue(Boolean.TRUE.equals(updated.getRead()),
+                                "Notification should be marked as read");
         }
 
         @Test

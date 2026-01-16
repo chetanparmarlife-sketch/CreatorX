@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockPart;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -42,7 +45,7 @@ class ProfileIntegrationTest extends BaseIntegrationTest {
         public void setUpBaseTest() {
                 super.setUpBaseTest();
 
-                // Clean up profiles
+                // Clean up profiles first (order matters for foreign keys)
                 brandProfileRepository.deleteAll();
                 creatorProfileRepository.deleteAll();
                 userProfileRepository.deleteAll();
@@ -51,30 +54,36 @@ class ProfileIntegrationTest extends BaseIntegrationTest {
                 creator = testCreator;
                 brand = testBrand;
 
-                // Create creator profile
+                // Create and link creator profile (bidirectional relationship)
                 CreatorProfile creatorProfile = CreatorProfile.builder()
                                 .user(creator)
                                 .username("creator123")
                                 .category("FASHION")
                                 .followerCount(1000)
                                 .build();
-                creatorProfileRepository.save(creatorProfile);
+                creatorProfile = creatorProfileRepository.save(creatorProfile);
+                creator.setCreatorProfile(creatorProfile);
+                userRepository.save(creator);
 
-                // Create brand profile
+                // Create and link brand profile (bidirectional relationship)
                 BrandProfile brandProfile = BrandProfile.builder()
                                 .user(brand)
                                 .companyName("Test Brand")
                                 .industry("Fashion")
                                 .build();
-                brandProfileRepository.save(brandProfile);
+                brandProfile = brandProfileRepository.save(brandProfile);
+                brand.setBrandProfile(brandProfile);
+                userRepository.save(brand);
 
-                // Create user profile for creator
+                // Create and link user profile for creator (bidirectional relationship)
                 UserProfile userProfile = UserProfile.builder()
                                 .user(creator)
                                 .fullName("Test Creator")
                                 .bio("Test bio")
                                 .build();
-                userProfileRepository.save(userProfile);
+                userProfile = userProfileRepository.save(userProfile);
+                creator.setUserProfile(userProfile);
+                userRepository.save(creator);
         }
 
         @Test
@@ -82,7 +91,6 @@ class ProfileIntegrationTest extends BaseIntegrationTest {
         void shouldGetUserProfile() throws Exception {
                 authenticateAs(creator);
 
-                // UserProfile is created in setUp
                 mockMvc.perform(get("/api/v1/profile")
                                 .with(csrf()))
                                 .andExpect(status().isOk())
@@ -166,16 +174,21 @@ class ProfileIntegrationTest extends BaseIntegrationTest {
         void shouldAddPortfolioItem() throws Exception {
                 authenticateAs(creator);
 
-                MockMultipartFile file = new MockMultipartFile(
+                MockMultipartFile mediaFile = new MockMultipartFile(
                                 "media",
                                 "portfolio.jpg",
                                 MediaType.IMAGE_JPEG_VALUE,
                                 "fake image content".getBytes());
 
+                // Use MockPart for @RequestPart parameters
+                MockPart titlePart = new MockPart("title", "Test Portfolio Item".getBytes(StandardCharsets.UTF_8));
+                MockPart descriptionPart = new MockPart("description",
+                                "Test description".getBytes(StandardCharsets.UTF_8));
+
                 mockMvc.perform(multipart("/api/v1/profile/portfolio")
-                                .file(file)
-                                .param("title", "Test Portfolio Item")
-                                .param("description", "Test description")
+                                .file(mediaFile)
+                                .part(titlePart)
+                                .part(descriptionPart)
                                 .with(csrf()))
                                 .andExpect(status().isCreated())
                                 .andExpect(jsonPath("$.title").value("Test Portfolio Item"))

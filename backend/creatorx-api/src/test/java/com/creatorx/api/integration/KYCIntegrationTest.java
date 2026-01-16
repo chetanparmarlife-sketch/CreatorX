@@ -2,7 +2,10 @@ package com.creatorx.api.integration;
 
 import com.creatorx.common.enums.DocumentStatus;
 import com.creatorx.common.enums.DocumentType;
+import com.creatorx.common.permissions.AdminPermissions;
+import com.creatorx.repository.AdminPermissionRepository;
 import com.creatorx.repository.KYCDocumentRepository;
+import com.creatorx.repository.entity.AdminPermission;
 import com.creatorx.repository.entity.KYCDocument;
 import com.creatorx.repository.entity.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockPart;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -26,6 +32,9 @@ class KYCIntegrationTest extends BaseIntegrationTest {
         @Autowired
         protected KYCDocumentRepository kycDocumentRepository;
 
+        @Autowired
+        protected AdminPermissionRepository adminPermissionRepository;
+
         private User user;
         private User admin;
 
@@ -36,10 +45,18 @@ class KYCIntegrationTest extends BaseIntegrationTest {
 
                 // Clean up
                 kycDocumentRepository.deleteAll();
+                adminPermissionRepository.deleteAll();
 
                 // Use base test users
                 user = testCreator;
                 admin = testAdmin;
+
+                // Grant admin permission for KYC review
+                AdminPermission kycPermission = AdminPermission.builder()
+                                .admin(admin)
+                                .permission(AdminPermissions.ADMIN_KYC_REVIEW)
+                                .build();
+                adminPermissionRepository.save(kycPermission);
         }
 
         @Test
@@ -53,10 +70,15 @@ class KYCIntegrationTest extends BaseIntegrationTest {
                                 MediaType.IMAGE_JPEG_VALUE,
                                 "fake image content".getBytes());
 
+                // Use MockPart for @RequestPart parameters
+                MockPart documentTypePart = new MockPart("documentType", "AADHAAR".getBytes(StandardCharsets.UTF_8));
+                MockPart documentNumberPart = new MockPart("documentNumber",
+                                "123456789012".getBytes(StandardCharsets.UTF_8));
+
                 mockMvc.perform(multipart("/api/v1/kyc/submit")
                                 .file(frontImage)
-                                .param("documentType", "AADHAAR")
-                                .param("documentNumber", "123456789012")
+                                .part(documentTypePart)
+                                .part(documentNumberPart)
                                 .with(csrf()))
                                 .andExpect(status().isCreated())
                                 .andExpect(jsonPath("$.documentType").value("AADHAAR"))
@@ -82,7 +104,7 @@ class KYCIntegrationTest extends BaseIntegrationTest {
                                 .with(csrf()))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.overallStatus").value("PENDING"))
-                                .andExpect(jsonPath("$.isVerified").value(false))
+                                .andExpect(jsonPath("$.verified").value(false))
                                 .andExpect(jsonPath("$.documents").isArray());
         }
 
