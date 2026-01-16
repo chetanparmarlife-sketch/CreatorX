@@ -111,14 +111,24 @@ public abstract class BaseIntegrationTest {
     }
 
     /**
-     * Set up authentication context for a specific user
+     * Set up authentication context for a specific user.
+     * Creates authentication where getName() returns user ID and getPrincipal()
+     * returns User object.
      */
     protected void authenticateAs(User user) {
         String role = "ROLE_" + user.getRole().name();
+        // Create authentication with User as principal
+        // Override getName() to return user ID for API endpoints that use
+        // authentication.getName()
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 user,
                 null,
-                List.of(new SimpleGrantedAuthority(role)));
+                List.of(new SimpleGrantedAuthority(role))) {
+            @Override
+            public String getName() {
+                return user.getId();
+            }
+        };
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
