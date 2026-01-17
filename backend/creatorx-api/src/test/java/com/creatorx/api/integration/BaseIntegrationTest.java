@@ -68,6 +68,7 @@ public abstract class BaseIntegrationTest {
                                 .thenReturn(noOpCache);
 
                 // Configure SupabaseStorageService mock to return valid FileUploadResponse
+                // Generic upload mock with test-bucket
                 com.creatorx.service.dto.FileUploadResponse mockUploadResponse = com.creatorx.service.dto.FileUploadResponse
                                 .builder()
                                 .fileUrl("https://storage.example.com/test/file.jpg")
@@ -86,20 +87,73 @@ public abstract class BaseIntegrationTest {
                                 org.mockito.ArgumentMatchers.any(
                                                 com.creatorx.service.storage.FileValidationService.FileCategory.class)))
                                 .thenReturn(mockUploadResponse);
-                // Mock specific upload convenience methods used by other services
+
+                // Mock uploadDeliverable with deliverables bucket
+                com.creatorx.service.dto.FileUploadResponse deliverableResponse = com.creatorx.service.dto.FileUploadResponse
+                                .builder()
+                                .fileUrl("https://storage.example.com/deliverables/file.jpg")
+                                .fileName("file.jpg")
+                                .fileType("image/jpeg")
+                                .fileSize(1024L)
+                                .bucket("deliverables")
+                                .path("deliverables/file.jpg")
+                                .build();
                 org.mockito.Mockito.when(supabaseStorageService.uploadDeliverable(
                                 org.mockito.ArgumentMatchers.anyString(),
-                                org.mockito.ArgumentMatchers.any())).thenReturn(mockUploadResponse);
+                                org.mockito.ArgumentMatchers.any())).thenReturn(deliverableResponse);
+
+                // Mock uploadProfileAvatar with avatars bucket
+                com.creatorx.service.dto.FileUploadResponse avatarResponse = com.creatorx.service.dto.FileUploadResponse
+                                .builder()
+                                .fileUrl("https://storage.example.com/avatars/file.jpg")
+                                .fileName("avatar.jpg")
+                                .fileType("image/jpeg")
+                                .fileSize(1024L)
+                                .bucket("avatars")
+                                .path("avatars/file.jpg")
+                                .build();
                 org.mockito.Mockito.when(supabaseStorageService.uploadProfileAvatar(
                                 org.mockito.ArgumentMatchers.anyString(),
-                                org.mockito.ArgumentMatchers.any())).thenReturn(mockUploadResponse);
+                                org.mockito.ArgumentMatchers.any())).thenReturn(avatarResponse);
+
+                // Mock uploadKYCDocument with kyc-documents bucket
+                com.creatorx.service.dto.FileUploadResponse kycResponse = com.creatorx.service.dto.FileUploadResponse
+                                .builder()
+                                .fileUrl("https://storage.example.com/kyc-documents/file.jpg")
+                                .fileName("aadhaar.jpg")
+                                .fileType("image/jpeg")
+                                .fileSize(1024L)
+                                .bucket("kyc-documents")
+                                .path("kyc-documents/file.jpg")
+                                .build();
                 org.mockito.Mockito.when(supabaseStorageService.uploadKYCDocument(
                                 org.mockito.ArgumentMatchers.anyString(),
                                 org.mockito.ArgumentMatchers.anyString(),
-                                org.mockito.ArgumentMatchers.any())).thenReturn(mockUploadResponse);
+                                org.mockito.ArgumentMatchers.any())).thenReturn(kycResponse);
+
+                // Mock uploadPortfolioItem with portfolio bucket
+                com.creatorx.service.dto.FileUploadResponse portfolioResponse = com.creatorx.service.dto.FileUploadResponse
+                                .builder()
+                                .fileUrl("https://storage.example.com/portfolio/file.jpg")
+                                .fileName("portfolio.jpg")
+                                .fileType("image/jpeg")
+                                .fileSize(1024L)
+                                .bucket("portfolio")
+                                .path("portfolio/file.jpg")
+                                .build();
                 org.mockito.Mockito.when(supabaseStorageService.uploadPortfolioItem(
                                 org.mockito.ArgumentMatchers.anyString(),
-                                org.mockito.ArgumentMatchers.any())).thenReturn(mockUploadResponse);
+                                org.mockito.ArgumentMatchers.any())).thenReturn(portfolioResponse);
+
+                // Mock generateSignedUrl
+                com.creatorx.service.dto.SignedUrlResponse signedUrlResponse = com.creatorx.service.dto.SignedUrlResponse
+                                .builder()
+                                .signedUrl("https://storage.example.com/signed/test-file.jpg?token=abc123")
+                                .expiresAt(java.time.LocalDateTime.now().plusHours(1))
+                                .build();
+                org.mockito.Mockito.when(supabaseStorageService.generateSignedUrl(
+                                org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyInt())).thenReturn(signedUrlResponse);
 
                 // Create or fetch test users
                 testCreator = userRepository.findByEmail("test-creator@example.com")
