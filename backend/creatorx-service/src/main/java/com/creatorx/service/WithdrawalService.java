@@ -20,6 +20,7 @@ import com.creatorx.service.dto.WithdrawalDTO;
 import com.creatorx.service.mapper.BankAccountMapper;
 import com.creatorx.service.admin.AdminAuditService;
 import com.creatorx.service.PlatformSettingsResolver;
+import com.creatorx.service.razorpay.RazorpayService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -48,6 +50,7 @@ public class WithdrawalService {
     private final BankAccountMapper bankAccountMapper;
     private final AdminAuditService adminAuditService;
     private final PlatformSettingsResolver platformSettingsResolver;
+    private final Optional<RazorpayService> razorpayService;
     
     /**
      * Request withdrawal
@@ -183,12 +186,44 @@ public class WithdrawalService {
         withdrawalRequest.setStatus(WithdrawalStatus.PROCESSING);
         withdrawalRequest.setProcessedBy(admin);
         withdrawalRequest.setProcessedAt(LocalDateTime.now());
+
+        // Phase 4: Trigger Razorpay payout
+        if (razorpayService.isPresent()) {
+            try {
+                BankAccount bankAccount = withdrawalRequest.getBankAccount();
+                String payoutId = razorpayService.get().createPayout(
+                        withdrawalRequest.getId(), // idempotency key
+                        withdrawalRequest.getAmount(),
+                        bankAccount
+                );
+                withdrawalRequest.setRazorpayPayoutId(payoutId);
+                log.info("Razorpay payout created: {} for withdrawal: {}", payoutId, withdrawalId);
+            } catch (Exception e) {
+                log.error("Failed to create Razorpay payout for withdrawal: {}", withdrawalId, e);
+                // Revert status and refund on failure
+                withdrawalRequest.setStatus(WithdrawalStatus.FAILED);
+                withdrawalRequest.setFailureReason("Razorpay payout failed: " + e.getMessage());
+                withdrawalRequestRepository.save(withdrawalRequest);
+
+                // Refund to wallet
+                walletService.creditWallet(
+                        withdrawalRequest.getUser().getId(),
+                        withdrawalRequest.getAmount(),
+                        "Payout failed refund: " + withdrawalId,
+                        null
+                );
+                updateTransactionStatus(withdrawalRequest, TransactionStatus.FAILED);
+                throw new BusinessException("Failed to process payout: " + e.getMessage());
+            }
+        } else {
+            log.warn("RazorpayService not available - withdrawal {} will remain in PROCESSING state", withdrawalId);
+        }
+
         withdrawalRequestRepository.save(withdrawalRequest);
-        
+
         // Update transaction status
         updateTransactionStatus(withdrawalRequest, TransactionStatus.COMPLETED);
-        
-        // TODO: Trigger Razorpay payout (Phase 4)
+
         HashMap<String, Object> details = new HashMap<>();
         details.put("status", WithdrawalStatus.PROCESSING.name());
         details.put("amount", withdrawalRequest.getAmount());

@@ -57,4 +57,25 @@ public class WithdrawalRequest extends BaseEntity {
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
+
+    /**
+     * UTR (Unique Transaction Reference) from bank for successful payouts.
+     * Populated from payout.processed webhook.
+     */
+    @Column(name = "utr", length = 100)
+    private String utr;
+
+    /**
+     * Timestamp when refund was processed.
+     * Used for idempotency - prevents double refunds on webhook retries.
+     */
+    @Column(name = "refunded_at")
+    private LocalDateTime refundedAt;
+
+    /**
+     * Timestamp when status-changing webhook was received.
+     * Audit trail for webhook processing.
+     */
+    @Column(name = "webhook_received_at")
+    private LocalDateTime webhookReceivedAt;
 }

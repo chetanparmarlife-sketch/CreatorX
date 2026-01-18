@@ -78,6 +78,16 @@ jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-change-this-in-production-minimum-32-characters}
   expiration: ${JWT_EXPIRATION_MS:86400000} # 24 hours
 
+# Razorpay Configuration (Phase 4: Real Money Payouts)
+# IMPORTANT: Never expose these keys to mobile app - server-side only
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:}
+  key-secret: ${RAZORPAY_KEY_SECRET:}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+  payout:
+    mode: ${RAZORPAY_PAYOUT_MODE:test}  # test or live
+    account-number: ${RAZORPAY_ACCOUNT_NUMBER:}
+
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}

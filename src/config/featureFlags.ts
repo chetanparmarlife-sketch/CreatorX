@@ -57,7 +57,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   USE_API_PROFILE: true,
   USE_API_SOCIAL_CONNECT: true, // Controls social account connect flows
   USE_API_KYC: true, // Controls KYC verification flows
-  USE_WITHDRAWALS_UI: false, // Disabled until Phase 4 - shows "Coming Soon"
+  USE_WITHDRAWALS_UI: true, // Phase 4 enabled - real money payouts
 };
 
 class FeatureFlagManager {

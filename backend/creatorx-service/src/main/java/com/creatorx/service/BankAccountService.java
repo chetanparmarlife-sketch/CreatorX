@@ -9,12 +9,14 @@ import com.creatorx.repository.entity.BankAccount;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.BankAccountDTO;
 import com.creatorx.service.mapper.BankAccountMapper;
+import com.creatorx.service.razorpay.RazorpayService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -25,6 +27,7 @@ public class BankAccountService {
     private final BankAccountRepository bankAccountRepository;
     private final UserRepository userRepository;
     private final BankAccountMapper bankAccountMapper;
+    private final Optional<RazorpayService> razorpayService;
     
     /**
      * Get bank accounts for user
@@ -79,11 +82,29 @@ public class BankAccountService {
                 .build();
         
         bankAccount = bankAccountRepository.save(bankAccount);
-        
+
         log.info("Bank account added: {} for user: {}", bankAccount.getId(), userId);
-        
-        // TODO: Trigger penny drop verification (Phase 4)
-        
+
+        // Phase 4: Trigger penny drop verification
+        if (razorpayService.isPresent()) {
+            try {
+                boolean verified = razorpayService.get().verifyBankAccount(bankAccount);
+                if (verified) {
+                    bankAccount.setVerified(true);
+                    bankAccountRepository.save(bankAccount);
+                    log.info("Bank account {} verified via penny drop", bankAccount.getId());
+                } else {
+                    log.warn("Bank account {} penny drop verification returned false", bankAccount.getId());
+                }
+            } catch (Exception e) {
+                log.warn("Penny drop verification failed for bank account {}: {}",
+                        bankAccount.getId(), e.getMessage());
+                // Account remains unverified - user can retry later
+            }
+        } else {
+            log.info("RazorpayService not available - bank account {} remains unverified", bankAccount.getId());
+        }
+
         return bankAccountMapper.toDTO(bankAccount);
     }
     

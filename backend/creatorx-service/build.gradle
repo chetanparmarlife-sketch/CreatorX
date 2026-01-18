@@ -49,7 +49,10 @@ dependencies {
     
     // SendGrid SDK for email service
     implementation 'com.sendgrid:sendgrid-java:4.10.1'
-    
+
+    // Razorpay Java SDK for payouts
+    implementation 'com.razorpay:razorpay-java:1.4.3'
+
     // Test fixtures dependencies (for TestDataBuilder to access entities and enums)
     testFixturesApi project(':creatorx-repository')
     testFixturesApi project(':creatorx-common')

@@ -1,5 +1,6 @@
 package com.creatorx.api.config;
 
+import com.creatorx.api.security.IdempotencyFilter;
 import com.creatorx.api.security.SupabaseJwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -27,8 +28,9 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    
+
     private final SupabaseJwtAuthenticationFilter supabaseJwtAuthenticationFilter;
+    private final IdempotencyFilter idempotencyFilter;
     
     @Value("${creatorx.cors.allowed-origins:}")
     private String allowedOrigins;
@@ -43,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/v1/auth/**",
                     "/api/v1/health",
+                    "/api/v1/webhooks/**",  // Phase 4: Razorpay webhooks (HMAC verified)
                     "/actuator/health",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
@@ -51,8 +54,9 @@ public class SecurityConfig {
                 ).permitAll()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(supabaseJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        
+            .addFilterBefore(supabaseJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(idempotencyFilter, SupabaseJwtAuthenticationFilter.class);
+
         return http.build();
     }
     
