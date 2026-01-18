@@ -12,32 +12,10 @@ on:
 
 jobs:
   test:
+    name: Backend Tests (Testcontainers)
     runs-on: ubuntu-latest
     
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: creatorx_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
+    # No external services needed - Testcontainers handles PostgreSQL/Redis
     
     steps:
       - name: Checkout code
@@ -54,92 +32,80 @@ jobs:
         run: chmod +x ./gradlew
         working-directory: backend
       
-      - name: Fix Gradle wrapper if corrupted
-        working-directory: backend
-        run: |
-          # Remove potentially corrupted wrapper cache
-          rm -rf ~/.gradle/wrapper/dists/gradle-8.* || true
-          # Test wrapper and fix if corrupted
-          if ! timeout 30 ./gradlew --version > /dev/null 2>&1; then
-            echo "Gradle wrapper appears corrupted, downloading fresh wrapper JAR..."
-            # Download a fresh wrapper JAR from Gradle's official source
-            # Using the wrapper JAR from Gradle 8.10 release
-            curl -L -f --retry 3 --retry-delay 2 \
-              https://raw.githubusercontent.com/gradle/gradle/v8.10.0/gradle/wrapper/gradle-wrapper.jar \
-              -o gradle/wrapper/gradle-wrapper.jar.new && \
-              mv gradle/wrapper/gradle-wrapper.jar.new gradle/wrapper/gradle-wrapper.jar
-            # Verify the new wrapper works
-            ./gradlew --version || echo "Warning: Wrapper fix may not have worked"
-          fi
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v2
       
       - name: Compile code
         working-directory: backend
         run: ./gradlew compileJava compileTestJava --no-daemon --stacktrace
-        env:
-          SPRING_PROFILES_ACTIVE: test
-          TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/creatorx_test
-          TEST_DATABASE_USERNAME: test
-          TEST_DATABASE_PASSWORD: test
       
-      - name: Run H2 unit tests
+      - name: Run creatorx-service tests
         working-directory: backend
-        run: ./gradlew test --no-daemon --stacktrace
+        run: ./gradlew :creatorx-service:test --no-daemon --stacktrace
         env:
           SPRING_PROFILES_ACTIVE: test
       
-      - name: Run PostgreSQL integration tests
+      - name: Run creatorx-api tests (includes integration tests)
         working-directory: backend
-        run: ./gradlew integrationTest --no-daemon --stacktrace
+        run: ./gradlew :creatorx-api:test --no-daemon --stacktrace
         env:
-          SPRING_PROFILES_ACTIVE: test-postgres
-          TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/creatorx_test
-          TEST_DATABASE_USERNAME: test
-          TEST_DATABASE_PASSWORD: test
-      
-      - name: Debug test results location
-        working-directory: backend
-        if: always()
-        run: |
-          echo "Checking for test result files..."
-          find . -name "*.xml" -path "*/test-results/*" 2>/dev/null | head -20 || echo "No test result XML files found"
-          find . -name "TEST-*.xml" 2>/dev/null | head -20 || echo "No TEST-*.xml files found"
-          echo "Checking build directories..."
-          ls -la */build/test-results/ 2>/dev/null || echo "No test-results directories found"
-          echo "Checking for any build directories..."
-          find . -type d -name "build" 2>/dev/null | head -10
+          SPRING_PROFILES_ACTIVE: test
+          # Testcontainers uses Docker automatically available on ubuntu-latest
+          TESTCONTAINERS_RYUK_DISABLED: false
       
       - name: Generate JaCoCo report
         working-directory: backend
-        run: ./gradlew jacocoRootReport --no-daemon || echo "JaCoCo report generation skipped (no coverage data)"
-      
-      - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./backend/build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: false
+        run: ./gradlew jacocoRootReport --no-daemon || echo "JaCoCo report generation skipped"
       
       - name: Check coverage threshold
         working-directory: backend
-        run: ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage threshold not met - review required"
+        if: success()
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage threshold check - review required"
       
-      - name: Upload test results
+      - name: Upload JUnit test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: junit-test-results
           path: |
             backend/**/build/test-results/**/*.xml
-            backend/**/build/reports/tests/**/*
-            backend/**/build/reports/jacoco/**/*
           if-no-files-found: warn
+          retention-days: 30
+      
+      - name: Upload test reports (HTML)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports-html
+          path: |
+            backend/**/build/reports/tests/**/*
+          if-no-files-found: warn
+          retention-days: 14
+      
+      - name: Upload JaCoCo coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-reports
+          path: |
+            backend/**/build/reports/jacoco/**/*
+            backend/build/reports/jacoco/**/*
+          if-no-files-found: warn
+          retention-days: 30
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./backend/build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
       
       - name: Publish test report
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: 'backend/**/build/test-results/**/*.xml'
-          check_name: 'Backend Unit Tests'
-
+          check_name: 'Backend Tests'

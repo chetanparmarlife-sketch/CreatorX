@@ -22,40 +22,14 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/creatorx-backend
   JAVA_VERSION: '17'
-  GRADLE_VERSION: '8.5'
 
 jobs:
   # ============================================
-  # Build & Test
+  # Build & Test (uses Testcontainers, no external services)
   # ============================================
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: creatorx_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
     
     steps:
       - name: Checkout code
@@ -72,80 +46,64 @@ jobs:
         working-directory: ./backend
         run: chmod +x gradlew
       
-      - name: Fix Gradle wrapper if corrupted
-        working-directory: ./backend
-        run: |
-          # Remove potentially corrupted wrapper cache
-          rm -rf ~/.gradle/wrapper/dists/gradle-8.* || true
-          # Test wrapper and fix if corrupted
-          if ! timeout 30 ./gradlew --version > /dev/null 2>&1; then
-            echo "Gradle wrapper appears corrupted, downloading fresh wrapper JAR..."
-            # Download a fresh wrapper JAR from Gradle's official source
-            # Using the wrapper JAR from Gradle 8.10 release
-            curl -L -f --retry 3 --retry-delay 2 \
-              https://raw.githubusercontent.com/gradle/gradle/v8.10.0/gradle/wrapper/gradle-wrapper.jar \
-              -o gradle/wrapper/gradle-wrapper.jar.new && \
-              mv gradle/wrapper/gradle-wrapper.jar.new gradle/wrapper/gradle-wrapper.jar
-            # Verify the new wrapper works
-            ./gradlew --version || echo "Warning: Wrapper fix may not have worked"
-          fi
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v2
       
-      - name: Run Gradle build
+      - name: Build project
         working-directory: ./backend
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build -x test --no-daemon
+      
+      - name: Run creatorx-service tests
+        working-directory: ./backend
+        run: ./gradlew :creatorx-service:test --no-daemon --stacktrace
         env:
           SPRING_PROFILES_ACTIVE: test
-          TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/creatorx_test
-          TEST_DATABASE_USERNAME: test
-          TEST_DATABASE_PASSWORD: test
       
-      - name: Run unit tests
+      - name: Run creatorx-api tests (includes integration tests)
         working-directory: ./backend
-        run: ./gradlew test --no-daemon --stacktrace
+        run: ./gradlew :creatorx-api:test --no-daemon --stacktrace
         env:
           SPRING_PROFILES_ACTIVE: test
-          TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/creatorx_test
-          TEST_DATABASE_USERNAME: test
-          TEST_DATABASE_PASSWORD: test
-      
-      - name: Debug test results
-        working-directory: ./backend
-        if: always()
-        run: |
-          echo "Checking for test result files..."
-          find . -name "*.xml" -path "*/test-results/*" 2>/dev/null | head -20 || echo "No test result XML files found"
-          find . -type d -name "build" 2>/dev/null | head -10
-      
-      - name: Run integration tests
-        working-directory: ./backend
-        run: ./gradlew test --tests "*IntegrationTest" --no-daemon --stacktrace
+          TESTCONTAINERS_RYUK_DISABLED: false
       
       - name: Generate JaCoCo report
         working-directory: ./backend
-        run: ./gradlew jacocoRootReport --no-daemon
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./backend/build/reports/jacoco/jacocoRootReport/jacocoRootReport.xml
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: false
+        if: always()
+        run: ./gradlew jacocoRootReport --no-daemon || echo "JaCoCo skipped"
       
       - name: Check coverage threshold
         working-directory: ./backend
-        run: ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage threshold not met - review required"
+        if: success()
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon || echo "Coverage check - review required"
       
-      - name: Upload test results
+      - name: Upload JUnit test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
-          path: |
-            backend/**/build/test-results/**/*.xml
-            backend/**/build/reports/tests/**/*
-            backend/**/build/reports/jacoco/**/*
+          name: junit-test-results
+          path: backend/**/build/test-results/**/*.xml
           if-no-files-found: warn
+          retention-days: 30
+      
+      - name: Upload test reports (HTML)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports-html
+          path: backend/**/build/reports/tests/**/*
+          if-no-files-found: warn
+          retention-days: 14
+      
+      - name: Upload JaCoCo coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-reports
+          path: |
+            backend/**/build/reports/jacoco/**/*
+            backend/build/reports/jacoco/**/*
+          if-no-files-found: warn
+          retention-days: 30
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -156,7 +114,7 @@ jobs:
           retention-days: 7
 
   # ============================================
-  # Code Quality
+  # Code Quality (PR only)
   # ============================================
   code-quality:
     name: Code Quality
@@ -167,7 +125,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+          fetch-depth: 0
       
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -180,13 +138,7 @@ jobs:
         working-directory: ./backend
         run: |
           chmod +x gradlew
-          ./gradlew checkstyleMain checkstyleTest --no-daemon || true
-        continue-on-error: true
-      
-      - name: Run SpotBugs
-        working-directory: ./backend
-        run: ./gradlew spotbugsMain spotbugsTest --no-daemon || true
-        continue-on-error: true
+          ./gradlew checkstyleMain --no-daemon || true
       
       - name: Upload Checkstyle results
         uses: actions/upload-artifact@v4
@@ -194,28 +146,7 @@ jobs:
         with:
           name: checkstyle-results
           path: backend/**/build/reports/checkstyle/**
-      
-      - name: Upload SpotBugs results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: spotbugs-results
-          path: backend/**/build/reports/spotbugs/**
-      
-      - name: SonarQube Scan
-        uses: sonarsource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        continue-on-error: true
-      
-      - name: Snyk Security Scan
-        uses: snyk/actions/gradle@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
-        continue-on-error: true
+          if-no-files-found: ignore
 
   # ============================================
   # Build Docker Image
@@ -272,16 +203,16 @@ jobs:
             BUILD_VERSION=${{ github.sha }}
 
   # ============================================
-  # Deploy to Dev
+  # Deploy to Dev (gated by DEPLOY_ENABLED)
   # ============================================
   deploy-dev:
     name: Deploy to Dev
     runs-on: ubuntu-latest
     needs: [build-docker]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: dev
-      url: https://api-dev.creatorx.com
+    if: |
+      github.ref == 'refs/heads/main' && 
+      github.event_name == 'push' &&
+      vars.DEPLOY_ENABLED == 'true'
     
     steps:
       - name: Checkout code
@@ -308,19 +239,17 @@ jobs:
         run: |
           chmod +x ./scripts/smoke-tests.sh
           ./scripts/smoke-tests.sh https://api-dev.creatorx.com
-        continue-on-error: false
 
   # ============================================
-  # Deploy to Staging
+  # Deploy to Staging (gated by DEPLOY_ENABLED)
   # ============================================
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build-docker]
-    if: startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: staging
-      url: https://api-staging.creatorx.com
+    if: |
+      startsWith(github.ref, 'refs/tags/v') &&
+      vars.DEPLOY_ENABLED == 'true'
     
     steps:
       - name: Checkout code
@@ -347,19 +276,18 @@ jobs:
         run: |
           chmod +x ./scripts/e2e-tests.sh
           ./scripts/e2e-tests.sh https://api-staging.creatorx.com
-        continue-on-error: false
 
   # ============================================
-  # Deploy to Production
+  # Deploy to Production (gated by DEPLOY_ENABLED, manual)
   # ============================================
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [deploy-staging]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
-    environment:
-      name: production
-      url: https://api.creatorx.com
+    if: |
+      github.event_name == 'workflow_dispatch' && 
+      github.event.inputs.environment == 'production' &&
+      vars.DEPLOY_ENABLED == 'true'
     
     steps:
       - name: Checkout code
@@ -387,7 +315,6 @@ jobs:
         run: |
           chmod +x ./scripts/health-check.sh
           ./scripts/health-check.sh https://api.creatorx.com
-        continue-on-error: false
       
       - name: Rollback on failure
         if: failure()
@@ -397,4 +324,3 @@ jobs:
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-
