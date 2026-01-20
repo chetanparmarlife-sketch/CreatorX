@@ -23,5 +23,12 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, String
     
     @Query("SELECT ba FROM BankAccount ba WHERE ba.id = :id AND ba.user.id = :userId")
     Optional<BankAccount> findByIdAndUserId(@Param("id") String id, @Param("userId") String userId);
+
+    /**
+     * Find bank account by Razorpay fund account ID
+     * Phase 4.1: Used for fund_account.validation webhook processing
+     */
+    @Query("SELECT ba FROM BankAccount ba WHERE ba.razorpayFundAccountId = :razorpayFundAccountId")
+    Optional<BankAccount> findByRazorpayFundAccountId(@Param("razorpayFundAccountId") String razorpayFundAccountId);
 }
 

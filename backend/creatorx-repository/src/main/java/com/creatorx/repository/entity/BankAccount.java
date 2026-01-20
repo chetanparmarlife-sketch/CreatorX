@@ -53,6 +53,15 @@ public class BankAccount extends BaseEntity {
     @Builder.Default
     private Boolean isDefault = false;
 
+    // Phase 4.1: Razorpay fund account ID for webhook-based verification
+    @Column(name = "razorpay_fund_account_id", length = 100)
+    private String razorpayFundAccountId;
+
+    // Phase 4.1: Granular verification status (pending, active, failed)
+    @Column(name = "verification_status", length = 50)
+    @Builder.Default
+    private String verificationStatus = "pending";
+
     @OneToMany(mappedBy = "bankAccount", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WithdrawalRequest> withdrawalRequests = new ArrayList<>();
 }

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -42,10 +43,10 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
                 .requestMatchers(
                     "/api/v1/auth/**",
                     "/api/v1/health",
-                    "/api/v1/webhooks/**",  // Phase 4: Razorpay webhooks (HMAC verified)
                     "/actuator/health",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
@@ -78,12 +79,22 @@ public class SecurityConfig {
             configuration.setAllowedOriginPatterns(allOrigins);
         }
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "Idempotent-Key",
+            "X-Razorpay-Signature"
+        ));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration webhookConfiguration = new CorsConfiguration(configuration);
+        webhookConfiguration.setAllowedMethods(Collections.singletonList("POST"));
+        webhookConfiguration.setAllowedHeaders(Arrays.asList("X-Razorpay-Signature", "Content-Type"));
+        source.registerCorsConfiguration("/api/v1/webhooks/razorpay", webhookConfiguration);
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }

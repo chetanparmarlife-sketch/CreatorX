@@ -22,7 +22,7 @@ export type WalletDTO = {
 export type TransactionDTO = {
   id: string;
   type: 'CREDIT' | 'DEBIT';
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REVERSED';
   amount: number;
   currency: string;
   description?: string;
@@ -37,6 +37,19 @@ export type WithdrawalDTO = {
   currency: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSING' | 'PAID' | 'FAILED';
   createdAt: string;
+};
+
+const generateIdempotencyKey = () => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  const template = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
+  return template.replace(/[xy]/g, (char) => {
+    const rand = Math.floor(Math.random() * 16);
+    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;
+    return value.toString(16);
+  });
 };
 
 export const walletService = {
@@ -69,7 +82,12 @@ export const walletService = {
    * Request withdrawal
    */
   async withdrawFunds(data: CreateWithdrawalRequest): Promise<WithdrawalRequest> {
-    return await apiClient.post<WithdrawalRequest>('/wallet/withdraw', data);
+    const idempotencyKey = generateIdempotencyKey();
+    return await apiClient.post<WithdrawalRequest>('/wallet/withdraw', data, {
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    });
   },
 
   /**

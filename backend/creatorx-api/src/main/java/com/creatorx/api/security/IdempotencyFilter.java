@@ -13,6 +13,10 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.creatorx.repository.entity.User;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -73,16 +77,28 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
 
         // Get idempotency key from headers (support both names)
-        String idempotencyKey = getIdempotencyKey(request);
+        String rawIdempotencyKey = getIdempotencyKey(request);
 
         // No key => passthrough (no idempotency)
-        if (idempotencyKey == null || idempotencyKey.isEmpty()) {
+        if (rawIdempotencyKey == null || rawIdempotencyKey.isEmpty()) {
             log.debug("No idempotency key provided for {}", request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
 
-        log.info("Processing idempotent request: key={}, uri={}", idempotencyKey, request.getRequestURI());
+        // SECURITY: Scope idempotency key by user ID to prevent cross-user cache collisions
+        String userId = extractUserId();
+        if (userId == null) {
+            // No authenticated user - passthrough without idempotency
+            // This shouldn't happen for authenticated endpoints, but fail safe
+            log.warn("Idempotency key provided but no authenticated user for {} - passing through", request.getRequestURI());
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // User-scoped key: userId:rawKey
+        String idempotencyKey = userId + ":" + rawIdempotencyKey;
+        log.info("Processing idempotent request: key={} (user-scoped), uri={}", rawIdempotencyKey, request.getRequestURI());
 
         // Check for cached response
         Optional<IdempotencyKey> cachedResponse = idempotencyKeyRepository
@@ -149,6 +165,23 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             }
         }
         return key;
+    }
+
+    /**
+     * Extract user ID from SecurityContext.
+     * Returns null if no authenticated user is present.
+     * SECURITY: Used to scope idempotency keys per-user to prevent cross-user cache collisions.
+     */
+    private String extractUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            return ((User) principal).getId();
+        }
+        return null;
     }
 
     /**

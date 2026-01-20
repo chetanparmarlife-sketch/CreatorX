@@ -165,6 +165,19 @@ creatorx:
       auto-hours: 6
       manual-minutes: 10
       cron: ${SOCIAL_REFRESH_CRON:0 0 */6 * * ?}
+  # Phase 4.2: Payout Scheduler Configuration
+  payout:
+    scheduler:
+      enabled: ${PAYOUT_SCHEDULER_ENABLED:true}
+      batch-size: ${PAYOUT_BATCH_SIZE:10}
+      rate-limit-per-minute: ${PAYOUT_RATE_LIMIT:20}
+      cron: ${PAYOUT_SCHEDULER_CRON:0 */5 * * * *}  # Every 5 minutes
+  # Phase 4.2: Reconciliation Configuration
+  reconciliation:
+    enabled: ${RECONCILIATION_ENABLED:true}
+    cron: ${RECONCILIATION_CRON:0 0 2 * * *}  # 2 AM daily
+    retry-cron: ${RECONCILIATION_RETRY_CRON:0 0 6 * * *}  # 6 AM daily
+    alert-threshold: ${RECONCILIATION_ALERT_THRESHOLD:0.01}
 
 # OpenAPI Configuration
 springdoc:
