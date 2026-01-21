@@ -37,8 +37,8 @@ public class RazorpayService {
      * Create a payout to a bank account
      *
      * @param withdrawalId Unique withdrawal request ID (used as idempotency key)
-     * @param amount Amount in INR (will be converted to paise)
-     * @param bankAccount Bank account details
+     * @param amount       Amount in INR (will be converted to paise)
+     * @param bankAccount  Bank account details
      * @return Razorpay payout ID
      * @throws BusinessException if payout creation fails
      */
@@ -88,15 +88,14 @@ public class RazorpayService {
             // Narration (description shown to user)
             payoutRequest.put("narration", "CreatorX Withdrawal");
             payoutRequest.put("notes", new JSONObject()
-                .put("withdrawal_id", withdrawalId)
-                .put("platform", "CreatorX")
-            );
+                    .put("withdrawal_id", withdrawalId)
+                    .put("platform", "CreatorX"));
 
             // Create payout with idempotency key
-            Payout payout = razorpayClient.payouts.create(payoutRequest, withdrawalId);
+            JSONObject payout = razorpayClient.Payouts.create(payoutRequest);
 
-            String payoutId = payout.get("id");
-            String status = payout.get("status");
+            String payoutId = payout.getString("id");
+            String status = payout.getString("status");
 
             log.info("Razorpay payout created successfully. Payout ID: {}, Status: {}", payoutId, status);
 
@@ -127,7 +126,7 @@ public class RazorpayService {
             }
 
             log.info("Initiating penny drop verification for bank account: {}",
-                maskAccountNumber(bankAccount.getAccountNumber()));
+                    maskAccountNumber(bankAccount.getAccountNumber()));
 
             // Create fund account for verification
             JSONObject fundAccountRequest = new JSONObject();
@@ -146,10 +145,10 @@ public class RazorpayService {
             fundAccountRequest.put("contact", contact);
 
             // Create fund account (Razorpay auto-verifies on creation in test mode)
-            FundAccount fundAccount = razorpayClient.fundAccount.create(fundAccountRequest);
+            JSONObject fundAccount = razorpayClient.FundAccount.create(fundAccountRequest);
 
-            String fundAccountId = fundAccount.get("id");
-            boolean active = fundAccount.getBoolean("active");
+            String fundAccountId = fundAccount.getString("id");
+            boolean active = fundAccount.optBoolean("active", false);
 
             log.info("Fund account created: {}, Active: {}", fundAccountId, active);
 
@@ -178,8 +177,8 @@ public class RazorpayService {
                 throw new BusinessException("Razorpay not configured");
             }
 
-            Payout payout = razorpayClient.payouts.fetch(payoutId);
-            String status = payout.get("status");
+            JSONObject payout = razorpayClient.Payouts.fetch(payoutId);
+            String status = payout.getString("status");
 
             log.debug("Fetched payout status for {}: {}", payoutId, status);
             return status;

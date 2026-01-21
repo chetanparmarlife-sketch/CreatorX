@@ -62,18 +62,16 @@ public class AdminCampaignManagementService {
             BigDecimal budgetMin,
             BigDecimal budgetMax,
             String search,
-            Pageable pageable
-    ) {
+            Pageable pageable) {
         return campaignRepository.findAdminCampaigns(
-                        brandId,
-                        status,
-                        category,
-                        platform,
-                        budgetMin,
-                        budgetMax,
-                        normalizeSearch(search),
-                        pageable
-                )
+                brandId,
+                status,
+                category,
+                platform,
+                budgetMin,
+                budgetMax,
+                normalizeSearch(search),
+                pageable)
                 .map(campaignMapper::toDTO);
     }
 
@@ -117,12 +115,10 @@ public class AdminCampaignManagementService {
                 campaign.getBrand().getId(),
                 campaignId,
                 creatorId,
-                message
-        );
+                message);
         logAction(adminId, "CAMPAIGN", campaignId, "INVITE_CREATOR", Map.of(
                 "brandId", campaign.getBrand().getId(),
-                "creatorId", creatorId
-        ));
+                "creatorId", creatorId));
         return application;
     }
 
@@ -134,7 +130,8 @@ public class AdminCampaignManagementService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ApplicationDTO> listApplications(String brandId, String campaignId, com.creatorx.common.enums.ApplicationStatus status, Pageable pageable) {
+    public Page<ApplicationDTO> listApplications(String brandId, String campaignId,
+            com.creatorx.common.enums.ApplicationStatus status, Pageable pageable) {
         return applicationService.getApplicationsForAdmin(brandId, campaignId, status, pageable);
     }
 
@@ -146,8 +143,7 @@ public class AdminCampaignManagementService {
         logAction(adminId, "APPLICATION", applicationId, "SHORTLIST_APPLICATION", Map.of(
                 "applicationId", applicationId,
                 "brandId", brandId,
-                "campaignId", application.getCampaign().getId()
-        ));
+                "campaignId", application.getCampaign().getId()));
     }
 
     @Transactional
@@ -158,8 +154,7 @@ public class AdminCampaignManagementService {
         logAction(adminId, "APPLICATION", applicationId, "SELECT_APPLICATION", Map.of(
                 "applicationId", applicationId,
                 "brandId", brandId,
-                "campaignId", application.getCampaign().getId()
-        ));
+                "campaignId", application.getCampaign().getId()));
     }
 
     @Transactional
@@ -171,12 +166,12 @@ public class AdminCampaignManagementService {
                 "applicationId", applicationId,
                 "brandId", brandId,
                 "reason", reason,
-                "campaignId", application.getCampaign().getId()
-        ));
+                "campaignId", application.getCampaign().getId()));
     }
 
     @Transactional
-    public void updateApplicationStatus(String adminId, String applicationId, com.creatorx.common.enums.ApplicationStatus status, String reason) {
+    public void updateApplicationStatus(String adminId, String applicationId,
+            com.creatorx.common.enums.ApplicationStatus status, String reason) {
         Application application = getApplication(applicationId);
         String brandId = application.getCampaign().getBrand().getId();
         applicationService.updateApplicationStatus(brandId, applicationId, status, reason);
@@ -185,12 +180,12 @@ public class AdminCampaignManagementService {
                 "brandId", brandId,
                 "status", status != null ? status.name() : null,
                 "reason", reason,
-                "campaignId", application.getCampaign().getId()
-        ));
+                "campaignId", application.getCampaign().getId()));
     }
 
     @Transactional
-    public void bulkUpdateApplications(String adminId, List<String> applicationIds, com.creatorx.common.enums.ApplicationStatus status, String reason) {
+    public void bulkUpdateApplications(String adminId, List<String> applicationIds,
+            com.creatorx.common.enums.ApplicationStatus status, String reason) {
         if (applicationIds == null || applicationIds.isEmpty()) {
             return;
         }
@@ -202,19 +197,19 @@ public class AdminCampaignManagementService {
                 "applicationCount", applicationIds.size(),
                 "status", status != null ? status.name() : null,
                 "reason", reason,
-                "campaignId", sample.getCampaign().getId()
-        ));
+                "campaignId", sample.getCampaign().getId()));
     }
 
     @Transactional(readOnly = true)
-    public List<DeliverableDTO> getDeliverablesByCampaign(String campaignId, SubmissionStatus status) {
+    public Page<DeliverableDTO> getDeliverablesByCampaign(String campaignId, SubmissionStatus status) {
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new CampaignNotFoundException(campaignId));
-        return deliverableService.getDeliverablesByCampaign(campaignId, campaign.getBrand().getId(), status);
+        return deliverableService.getDeliverablesByCampaign(campaignId, campaign.getBrand().getId(), status, 0, 100);
     }
 
     @Transactional(readOnly = true)
-    public Page<DeliverableDTO> listDeliverables(String brandId, String campaignId, SubmissionStatus status, Pageable pageable) {
+    public Page<DeliverableDTO> listDeliverables(String brandId, String campaignId, SubmissionStatus status,
+            Pageable pageable) {
         return deliverableService.getDeliverablesForAdmin(brandId, campaignId, status, pageable);
     }
 
@@ -228,8 +223,7 @@ public class AdminCampaignManagementService {
                 "brandId", brandId,
                 "submissionId", submissionId,
                 "status", status != null ? status.name() : null,
-                "campaignId", submission.getApplication().getCampaign().getId()
-        ));
+                "campaignId", submission.getApplication().getCampaign().getId()));
     }
 
     @Transactional(readOnly = true)
@@ -240,7 +234,8 @@ public class AdminCampaignManagementService {
 
     @Transactional(readOnly = true)
     public CampaignTemplateDTO getTemplate(String templateId) {
-        CampaignTemplateDTO template = campaignTemplateService.getTemplate(resolveTemplateBrandId(templateId), templateId);
+        CampaignTemplateDTO template = campaignTemplateService.getTemplate(resolveTemplateBrandId(templateId),
+                templateId);
         return template;
     }
 
@@ -259,8 +254,7 @@ public class AdminCampaignManagementService {
         logAction(adminId, "CAMPAIGN_TEMPLATE", created.getId(), "CREATE_TEMPLATE_FROM_CAMPAIGN", Map.of(
                 "brandId", brandId,
                 "templateId", created.getId(),
-                "campaignId", campaignId
-        ));
+                "campaignId", campaignId));
         return created;
     }
 
@@ -297,7 +291,8 @@ public class AdminCampaignManagementService {
         return template.getBrand().getId();
     }
 
-    private void logAction(String adminId, String entityType, String entityId, String action, Map<String, Object> baseDetails) {
+    private void logAction(String adminId, String entityType, String entityId, String action,
+            Map<String, Object> baseDetails) {
         HashMap<String, Object> details = new HashMap<>();
         if (baseDetails != null) {
             details.putAll(baseDetails);
@@ -310,8 +305,7 @@ public class AdminCampaignManagementService {
                 entityId,
                 details,
                 null,
-                null
-        );
+                null);
     }
 
     private String normalizeSearch(String search) {
