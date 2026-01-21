@@ -21,12 +21,12 @@ export const authService = {
    */
   async register(data: RegisterRequest): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>('/auth/register', data);
-    
+
     // Store tokens
     await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
     await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
-    
+
     return response;
   },
 
@@ -35,12 +35,12 @@ export const authService = {
    */
   async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>('/auth/login', data);
-    
+
     // Store tokens
     await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
     await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
-    
+
     return response;
   },
 
@@ -49,13 +49,13 @@ export const authService = {
    */
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>('/auth/refresh-token', { refreshToken });
-    
+
     // Update tokens
     await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, response.accessToken);
     if (response.refreshToken) {
       await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
     }
-    
+
     return response;
   },
 
@@ -113,13 +113,15 @@ export const authService = {
 
   /**
    * Link Supabase user to backend user profile
+   * Returns the backend user profile with userId
    */
   async linkSupabaseUser(data: {
     supabaseUserId: string;
     email: string;
     name: string;
-    role: 'CREATOR' | 'BRAND';
-  }): Promise<void> {
-    await apiClient.post('/auth/link-supabase-user', data);
+    role: 'CREATOR' | 'BRAND' | 'ADMIN';
+  }): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/link-supabase-user', data);
+    return response;
   },
 };

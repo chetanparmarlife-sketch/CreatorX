@@ -12,6 +12,7 @@ import { STORAGE_KEYS } from '@/src/config/env';
 import { authService } from '@/src/api/services';
 import { deleteSecureItem, setSecureItem } from '@/src/lib/secureStore';
 import { useApp } from '@/src/context';
+import { featureFlags } from '@/src/config/featureFlags';
 
 interface AuthContextType {
   // State
@@ -19,7 +20,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   initialized: boolean;
-  
+  backendUserId: string | null; // Internal backend user ID
+
   // Auth methods
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string, phone?: string) => Promise<void>;
@@ -28,10 +30,11 @@ interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   refreshSession: () => Promise<void>;
   devLogin: () => void;
-  
+
   // User info
   isAuthenticated: boolean;
   isEmailVerified: boolean;
+  isBackendLinked: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [backendUserId, setBackendUserId] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -102,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
       }
-      
+
       if (currentSession?.access_token) {
         await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, currentSession.access_token);
       }
@@ -122,13 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     initializeAuth();
-    
+
     // Listen for auth state changes
     const supabase = getSupabaseClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        
+
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (!(await enforceCreatorOnly(session?.user ?? null))) {
             if (isMountedRef.current) {
@@ -141,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(session);
             setUser(session?.user ?? null);
           }
-          
+
           // Store tokens
           if (session?.access_token) {
             await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, session.access_token);
@@ -149,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (session?.refresh_token) {
             await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, session.refresh_token);
           }
-          
+
           // Link user to Spring Boot backend if needed
           if (session?.user) {
             await linkUserToBackend(session.user);
@@ -164,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
           await resetAppState();
         }
-        
+
         if (isMountedRef.current) {
           setLoading(false);
           setInitialized(true);
@@ -177,34 +181,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [enforceCreatorOnly, initializeAuth]);
 
-  const linkUserToBackend = useCallback(async (supabaseUser: SupabaseUser) => {
+  const linkUserToBackend = useCallback(async (supabaseUser: SupabaseUser, retryCount = 0): Promise<boolean> => {
+    // Check if backend auth is enabled
+    if (!featureFlags.isEnabled('USE_API_AUTH')) {
+      console.log('Backend auth disabled via feature flag, skipping link');
+      return false;
+    }
+
     try {
       // Check if user is already linked
       const storedUser = await AsyncStorage.getItem(STORAGE_KEYS.USER);
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
-        if (parsed.supabaseUserId === supabaseUser.id) {
-          return; // Already linked
+        if (parsed.supabaseUserId === supabaseUser.id && parsed.backendUserId) {
+          setBackendUserId(parsed.backendUserId);
+          console.log('User already linked to backend:', parsed.backendUserId);
+          return true;
         }
       }
 
+      console.log('Linking user to backend...');
+
       // Link user to backend
-      await authService.linkSupabaseUser({
+      const response = await authService.linkSupabaseUser({
         supabaseUserId: supabaseUser.id,
         email: supabaseUser.email || '',
         name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0] || 'User',
         role: supabaseUser.user_metadata?.role || 'CREATOR',
       });
 
-      // Store user info
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify({
+      // Store user info with backend ID
+      const userData = {
         id: supabaseUser.id,
         email: supabaseUser.email,
         supabaseUserId: supabaseUser.id,
-      }));
-    } catch (error) {
+        backendUserId: response.user.id,
+        role: response.user.role,
+        linkedAt: new Date().toISOString(),
+      };
+
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+      setBackendUserId(response.user.id);
+
+      console.log('Successfully linked to backend. User ID:', response.user.id);
+      return true;
+    } catch (error: any) {
       console.error('Error linking user to backend:', error);
-      // Don't throw - user can still use the app
+
+      // Retry logic for transient failures (max 2 retries)
+      if (retryCount < 2 && (error.status === 503 || error.message?.includes('network'))) {
+        console.log(`Retrying backend link (attempt ${retryCount + 2})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        return linkUserToBackend(supabaseUser, retryCount + 1);
+      }
+
+      // Don't throw - user can still use the app with Supabase auth
+      // Backend sync will retry on next app launch
+      return false;
     }
   }, []);
 
@@ -255,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const supabase = getSupabaseClient();
-      
+
       // Register in Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -324,7 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.refreshSession();
       if (error) throw error;
-      
+
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
@@ -344,13 +377,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user_metadata: { name: 'Dev User', role: 'CREATOR' },
       app_metadata: { role: 'CREATOR' },
     } as unknown as SupabaseUser;
-    
+
     const mockSession = {
       access_token: 'dev-token',
       refresh_token: 'dev-refresh',
       user: mockUser,
     } as unknown as Session;
-    
+
     setUser(mockUser);
     setSession(mockSession);
     console.log('Dev login activated');
@@ -370,6 +403,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     devLogin,
     isAuthenticated: !!session && !!user,
     isEmailVerified: user?.email_confirmed_at !== null && user?.email_confirmed_at !== undefined,
+    backendUserId,
+    isBackendLinked: !!backendUserId,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

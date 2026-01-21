@@ -1,21 +1,30 @@
 /**
- * API Client for CreatorX Brand Dashboard
+ * API Client for CreatorX Admin Dashboard
  * 
- * This client handles all HTTP requests to the backend API.
- * It includes JWT token management, automatic token refresh,
- * request/response interceptors, and error handling.
- * 
- * Architecture matches the React Native app's API client.
+ * Handles all HTTP requests with JWT token management,
+ * automatic token refresh, and error handling.
+ * Uses admin-specific storage keys.
  */
 
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
-import { ApiError } from '@/lib/types'
 
-// Storage keys (using localStorage for web, similar to AsyncStorage in RN)
+// ==================== Types ====================
+
+export interface ApiError {
+  timestamp: string
+  status: number
+  error: string
+  message: string
+  path: string
+  details?: Record<string, string>
+}
+
+// Admin-specific storage keys (separate from brand dashboard)
 const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'creatorx_access_token',
-  REFRESH_TOKEN: 'creatorx_refresh_token',
-  USER: 'creatorx_user',
+  ACCESS_TOKEN: 'creatorx_admin_access_token',
+  REFRESH_TOKEN: 'creatorx_admin_refresh_token',
+  USER: 'creatorx_admin_user',
+  TOKEN_EXPIRY: 'creatorx_admin_token_expiry',
 } as const
 
 class ApiClient {
@@ -27,7 +36,7 @@ class ApiClient {
   }> = []
 
   constructor() {
-    const baseURL = resolveBaseUrl()
+    const baseURL = this.resolveBaseUrl()
 
     this.client = axios.create({
       baseURL,
@@ -35,9 +44,24 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true,
     })
 
     this.setupInterceptors()
+  }
+
+  private resolveBaseUrl(): string {
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
+    const isProd = process.env.NODE_ENV === 'production'
+
+    if (!baseURL) {
+      if (isProd) {
+        throw new Error('NEXT_PUBLIC_API_BASE_URL is required in production.')
+      }
+      console.warn('[Admin API] NEXT_PUBLIC_API_BASE_URL is not set.')
+    }
+
+    return baseURL
   }
 
   private setupInterceptors() {
@@ -50,21 +74,22 @@ class ApiClient {
         }
         return config
       },
-      (error) => {
-        return Promise.reject(error)
-      }
+      (error) => Promise.reject(error)
     )
 
-    // Response interceptor - handle errors and refresh token
+    // Response interceptor - handle 401 and refresh token
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError<ApiError>) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-        // Handle 401 Unauthorized - token expired or invalid
         if (error.response?.status === 401 && !originalRequest._retry) {
+          if (originalRequest.url?.includes('/auth/login') ||
+            originalRequest.url?.includes('/auth/refresh')) {
+            return Promise.reject(this.formatError(error))
+          }
+
           if (this.isRefreshing) {
-            // Queue request while token is being refreshed
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject })
             })
@@ -74,86 +99,103 @@ class ApiClient {
                 }
                 return this.client(originalRequest)
               })
-              .catch((err) => {
-                return Promise.reject(err)
-              })
+              .catch((err) => Promise.reject(err))
           }
 
           originalRequest._retry = true
           this.isRefreshing = true
 
           try {
-            const newToken = await this.refreshToken()
+            const newToken = await this.performTokenRefresh()
+
             if (newToken) {
-              this.setAccessToken(newToken)
+              this.setTokens(newToken)
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${newToken}`
               }
-              this.processQueue(null)
+              this.processQueue(null, newToken)
               return this.client(originalRequest)
+            } else {
+              this.handleAuthFailure()
+              return Promise.reject(this.formatError(error))
             }
           } catch (refreshError) {
-            this.processQueue(refreshError)
-            this.clearAuth()
-            // Redirect to login
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login'
-            }
+            this.processQueue(refreshError, null)
+            this.handleAuthFailure()
             return Promise.reject(refreshError)
           } finally {
             this.isRefreshing = false
           }
         }
 
-        // Handle other errors
-        const apiError: ApiError = {
-          timestamp: new Date().toISOString(),
-          status: error.response?.status || 500,
-          error: error.response?.data?.error || 'Unknown Error',
-          message: error.response?.data?.message || error.message || 'An error occurred',
-          path: error.config?.url || '',
-          details: error.response?.data?.details,
-        }
-
-        return Promise.reject(apiError)
+        return Promise.reject(this.formatError(error))
       }
     )
   }
 
-  private async refreshToken(): Promise<string | null> {
+  private async performTokenRefresh(): Promise<string | null> {
     try {
-      // Try to refresh using Supabase if available
-      if (typeof window !== 'undefined' && (window as any).supabase) {
-        const { data, error } = await (window as any).supabase.auth.refreshSession()
-        if (!error && data?.session?.access_token) {
-          return data.session.access_token
-        }
-      }
-
-      // Fallback: use stored refresh token
       const refreshToken = this.getRefreshToken()
-      if (!refreshToken) {
-        throw new Error('No refresh token available')
+      if (!refreshToken) return null
+
+      const response = await axios.post<{ token: string; expiresIn: number }>(
+        `${this.client.defaults.baseURL}/auth/refresh-token`,
+        { refreshToken },
+        { headers: { 'Content-Type': 'application/json' } }
+      )
+
+      if (response.data?.token) {
+        const expiresAt = Date.now() + (response.data.expiresIn * 1000)
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.token)
+          localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiresAt.toString())
+
+          // Update cookie for middleware
+          const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+          document.cookie = `${STORAGE_KEYS.ACCESS_TOKEN}=${response.data.token}; Path=/; Max-Age=${response.data.expiresIn}${secure}; SameSite=Lax`
+        }
+
+        return response.data.token
       }
 
-      // Call backend refresh endpoint if available
-      // For now, return null to trigger re-authentication
       return null
     } catch (error) {
-      console.error('Token refresh failed:', error)
+      console.error('[Admin API] Token refresh failed:', error)
       return null
     }
   }
 
-  private processQueue(error: unknown) {
+  private processQueue(error: unknown, token: string | null) {
     this.failedQueue.forEach((promise) => {
       if (error) {
         promise.reject(error)
       } else {
-        promise.resolve(this.getAccessToken())
+        promise.resolve(token)
       }
     })
     this.failedQueue = []
+  }
+
+  private handleAuthFailure() {
+    this.clearAuth()
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname
+      if (currentPath !== '/login') {
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`
+      }
+    }
+  }
+
+  private formatError(error: AxiosError<ApiError>): ApiError {
+    return {
+      timestamp: new Date().toISOString(),
+      status: error.response?.status || 500,
+      error: error.response?.data?.error || 'Request Failed',
+      message: error.response?.data?.message || error.message || 'An error occurred',
+      path: error.config?.url || '',
+      details: error.response?.data?.details,
+    }
   }
 
   // Token management
@@ -162,85 +204,60 @@ class ApiClient {
     return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
   }
 
-  private setAccessToken(token: string): void {
-    if (typeof window === 'undefined') return
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token)
-  }
-
   private getRefreshToken(): string | null {
     if (typeof window === 'undefined') return null
     return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
   }
 
-  private setRefreshToken(token: string): void {
-    if (typeof window === 'undefined') return
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token)
-  }
-
   public setTokens(accessToken: string, refreshToken?: string): void {
-    this.setAccessToken(accessToken)
+    if (typeof window === 'undefined') return
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
     if (refreshToken) {
-      this.setRefreshToken(refreshToken)
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
     }
   }
 
   public clearAuth(): void {
     if (typeof window === 'undefined') return
+
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
     localStorage.removeItem(STORAGE_KEYS.USER)
+    localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY)
+
+    document.cookie = `${STORAGE_KEYS.ACCESS_TOKEN}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
   }
 
   // HTTP methods
-  public async get<T>(url: string, config?: InternalAxiosRequestConfig): Promise<T> {
+  public async get<T>(url: string, config?: Partial<InternalAxiosRequestConfig>): Promise<T> {
     const response = await this.client.get<T>(url, config)
     return response.data
   }
 
-  public async getBlob(url: string, config?: InternalAxiosRequestConfig): Promise<Blob> {
-    const response = await this.client.get(url, { ...config, responseType: 'blob' })
-    return response.data as Blob
-  }
-
-  public async post<T>(url: string, data?: unknown, config?: InternalAxiosRequestConfig): Promise<T> {
+  public async post<T>(url: string, data?: unknown, config?: Partial<InternalAxiosRequestConfig>): Promise<T> {
     const response = await this.client.post<T>(url, data, config)
     return response.data
   }
 
-  public async put<T>(url: string, data?: unknown, config?: InternalAxiosRequestConfig): Promise<T> {
+  public async put<T>(url: string, data?: unknown, config?: Partial<InternalAxiosRequestConfig>): Promise<T> {
     const response = await this.client.put<T>(url, data, config)
     return response.data
   }
 
-  public async patch<T>(url: string, data?: unknown, config?: InternalAxiosRequestConfig): Promise<T> {
+  public async patch<T>(url: string, data?: unknown, config?: Partial<InternalAxiosRequestConfig>): Promise<T> {
     const response = await this.client.patch<T>(url, data, config)
     return response.data
   }
 
-  public async delete<T>(url: string, config?: InternalAxiosRequestConfig): Promise<T> {
+  public async delete<T>(url: string, config?: Partial<InternalAxiosRequestConfig>): Promise<T> {
     const response = await this.client.delete<T>(url, config)
     return response.data
   }
+
+  public async getBlob(url: string, config?: Partial<InternalAxiosRequestConfig>): Promise<Blob> {
+    const response = await this.client.get(url, { ...config, responseType: 'blob' })
+    return response.data as Blob
+  }
 }
 
-function resolveBaseUrl(): string {
-  const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || ''
-  const isProd = process.env.NODE_ENV === 'production'
-  const isLocal = baseURL.includes('localhost') || baseURL.includes('127.0.0.1')
-
-  if (!baseURL) {
-    if (isProd) {
-      throw new Error('NEXT_PUBLIC_API_BASE_URL is required in production.')
-    }
-    console.warn('[API] NEXT_PUBLIC_API_BASE_URL is not set; API calls will fail.')
-  }
-
-  if (isProd && isLocal) {
-    throw new Error('Refusing to use localhost API base URL in production.')
-  }
-
-  return baseURL
-}
-
-// Export singleton instance
 export const apiClient = new ApiClient()

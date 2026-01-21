@@ -1,221 +1,304 @@
 /**
- * Authentication API Service
- * 
- * Handles authentication operations: login, register, logout, and token management.
- * Uses Supabase for authentication (matching React Native app architecture).
- * 
- * DEMO MODE: When backend is not available, allows demo login for UI preview.
+ * Authentication API Service - Admin Dashboard
+ *
+ * PRODUCTION IMPLEMENTATION: Uses backend JWT authentication.
+ * ADMIN ONLY: Verifies user has ADMIN role after login.
+ *
+ * Backend endpoints:
+ * - POST /api/v1/auth/login → { token, user, expiresIn }
+ * - POST /api/v1/auth/refresh-token → { token, expiresIn }
+ * - GET /api/v1/auth/me → user profile
  */
 
 import { apiClient } from './client'
-import { AuthResponse, LoginRequest, RegisterRequest, UserRole } from '@/lib/types'
 
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE
-  ? process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
-  : true
+// ==================== Types ====================
 
-const DEMO_USER: AuthResponse = {
-  userId: 'demo-user-1',
-  email: 'demo@creatorx.com',
-  role: UserRole.BRAND,
-  accessToken: 'demo-access-token-12345',
-  refreshToken: 'demo-refresh-token-12345',
-  message: 'Demo login successful',
+export type UserRole = 'ADMIN' | 'BRAND' | 'CREATOR'
+
+export interface User {
+  id: string
+  email: string
+  role: UserRole
+  name?: string
+  createdAt?: string
 }
 
-/**
- * Login with email and password
- * Uses Supabase Auth, then links user to backend
- */
-export async function login(email: string, password: string): Promise<AuthResponse> {
-  try {
-    // DEMO MODE: Allow login without backend for UI preview
-    if (DEMO_MODE) {
-      console.log('🎭 Demo Mode: Logging in with demo account')
-      const demoResponse = { ...DEMO_USER, email }
-      apiClient.setTokens(demoResponse.accessToken!, demoResponse.refreshToken!)
-      return demoResponse
+export interface LoginResponse {
+  token: string
+  user: User
+  expiresIn: number
+}
+
+export interface RefreshResponse {
+  token: string
+  expiresIn: number
+}
+
+// ==================== Storage Keys ====================
+
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'creatorx_admin_access_token',
+  REFRESH_TOKEN: 'creatorx_admin_refresh_token',
+  USER: 'creatorx_admin_user',
+  TOKEN_EXPIRY: 'creatorx_admin_token_expiry',
+} as const
+
+const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000
+
+// ==================== Cookie Helpers ====================
+
+function setCookie(name: string, value: string, maxAgeSeconds: number): void {
+  if (typeof document === 'undefined') return
+
+  const isHttps = window.location.protocol === 'https:'
+  let cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
+  if (isHttps) cookie += '; Secure'
+
+  document.cookie = cookie
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.trim().split('=')
+    if (cookieName === name) {
+      return decodeURIComponent(cookieValue)
     }
-
-    // For web, we'll use Supabase client-side
-    // In a real implementation, you'd use @supabase/supabase-js
-    // For now, we'll call the backend directly
-    
-    // If Supabase is available, use it
-    if (typeof window !== 'undefined' && (window as any).supabase) {
-      const { data, error } = await (window as any).supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) throw error
-
-      if (data.session) {
-        // Store tokens
-        apiClient.setTokens(data.session.access_token, data.session.refresh_token)
-
-        // Link user to backend if needed
-        try {
-          const linkResponse = await apiClient.post<AuthResponse>('/auth/link-supabase-user', {
-            supabaseUserId: data.user.id,
-            email: data.user.email,
-            name: data.user.user_metadata?.name || email,
-            role: 'BRAND', // Brand dashboard
-          })
-          
-          // Store tokens from Supabase session in response if not present
-          if (!linkResponse.accessToken && data.session.access_token) {
-            linkResponse.accessToken = data.session.access_token
-            linkResponse.refreshToken = data.session.refresh_token
-          }
-          
-          return linkResponse
-        } catch (linkError) {
-          // User might already be linked, try to get current user
-          const currentUser = await getCurrentUser()
-          // Add tokens from Supabase session
-          if (data.session && !currentUser.accessToken) {
-            currentUser.accessToken = data.session.access_token
-            currentUser.refreshToken = data.session.refresh_token
-          }
-          return currentUser
-        }
-      }
-    }
-
-    // Fallback: direct backend login (if backend supports it)
-    // Note: Backend /auth/login currently throws error indicating Supabase is required
-    try {
-      const response = await apiClient.post<AuthResponse>('/auth/login', { email, password } as LoginRequest)
-      // If backend returns tokens, store them
-      if (response.accessToken) {
-        apiClient.setTokens(response.accessToken, response.refreshToken || '')
-      }
-      return response
-    } catch (loginError: any) {
-      // If Supabase is not available and backend login fails, provide helpful error
-      throw new Error(
-        loginError.message || 
-        'Supabase authentication is required. Please ensure Supabase is configured.'
-      )
-    }
-  } catch (error) {
-    console.error('Login error:', error)
-    throw error
   }
+  return null
 }
 
+function deleteCookie(name: string): void {
+  if (typeof document === 'undefined') return
+  document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+}
+
+// ==================== Token Storage ====================
+
+function storeAuthData(token: string, user: User, expiresIn: number): void {
+  if (typeof window === 'undefined') return
+
+  setCookie(STORAGE_KEYS.ACCESS_TOKEN, token, expiresIn)
+  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token)
+
+  const expiresAt = Date.now() + (expiresIn * 1000)
+  localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiresAt.toString())
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
+
+  apiClient.setTokens(token)
+}
+
+function storeRefreshToken(refreshToken: string): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
+}
+
+function clearAuthData(): void {
+  if (typeof window === 'undefined') return
+
+  deleteCookie(STORAGE_KEYS.ACCESS_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.USER)
+  localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY)
+
+  apiClient.clearAuth()
+}
+
+// ==================== Public API ====================
+
 /**
- * Register new brand user
+ * Login with email and password (ADMIN ONLY)
+ * Verifies user has ADMIN role after successful authentication
  */
-export async function register(
-  email: string,
-  password: string,
-  name: string,
-  phone?: string,
-  companyName?: string,
-  industry?: string,
-  website?: string
-): Promise<AuthResponse> {
+export async function login(email: string, password: string): Promise<LoginResponse> {
   try {
-    // Use Supabase for registration
-    if (typeof window !== 'undefined' && (window as any).supabase) {
-      const { data, error } = await (window as any).supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            role: 'BRAND',
-          },
-        },
-      })
-
-      if (error) throw error
-
-      if (data.session) {
-        apiClient.setTokens(data.session.access_token, data.session.refresh_token)
-
-        // Link user to backend with brand profile info
-        const linkResponse = await apiClient.post<AuthResponse>('/auth/link-supabase-user', {
-          supabaseUserId: data.user.id,
-          email: data.user.email,
-          name,
-          role: 'BRAND',
-          phone,
-          companyName: companyName || name,
-          industry: industry,
-          website: website,
-        })
-
-        return linkResponse
-      }
-    }
-
-    // Fallback: direct backend registration
-    const response = await apiClient.post<AuthResponse>('/auth/register', {
+    const response = await apiClient.post<LoginResponse>('/auth/login', {
       email,
       password,
-      name,
-      role: 'BRAND',
-      phone,
-    } as RegisterRequest)
+    })
 
+    if (!response.token) {
+      throw new Error('No token received from server')
+    }
+
+    // ⚠️ CRITICAL: Verify user has ADMIN role
+    if (response.user.role !== 'ADMIN') {
+      throw new AdminAccessDeniedError(
+        'Admin access only. This dashboard is restricted to administrators.',
+        response.user.role
+      )
+    }
+
+    storeAuthData(response.token, response.user, response.expiresIn)
+
+    if ((response as any).refreshToken) {
+      storeRefreshToken((response as any).refreshToken)
+    }
+
+    console.log('[Admin Auth] Login successful for:', response.user.email)
     return response
-  } catch (error) {
-    console.error('Registration error:', error)
-    throw error
+  } catch (error: any) {
+    console.error('[Admin Auth] Login failed:', error)
+
+    if (error instanceof AdminAccessDeniedError) {
+      throw error
+    }
+    if (error.status === 401) {
+      throw new Error('Invalid email or password')
+    }
+    if (error.status === 403) {
+      throw new Error('Account is disabled or not verified')
+    }
+
+    throw new Error(error.message || 'Login failed. Please try again.')
   }
 }
 
 /**
- * Get current authenticated user
+ * Custom error for non-admin users attempting admin login
  */
-export async function getCurrentUser(): Promise<AuthResponse> {
-  // DEMO MODE: Return demo user if token matches
-  if (DEMO_MODE) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('creatorx_access_token') : null
-    if (token === 'demo-access-token-12345') {
-      return DEMO_USER
+export class AdminAccessDeniedError extends Error {
+  actualRole: UserRole
+
+  constructor(message: string, actualRole: UserRole) {
+    super(message)
+    this.name = 'AdminAccessDeniedError'
+    this.actualRole = actualRole
+  }
+}
+
+/**
+ * Logout current admin user
+ */
+export async function logout(): Promise<void> {
+  try {
+    await apiClient.post('/auth/logout').catch(() => { })
+  } finally {
+    clearAuthData()
+    console.log('[Admin Auth] Logged out')
+  }
+}
+
+/**
+ * Refresh the access token
+ */
+export async function refreshToken(): Promise<string | null> {
+  try {
+    const storedRefreshToken = getRefreshToken()
+
+    if (storedRefreshToken) {
+      const response = await apiClient.post<RefreshResponse>('/auth/refresh-token', {
+        refreshToken: storedRefreshToken,
+      })
+
+      if (response.token) {
+        const user = getStoredUser()
+
+        // Verify still has ADMIN role
+        if (user && user.role !== 'ADMIN') {
+          clearAuthData()
+          throw new Error('Admin access revoked')
+        }
+
+        if (user) {
+          storeAuthData(response.token, user, response.expiresIn)
+        }
+
+        console.log('[Admin Auth] Token refreshed successfully')
+        return response.token
+      }
     }
+
+    return null
+  } catch (error) {
+    console.error('[Admin Auth] Token refresh failed:', error)
+    return null
+  }
+}
+
+/**
+ * Get current admin user from backend
+ */
+export async function getCurrentUser(): Promise<User> {
+  const response = await apiClient.get<User>('/auth/me')
+
+  // Verify ADMIN role
+  if (response.role !== 'ADMIN') {
+    clearAuthData()
+    throw new AdminAccessDeniedError('Admin access required', response.role)
   }
 
-  const response = await apiClient.get<AuthResponse>('/auth/me')
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response))
   return response
 }
 
 /**
- * Logout current user
- */
-export async function logout(): Promise<void> {
-  try {
-    // Sign out from Supabase if available
-    if (typeof window !== 'undefined' && (window as any).supabase) {
-      await (window as any).supabase.auth.signOut()
-    }
-
-    // Clear tokens and user data
-    apiClient.clearAuth()
-  } catch (error) {
-    console.error('Logout error:', error)
-    // Clear auth even if logout fails
-    apiClient.clearAuth()
-  }
-}
-
-/**
- * Check if user is authenticated
+ * Check if admin user is authenticated
  */
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false
-  const token = localStorage.getItem('creatorx_access_token')
-  return !!token
+
+  const token = getAccessToken()
+  if (!token) return false
+
+  // Check expiry
+  const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY)
+  if (expiry && Date.now() >= parseInt(expiry, 10)) {
+    return false
+  }
+
+  // Verify ADMIN role
+  const user = getStoredUser()
+  if (!user || user.role !== 'ADMIN') {
+    return false
+  }
+
+  return true
 }
 
 /**
- * Get stored access token
+ * Check if token needs refresh
  */
+export function needsTokenRefresh(): boolean {
+  if (typeof window === 'undefined') return false
+
+  const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY)
+  if (!expiry) return false
+
+  const expiryTime = parseInt(expiry, 10)
+  const now = Date.now()
+
+  return now >= expiryTime - TOKEN_REFRESH_BUFFER_MS && now < expiryTime
+}
+
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('creatorx_access_token')
+  return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || getCookie(STORAGE_KEYS.ACCESS_TOKEN)
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
+}
+
+export function getStoredUser(): User | null {
+  if (typeof window === 'undefined') return null
+
+  const userData = localStorage.getItem(STORAGE_KEYS.USER)
+  if (!userData) return null
+
+  try {
+    return JSON.parse(userData)
+  } catch {
+    return null
+  }
+}
+
+export function isAdmin(): boolean {
+  const user = getStoredUser()
+  return user?.role === 'ADMIN'
 }
