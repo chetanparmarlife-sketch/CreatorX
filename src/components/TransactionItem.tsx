@@ -29,13 +29,22 @@ export function TransactionItem({ transaction, isLast = false }: TransactionItem
     });
   };
 
-  const isPending = transaction.status === 'PENDING';
+  const isPending = transaction.status === 'PENDING' || transaction.status === 'PROCESSING';
+  const isFailed = transaction.status === 'FAILED' || transaction.status === 'REVERSED';
 
   const getIcon = () => {
     if (isPending) {
       return (
         <View style={[styles.iconContainer, { backgroundColor: colors.amberLight }]}>
           <Feather name="clock" size={16} color={colors.amber} />
+        </View>
+      );
+    }
+
+    if (isFailed) {
+      return (
+        <View style={[styles.iconContainer, { backgroundColor: colors.redLight }]}>
+          <Feather name="x-circle" size={16} color={colors.red} />
         </View>
       );
     }
@@ -63,6 +72,7 @@ export function TransactionItem({ transaction, isLast = false }: TransactionItem
   };
 
   const getAmountColor = () => {
+    if (isFailed) return colors.red;
     if (isPending) return colors.amber;
     switch (transaction.type) {
       case 'CREDIT':
@@ -72,6 +82,12 @@ export function TransactionItem({ transaction, isLast = false }: TransactionItem
       default:
         return colors.amber;
     }
+  };
+
+  const getStatusColor = () => {
+    if (isFailed) return colors.red;
+    if (isPending) return colors.amber;
+    return colors.textMuted;
   };
 
   const getAmountPrefix = () => {
@@ -86,7 +102,8 @@ export function TransactionItem({ transaction, isLast = false }: TransactionItem
   };
 
   const title = getTransactionTypeLabel(transaction.type);
-  const description = transaction.description || getTransactionStatusLabel(transaction.status);
+  const statusLabel = getTransactionStatusLabel(transaction.status);
+  const description = transaction.description || statusLabel;
   const formattedAmount = formatCurrencyAmount(transaction.amount, transaction.currency);
   const formattedDate = formatShortDate(transaction.createdAt);
 
@@ -104,7 +121,14 @@ export function TransactionItem({ transaction, isLast = false }: TransactionItem
       {getIcon()}
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
+        <Text
+          style={[
+            styles.description,
+            { color: transaction.description ? colors.textMuted : getStatusColor() },
+          ]}
+        >
+          {description}
+        </Text>
       </View>
       <View style={styles.right}>
         <Text style={[styles.amount, { color: getAmountColor() }]}>

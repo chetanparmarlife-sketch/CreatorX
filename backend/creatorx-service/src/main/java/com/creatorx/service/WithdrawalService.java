@@ -5,6 +5,7 @@ import com.creatorx.common.enums.TransactionStatus;
 import com.creatorx.common.enums.TransactionType;
 import com.creatorx.common.enums.WithdrawalStatus;
 import com.creatorx.common.exception.BusinessException;
+import com.creatorx.common.exception.KYCNotVerifiedException;
 import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.common.exception.UnauthorizedException;
 import com.creatorx.repository.BankAccountRepository;
@@ -39,8 +40,12 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class WithdrawalService {
-    
+
     private static final BigDecimal MIN_WITHDRAWAL_AMOUNT = new BigDecimal("100.00");
+
+    // Phase 4.1: Payout limits for controlled beta
+    private static final BigDecimal MAX_WITHDRAWAL_PER_TRANSACTION = new BigDecimal("50000.00"); // ₹50,000 per withdrawal
+    private static final BigDecimal MAX_WITHDRAWAL_PER_MONTH = new BigDecimal("200000.00"); // ₹2,00,000 per month per creator
     
     private final WithdrawalRequestRepository withdrawalRequestRepository;
     private final BankAccountRepository bankAccountRepository;
@@ -50,6 +55,7 @@ public class WithdrawalService {
     private final BankAccountMapper bankAccountMapper;
     private final AdminAuditService adminAuditService;
     private final PlatformSettingsResolver platformSettingsResolver;
+    private final KYCService kycService;
     private final Optional<RazorpayService> razorpayService;
     
     /**
@@ -60,11 +66,27 @@ public class WithdrawalService {
         if (!platformSettingsResolver.isPayoutWindowOpen(LocalDateTime.now())) {
             throw new BusinessException("Withdrawals are not available during the current payout window");
         }
-        // Validate amount
+        // Validate amount - minimum
         if (amount.compareTo(MIN_WITHDRAWAL_AMOUNT) < 0) {
             throw new BusinessException("Minimum withdrawal amount is ₹" + MIN_WITHDRAWAL_AMOUNT);
         }
-        
+
+        // Phase 4.1: Validate amount - maximum per transaction
+        if (amount.compareTo(MAX_WITHDRAWAL_PER_TRANSACTION) > 0) {
+            throw new BusinessException("Maximum withdrawal amount per transaction is ₹" + MAX_WITHDRAWAL_PER_TRANSACTION);
+        }
+
+        // Phase 4.1: Validate monthly withdrawal limit
+        BigDecimal monthlyTotal = getMonthlyWithdrawalTotal(userId);
+        BigDecimal projectedTotal = monthlyTotal.add(amount);
+        if (projectedTotal.compareTo(MAX_WITHDRAWAL_PER_MONTH) > 0) {
+            BigDecimal remaining = MAX_WITHDRAWAL_PER_MONTH.subtract(monthlyTotal);
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BusinessException("Monthly withdrawal limit of ₹" + MAX_WITHDRAWAL_PER_MONTH + " reached");
+            }
+            throw new BusinessException("This withdrawal would exceed monthly limit. Maximum remaining: ₹" + remaining);
+        }
+
         // Check available balance
         BigDecimal availableBalance = walletService.getAvailableBalance(userId);
         if (amount.compareTo(availableBalance) > 0) {
@@ -179,68 +201,165 @@ public class WithdrawalService {
         if (withdrawalRequest.getStatus() != WithdrawalStatus.PENDING) {
             throw new BusinessException("Can only approve PENDING withdrawal requests");
         }
-        
+
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", adminId));
-        
-        withdrawalRequest.setStatus(WithdrawalStatus.PROCESSING);
-        withdrawalRequest.setProcessedBy(admin);
-        withdrawalRequest.setProcessedAt(LocalDateTime.now());
 
-        // Phase 4: Trigger Razorpay payout
-        if (razorpayService.isPresent()) {
-            try {
-                BankAccount bankAccount = withdrawalRequest.getBankAccount();
-                String payoutId = razorpayService.get().createPayout(
-                        withdrawalRequest.getId(), // idempotency key
-                        withdrawalRequest.getAmount(),
-                        bankAccount
-                );
-                withdrawalRequest.setRazorpayPayoutId(payoutId);
-                log.info("Razorpay payout created: {} for withdrawal: {}", payoutId, withdrawalId);
-            } catch (Exception e) {
-                log.error("Failed to create Razorpay payout for withdrawal: {}", withdrawalId, e);
-                // Revert status and refund on failure
-                withdrawalRequest.setStatus(WithdrawalStatus.FAILED);
-                withdrawalRequest.setFailureReason("Razorpay payout failed: " + e.getMessage());
-                withdrawalRequestRepository.save(withdrawalRequest);
+        String userId = withdrawalRequest.getUser().getId();
 
-                // Refund to wallet
-                walletService.creditWallet(
-                        withdrawalRequest.getUser().getId(),
-                        withdrawalRequest.getAmount(),
-                        "Payout failed refund: " + withdrawalId,
-                        null
-                );
-                updateTransactionStatus(withdrawalRequest, TransactionStatus.FAILED);
-                throw new BusinessException("Failed to process payout: " + e.getMessage());
-            }
-        } else {
-            log.warn("RazorpayService not available - withdrawal {} will remain in PROCESSING state", withdrawalId);
+        if (!kycService.isKYCVerified(userId)) {
+            throw new KYCNotVerifiedException("KYC verification must be approved before payout processing");
         }
 
-        withdrawalRequestRepository.save(withdrawalRequest);
+        String bankAccountId = withdrawalRequest.getBankAccount().getId();
+        BankAccount bankAccount = bankAccountRepository.findByIdAndUserId(bankAccountId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bank account", bankAccountId));
 
-        // Update transaction status
-        updateTransactionStatus(withdrawalRequest, TransactionStatus.COMPLETED);
+        if (!Boolean.TRUE.equals(bankAccount.getVerified())) {
+            throw new BusinessException("Bank account must be verified before payout");
+        }
 
-        HashMap<String, Object> details = new HashMap<>();
-        details.put("status", WithdrawalStatus.PROCESSING.name());
-        details.put("amount", withdrawalRequest.getAmount());
+        if (razorpayService.isEmpty()) {
+            log.warn("RazorpayService not available - cannot create payout for withdrawal {}", withdrawalId);
+            throw new BusinessException("Razorpay payout processing is not configured");
+        }
 
-        adminAuditService.logAction(
-                adminId,
-                AdminActionType.PAYMENT_PROCESSED,
-                "WITHDRAWAL",
-                withdrawalRequest.getId(),
-                details,
-                null,
-                null
-        );
+        // Phase 4: Trigger Razorpay payout
+        try {
+            log.info("Creating Razorpay payout for withdrawal {} to bank account {}",
+                    withdrawalId, maskAccountNumber(bankAccount.getAccountNumber()));
 
-        log.info("Withdrawal approved: {} by admin: {}", withdrawalId, adminId);
+            String payoutId = razorpayService.get().createPayout(
+                    withdrawalRequest.getId(), // idempotency key
+                    withdrawalRequest.getAmount(),
+                    bankAccount
+            );
+            withdrawalRequest.setRazorpayPayoutId(payoutId);
+            withdrawalRequest.setStatus(WithdrawalStatus.PROCESSING);
+            withdrawalRequest.setProcessedBy(admin);
+            withdrawalRequest.setProcessedAt(LocalDateTime.now());
+            withdrawalRequestRepository.save(withdrawalRequest);
+
+            // Update transaction status
+            updateTransactionStatus(withdrawalRequest, TransactionStatus.COMPLETED);
+
+            HashMap<String, Object> details = new HashMap<>();
+            details.put("status", WithdrawalStatus.PROCESSING.name());
+            details.put("amount", withdrawalRequest.getAmount());
+
+            adminAuditService.logAction(
+                    adminId,
+                    AdminActionType.PAYMENT_PROCESSED,
+                    "WITHDRAWAL",
+                    withdrawalRequest.getId(),
+                    details,
+                    null,
+                    null
+            );
+
+            log.info("Withdrawal approved: {} by admin: {}", withdrawalId, adminId);
+        } catch (Exception e) {
+            String errorMessage = safeErrorMessage(e);
+            log.error("Failed to create Razorpay payout for withdrawal {} (bank account {}): {}",
+                    withdrawalId, maskAccountNumber(bankAccount.getAccountNumber()), errorMessage, e);
+
+            if (withdrawalRequest.getRefundedAt() == null) {
+                refundWithdrawal(withdrawalRequest, "Payout failed: " + errorMessage);
+            } else {
+                log.warn("Withdrawal {} already refunded at {} - skipping refund",
+                        withdrawalId, withdrawalRequest.getRefundedAt());
+            }
+
+            withdrawalRequest.setStatus(WithdrawalStatus.FAILED);
+            withdrawalRequest.setFailureReason("Razorpay payout failed: " + errorMessage);
+            withdrawalRequest.setProcessedBy(admin);
+            withdrawalRequest.setProcessedAt(LocalDateTime.now());
+            withdrawalRequestRepository.save(withdrawalRequest);
+
+            updateTransactionStatus(withdrawalRequest, TransactionStatus.FAILED);
+            throw new BusinessException("Failed to process payout: " + errorMessage);
+        }
     }
     
+    /**
+     * Process a pending withdrawal (for scheduler/automated processing)
+     * Phase 4.2: Automated Payout Scheduler
+     *
+     * Similar to approveWithdrawal but without admin context
+     * Used by PayoutScheduler for batch processing
+     */
+    @Transactional
+    public void processWithdrawal(String withdrawalId) {
+        WithdrawalRequest withdrawalRequest = withdrawalRequestRepository.findById(withdrawalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Withdrawal request", withdrawalId));
+
+        if (withdrawalRequest.getStatus() != WithdrawalStatus.PENDING) {
+            log.warn("Withdrawal {} is not in PENDING state (current: {}), skipping",
+                    withdrawalId, withdrawalRequest.getStatus());
+            return;
+        }
+
+        String userId = withdrawalRequest.getUser().getId();
+
+        // Verify KYC
+        if (!kycService.isKYCVerified(userId)) {
+            log.warn("Withdrawal {} skipped - user {} KYC not verified", withdrawalId, userId);
+            return;
+        }
+
+        String bankAccountId = withdrawalRequest.getBankAccount().getId();
+        BankAccount bankAccount = bankAccountRepository.findByIdAndUserId(bankAccountId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bank account", bankAccountId));
+
+        // Verify bank account
+        if (!Boolean.TRUE.equals(bankAccount.getVerified())) {
+            log.warn("Withdrawal {} skipped - bank account {} not verified", withdrawalId, bankAccountId);
+            return;
+        }
+
+        if (razorpayService.isEmpty()) {
+            log.error("RazorpayService not available - cannot process withdrawal {}", withdrawalId);
+            throw new BusinessException("Razorpay payout processing is not configured");
+        }
+
+        // Create Razorpay payout
+        try {
+            log.info("Creating Razorpay payout for withdrawal {} to bank account {}",
+                    withdrawalId, maskAccountNumber(bankAccount.getAccountNumber()));
+
+            String payoutId = razorpayService.get().createPayout(
+                    withdrawalRequest.getId(),
+                    withdrawalRequest.getAmount(),
+                    bankAccount
+            );
+
+            withdrawalRequest.setRazorpayPayoutId(payoutId);
+            withdrawalRequest.setStatus(WithdrawalStatus.PROCESSING);
+            withdrawalRequest.setProcessedAt(LocalDateTime.now());
+            withdrawalRequestRepository.save(withdrawalRequest);
+
+            updateTransactionStatus(withdrawalRequest, TransactionStatus.COMPLETED);
+
+            log.info("Withdrawal {} processing initiated, Razorpay payout: {}", withdrawalId, payoutId);
+
+        } catch (Exception e) {
+            String errorMessage = safeErrorMessage(e);
+            log.error("Failed to create Razorpay payout for withdrawal {}: {}", withdrawalId, errorMessage, e);
+
+            if (withdrawalRequest.getRefundedAt() == null) {
+                refundWithdrawal(withdrawalRequest, "Payout failed: " + errorMessage);
+            }
+
+            withdrawalRequest.setStatus(WithdrawalStatus.FAILED);
+            withdrawalRequest.setFailureReason("Razorpay payout failed: " + errorMessage);
+            withdrawalRequest.setProcessedAt(LocalDateTime.now());
+            withdrawalRequestRepository.save(withdrawalRequest);
+
+            updateTransactionStatus(withdrawalRequest, TransactionStatus.FAILED);
+            throw new BusinessException("Failed to process payout: " + errorMessage);
+        }
+    }
+
     /**
      * Reject withdrawal (Admin only, Phase 3)
      */
@@ -321,5 +440,68 @@ public class WithdrawalService {
             t.setStatus(status);
             transactionRepository.save(t);
         });
+    }
+
+    private void refundWithdrawal(WithdrawalRequest withdrawalRequest, String reason) {
+        BigDecimal amount = withdrawalRequest.getAmount();
+        String userId = withdrawalRequest.getUser().getId();
+
+        HashMap<String, Object> metadata = new HashMap<>();
+        metadata.put("reason", reason);
+        metadata.put("withdrawalRequestId", withdrawalRequest.getId());
+        metadata.put("razorpayPayoutId", withdrawalRequest.getRazorpayPayoutId());
+        metadata.put("originalStatus", withdrawalRequest.getStatus().name());
+
+        walletService.creditWalletWithType(
+                userId,
+                amount,
+                reason,
+                null,
+                TransactionType.REFUND,
+                metadata
+        );
+
+        withdrawalRequest.setRefundedAt(LocalDateTime.now());
+
+        log.info("Refunded {} to user {} for withdrawal {}", amount, userId, withdrawalRequest.getId());
+    }
+
+    private String maskAccountNumber(String accountNumber) {
+        if (accountNumber == null || accountNumber.length() <= 4) {
+            return "XXXX";
+        }
+        return "XXXX" + accountNumber.substring(accountNumber.length() - 4);
+    }
+
+    private String safeErrorMessage(Exception e) {
+        String message = e.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            return "Unknown error";
+        }
+        return message;
+    }
+
+    /**
+     * Calculate total withdrawals for user in current month
+     * Includes PENDING, PROCESSING, and COMPLETED withdrawals
+     * Excludes FAILED, REJECTED, and CANCELLED
+     */
+    private BigDecimal getMonthlyWithdrawalTotal(String userId) {
+        LocalDateTime startOfMonth = LocalDateTime.now()
+                .withDayOfMonth(1)
+                .withHour(0)
+                .withMinute(0)
+                .withSecond(0)
+                .withNano(0);
+
+        List<WithdrawalRequest> monthlyWithdrawals = withdrawalRequestRepository
+                .findByUserIdAndRequestedAtAfter(userId, startOfMonth);
+
+        return monthlyWithdrawals.stream()
+                .filter(w -> w.getStatus() == WithdrawalStatus.PENDING
+                        || w.getStatus() == WithdrawalStatus.PROCESSING
+                        || w.getStatus() == WithdrawalStatus.COMPLETED)
+                .map(WithdrawalRequest::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

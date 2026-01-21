@@ -61,10 +61,14 @@ export const getTransactionStatusLabel = (status?: string) => {
   switch (status) {
     case 'PENDING':
       return 'Pending';
+    case 'PROCESSING':
+      return 'Processing';
     case 'COMPLETED':
       return 'Completed';
     case 'FAILED':
       return 'Failed';
+    case 'REVERSED':
+      return 'Reversed';
     default:
       return 'Unknown';
   }

@@ -13,6 +13,7 @@ import com.creatorx.service.razorpay.RazorpayWebhookVerifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -20,6 +21,14 @@ import org.springframework.http.MediaType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -489,6 +498,192 @@ class WebhookControllerTest extends BaseIntegrationTest {
                     .orElse(BigDecimal.ZERO);
 
             assertThat(finalBalance).isEqualByComparingTo(initialBalance);
+        }
+    }
+
+    @Nested
+    @DisplayName("Concurrent Webhook Processing Tests (Phase 4.1)")
+    class ConcurrencyTests {
+
+        @Test
+        @DisplayName("Concurrent identical webhooks should process exactly once")
+        void concurrentIdenticalWebhooks_processExactlyOnce() throws Exception {
+            int numThreads = 10;
+            String webhookId = "evt_concurrent_identical";
+            String payload = createFailedWebhookPayload(webhookId, testWithdrawal.getRazorpayPayoutId(), "Concurrent test");
+
+            BigDecimal initialBalance = walletRepository.findByUserId(testCreator.getId())
+                    .map(Wallet::getBalance)
+                    .orElse(BigDecimal.ZERO);
+
+            ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(numThreads);
+            AtomicInteger successCount = new AtomicInteger(0);
+
+            List<Future<?>> futures = new ArrayList<>();
+
+            // Submit concurrent requests
+            for (int i = 0; i < numThreads; i++) {
+                futures.add(executor.submit(() -> {
+                    try {
+                        startLatch.await(); // Wait for all threads to be ready
+                        mockMvc.perform(post(WEBHOOK_ENDPOINT)
+                                .header("X-Razorpay-Signature", VALID_SIGNATURE)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                                .andExpect(status().isOk());
+                        successCount.incrementAndGet();
+                    } catch (Exception e) {
+                        // Expected for some threads due to deduplication
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                }));
+            }
+
+            // Release all threads simultaneously
+            startLatch.countDown();
+            doneLatch.await(30, TimeUnit.SECONDS);
+            executor.shutdown();
+
+            // Verify exactly one webhook event was stored
+            long webhookCount = webhookEventRepository.findAll().stream()
+                    .filter(e -> e.getWebhookId().equals(webhookId))
+                    .count();
+            assertThat(webhookCount).isEqualTo(1);
+
+            // Verify exactly one refund was made
+            BigDecimal finalBalance = walletRepository.findByUserId(testCreator.getId())
+                    .map(Wallet::getBalance)
+                    .orElse(BigDecimal.ZERO);
+
+            BigDecimal expectedBalance = initialBalance.add(testWithdrawal.getAmount());
+            assertThat(finalBalance).isEqualByComparingTo(expectedBalance);
+
+            // Verify refundedAt was set exactly once
+            WithdrawalRequest updatedWithdrawal = withdrawalRequestRepository.findById(testWithdrawal.getId())
+                    .orElseThrow();
+            assertThat(updatedWithdrawal.getRefundedAt()).isNotNull();
+            assertThat(updatedWithdrawal.getStatus()).isEqualTo(WithdrawalStatus.FAILED);
+        }
+
+        @Test
+        @DisplayName("Concurrent different webhooks for same payout should not cause double refund")
+        void concurrentDifferentWebhooks_samePayout_noDoubleRefund() throws Exception {
+            int numThreads = 5;
+
+            BigDecimal initialBalance = walletRepository.findByUserId(testCreator.getId())
+                    .map(Wallet::getBalance)
+                    .orElse(BigDecimal.ZERO);
+
+            ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(numThreads);
+
+            // Submit concurrent requests with different webhook IDs but same payout
+            for (int i = 0; i < numThreads; i++) {
+                final int index = i;
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        String payload = createFailedWebhookPayload(
+                                "evt_concurrent_diff_" + index,
+                                testWithdrawal.getRazorpayPayoutId(),
+                                "Concurrent test " + index
+                        );
+                        mockMvc.perform(post(WEBHOOK_ENDPOINT)
+                                .header("X-Razorpay-Signature", VALID_SIGNATURE)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                                .andExpect(status().isOk());
+                    } catch (Exception e) {
+                        // Log but continue
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            // Release all threads
+            startLatch.countDown();
+            doneLatch.await(30, TimeUnit.SECONDS);
+            executor.shutdown();
+
+            // Verify all webhooks were stored (different IDs)
+            long webhookCount = webhookEventRepository.findAll().stream()
+                    .filter(e -> e.getWebhookId().startsWith("evt_concurrent_diff_"))
+                    .count();
+            assertThat(webhookCount).isEqualTo(numThreads);
+
+            // Verify only ONE refund was made (refundedAt guard)
+            BigDecimal finalBalance = walletRepository.findByUserId(testCreator.getId())
+                    .map(Wallet::getBalance)
+                    .orElse(BigDecimal.ZERO);
+
+            BigDecimal expectedBalance = initialBalance.add(testWithdrawal.getAmount()); // Only one refund
+            assertThat(finalBalance).isEqualByComparingTo(expectedBalance);
+        }
+
+        @RepeatedTest(3)
+        @DisplayName("Repeated: Concurrent webhooks maintain wallet consistency")
+        void repeatedConcurrencyTest_walletConsistency() throws Exception {
+            // Create fresh withdrawal for this repetition
+            WithdrawalRequest freshWithdrawal = WithdrawalRequest.builder()
+                    .user(testCreator)
+                    .amount(new BigDecimal("250.00"))
+                    .bankAccount(testBankAccount)
+                    .status(WithdrawalStatus.PROCESSING)
+                    .razorpayPayoutId("pout_repeated_" + System.nanoTime())
+                    .requestedAt(LocalDateTime.now())
+                    .build();
+            freshWithdrawal = withdrawalRequestRepository.save(freshWithdrawal);
+
+            BigDecimal initialBalance = walletRepository.findByUserId(testCreator.getId())
+                    .map(Wallet::getBalance)
+                    .orElse(BigDecimal.ZERO);
+
+            int numThreads = 8;
+            ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(numThreads);
+
+            String payoutId = freshWithdrawal.getRazorpayPayoutId();
+
+            for (int i = 0; i < numThreads; i++) {
+                final int index = i;
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        String payload = createFailedWebhookPayload(
+                                "evt_repeated_" + System.nanoTime() + "_" + index,
+                                payoutId,
+                                "Repeated test"
+                        );
+                        mockMvc.perform(post(WEBHOOK_ENDPOINT)
+                                .header("X-Razorpay-Signature", VALID_SIGNATURE)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                                .andExpect(status().isOk());
+                    } catch (Exception e) {
+                        // Expected
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            startLatch.countDown();
+            doneLatch.await(30, TimeUnit.SECONDS);
+            executor.shutdown();
+
+            // Verify exactly one refund
+            BigDecimal finalBalance = walletRepository.findByUserId(testCreator.getId())
+                    .map(Wallet::getBalance)
+                    .orElse(BigDecimal.ZERO);
+
+            BigDecimal expectedBalance = initialBalance.add(freshWithdrawal.getAmount());
+            assertThat(finalBalance).isEqualByComparingTo(expectedBalance);
         }
     }
 

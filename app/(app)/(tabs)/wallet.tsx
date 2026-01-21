@@ -19,7 +19,6 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useRefresh } from '@/src/hooks';
 import { spacing, borderRadius } from '@/src/theme';
 import { formatCurrencyAmount, formatDateTime } from '@/src/utils/walletFormatting';
-import { featureFlags } from '@/src/config/featureFlags';
 
 const headerTabs = [
   { id: 'wallet', label: 'Wallet' },
@@ -936,17 +935,13 @@ export default function MoneyScreen() {
 
       <View style={[styles.withdrawFooter, { bottom: 84 + insets.bottom, paddingBottom: spacing.lg + insets.bottom }]}>
         <TouchableOpacity
-          style={[
-            styles.withdrawButton,
-            { backgroundColor: featureFlags.isEnabled('USE_WITHDRAWALS_UI') ? colors.primary : colors.cardBorder },
-          ]}
+          style={[styles.withdrawButton, { backgroundColor: colors.primary }]}
           activeOpacity={0.85}
-          disabled={!featureFlags.isEnabled('USE_WITHDRAWALS_UI')}
-          onPress={() => featureFlags.isEnabled('USE_WITHDRAWALS_UI') && router.push('/withdraw')}
+          onPress={() => router.push('/withdraw')}
         >
           <Feather name="credit-card" size={18} color="#ffffff" />
           <Text style={styles.withdrawButtonText}>
-            {featureFlags.isEnabled('USE_WITHDRAWALS_UI') ? 'Withdraw Funds' : 'Withdrawals will be enabled after payout setup'}
+            Withdraw Funds
           </Text>
         </TouchableOpacity>
       </View>

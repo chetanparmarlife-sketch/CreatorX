@@ -9,6 +9,7 @@ import com.creatorx.repository.entity.BankAccount;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.BankAccountDTO;
 import com.creatorx.service.mapper.BankAccountMapper;
+import com.creatorx.service.razorpay.BankVerificationResult;
 import com.creatorx.service.razorpay.RazorpayService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,17 +86,35 @@ public class BankAccountService {
 
         log.info("Bank account added: {} for user: {}", bankAccount.getId(), userId);
 
-        // Phase 4: Trigger penny drop verification
+        // Phase 4.1: Trigger penny drop verification and store fund account ID
         if (razorpayService.isPresent()) {
             try {
-                boolean verified = razorpayService.get().verifyBankAccount(bankAccount);
-                if (verified) {
-                    bankAccount.setVerified(true);
-                    bankAccountRepository.save(bankAccount);
-                    log.info("Bank account {} verified via penny drop", bankAccount.getId());
-                } else {
-                    log.warn("Bank account {} penny drop verification returned false", bankAccount.getId());
+                BankVerificationResult result = razorpayService.get().verifyBankAccount(bankAccount);
+
+                // Store fund account ID for webhook correlation
+                if (result.getFundAccountId() != null) {
+                    bankAccount.setRazorpayFundAccountId(result.getFundAccountId());
                 }
+
+                bankAccount.setVerificationStatus(result.getStatus());
+
+                if (result.isActive()) {
+                    // Test mode: immediately verified
+                    bankAccount.setVerified(true);
+                    log.info("Bank account {} verified via penny drop (test mode)", bankAccount.getId());
+                } else if (result.getFundAccountId() != null) {
+                    // Live mode: wait for webhook
+                    bankAccount.setVerified(false);
+                    log.info("Bank account {} verification pending - awaiting webhook for fund account {}",
+                            bankAccount.getId(), result.getFundAccountId());
+                } else {
+                    // Verification failed
+                    bankAccount.setVerified(false);
+                    log.warn("Bank account {} verification failed: {}",
+                            bankAccount.getId(), result.getErrorMessage());
+                }
+
+                bankAccountRepository.save(bankAccount);
             } catch (Exception e) {
                 log.warn("Penny drop verification failed for bank account {}: {}",
                         bankAccount.getId(), e.getMessage());
@@ -146,18 +165,47 @@ public class BankAccountService {
     }
     
     /**
-     * Verify bank account (penny drop verification - Phase 4)
-     * For now, just marks as verified
+     * Verify bank account (penny drop verification - Phase 4.1)
+     * Stores fund account ID for webhook-based verification
      */
     @Transactional
     public void verifyBankAccount(String accountId) {
         BankAccount bankAccount = bankAccountRepository.findById(accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bank account", accountId));
-        
-        bankAccount.setVerified(true);
-        bankAccountRepository.save(bankAccount);
-        
-        log.info("Bank account verified: {}", accountId);
+
+        if (razorpayService.isEmpty()) {
+            log.warn("RazorpayService not available - skipping bank account verification {}", accountId);
+            return;
+        }
+
+        try {
+            BankVerificationResult result = razorpayService.get().verifyBankAccount(bankAccount);
+
+            // Store fund account ID for webhook correlation
+            if (result.getFundAccountId() != null) {
+                bankAccount.setRazorpayFundAccountId(result.getFundAccountId());
+            }
+
+            bankAccount.setVerificationStatus(result.getStatus());
+
+            if (result.isActive()) {
+                bankAccount.setVerified(true);
+                log.info("Bank account verified via penny drop (test mode): {}", accountId);
+            } else if (result.getFundAccountId() != null) {
+                bankAccount.setVerified(false);
+                log.info("Bank account {} verification pending - awaiting webhook", accountId);
+            } else {
+                bankAccount.setVerified(false);
+                log.warn("Bank account {} verification failed: {}", accountId, result.getErrorMessage());
+            }
+
+            bankAccountRepository.save(bankAccount);
+        } catch (Exception e) {
+            bankAccount.setVerified(false);
+            bankAccount.setVerificationStatus("failed");
+            bankAccountRepository.save(bankAccount);
+            log.warn("Bank account {} penny drop verification failed: {}", accountId, e.getMessage());
+        }
     }
     
     /**

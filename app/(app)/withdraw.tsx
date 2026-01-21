@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks';
 import { useApp } from '@/src/context';
+import { useAuth } from '@/src/context/AuthContext';
+import { walletService } from '@/src/api/services';
+import { BankAccount } from '@/src/api/types';
 import { spacing, borderRadius } from '@/src/theme';
 import { formatCurrencyAmount } from '@/src/utils/walletFormatting';
 import { featureFlags } from '@/src/config/featureFlags';
@@ -41,8 +44,13 @@ const withdrawalMethods = [
 export default function WithdrawScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { wallet } = useApp();
+  const { wallet, user } = useApp();
+  const { isAuthenticated } = useAuth();
   const [selectedMethod, setSelectedMethod] = useState('bank');
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [bankAccountsLoading, setBankAccountsLoading] = useState(false);
+  const [bankAccountsLoaded, setBankAccountsLoaded] = useState(false);
+  const alertShownRef = useRef(false);
 
   // Controlled by feature flag - disabled until Phase 4
   const withdrawalsEnabled = featureFlags.isEnabled('USE_WITHDRAWALS_UI');
@@ -55,6 +63,63 @@ export default function WithdrawScreen() {
       },
     [wallet]
   );
+
+  const hasVerifiedBankAccount = useMemo(
+    () => bankAccounts.some((account) => account.verified),
+    [bankAccounts]
+  );
+  const isKycApproved = Boolean(user?.kycVerified);
+  const canSubmit = withdrawalsEnabled && isKycApproved && hasVerifiedBankAccount;
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let isMounted = true;
+
+    const loadBankAccounts = async () => {
+      setBankAccountsLoading(true);
+      try {
+        const accounts = await walletService.getBankAccounts();
+        if (isMounted) {
+          setBankAccounts(accounts);
+        }
+      } catch (error) {
+        console.warn('[Withdraw] Failed to load bank accounts', error);
+      } finally {
+        if (isMounted) {
+          setBankAccountsLoading(false);
+          setBankAccountsLoaded(true);
+        }
+      }
+    };
+
+    loadBankAccounts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!withdrawalsEnabled || !isAuthenticated || bankAccountsLoading || !bankAccountsLoaded) return;
+    if (alertShownRef.current) return;
+
+    if (!isKycApproved || !hasVerifiedBankAccount) {
+      alertShownRef.current = true;
+      const message = !isKycApproved && !hasVerifiedBankAccount
+        ? 'Complete KYC and add a verified bank account to withdraw.'
+        : !isKycApproved
+          ? 'Complete KYC verification to enable withdrawals.'
+          : 'Add a verified bank account to enable withdrawals.';
+      Alert.alert('Withdrawals unavailable', message);
+    }
+  }, [
+    withdrawalsEnabled,
+    isAuthenticated,
+    bankAccountsLoading,
+    bankAccountsLoaded,
+    isKycApproved,
+    hasVerifiedBankAccount,
+  ]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#050505' }]} edges={['top']}>
@@ -127,10 +192,10 @@ export default function WithdrawScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            { backgroundColor: withdrawalsEnabled ? colors.primary : '#1f2430' },
+            { backgroundColor: canSubmit ? colors.primary : '#1f2430' },
           ]}
           activeOpacity={0.85}
-          disabled={!withdrawalsEnabled}
+          disabled={!canSubmit}
         >
           <Text style={styles.continueText}>Continue</Text>
           <Feather name="arrow-right" size={20} color="#FFFFFF" />

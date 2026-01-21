@@ -268,7 +268,7 @@ export interface SubmitDeliverableRequest {
 // ==================== Wallet Types ====================
 
 export type TransactionType = 'EARNING' | 'WITHDRAWAL' | 'REFUND' | 'BONUS' | 'PENALTY';
-export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type TransactionStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REVERSED' | 'CANCELLED';
 
 export interface Wallet {
   userId: string;

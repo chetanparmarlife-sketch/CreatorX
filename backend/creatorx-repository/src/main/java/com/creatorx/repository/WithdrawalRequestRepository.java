@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Repository
 public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalRequest, String> {
     
@@ -31,5 +34,15 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
      */
     @Query("SELECT wr FROM WithdrawalRequest wr WHERE wr.razorpayPayoutId = :razorpayPayoutId")
     java.util.Optional<WithdrawalRequest> findByRazorpayPayoutId(@Param("razorpayPayoutId") String razorpayPayoutId);
+
+    /**
+     * Find withdrawals by user after a certain date
+     * Phase 4.1: Used for monthly withdrawal limit calculation
+     */
+    @Query("SELECT wr FROM WithdrawalRequest wr WHERE wr.user.id = :userId AND wr.requestedAt >= :since")
+    List<WithdrawalRequest> findByUserIdAndRequestedAtAfter(
+            @Param("userId") String userId,
+            @Param("since") LocalDateTime since
+    );
 }
 

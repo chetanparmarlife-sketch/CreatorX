@@ -114,15 +114,16 @@ public class RazorpayService {
      * Verify bank account using penny drop
      * Razorpay will transfer a small amount (e.g., ₹1) to verify account ownership
      *
+     * Phase 4.1: Returns BankVerificationResult with fund account ID for webhook correlation
+     *
      * @param bankAccount Bank account to verify
-     * @return true if verification initiated successfully
-     * @throws BusinessException if verification fails
+     * @return BankVerificationResult containing fund account ID and status
      */
-    public boolean verifyBankAccount(BankAccount bankAccount) {
+    public BankVerificationResult verifyBankAccount(BankAccount bankAccount) {
         try {
             if (razorpayClient == null) {
                 log.warn("Razorpay not configured - skipping bank account verification");
-                return false;
+                return BankVerificationResult.failure("Razorpay not configured");
             }
 
             log.info("Initiating penny drop verification for bank account: {}",
@@ -152,16 +153,16 @@ public class RazorpayService {
 
             log.info("Fund account created: {}, Active: {}", fundAccountId, active);
 
-            // In test mode, accounts are auto-verified
-            // In live mode, Razorpay performs actual penny drop
-            return active;
+            // In test mode, accounts are auto-verified (active = true)
+            // In live mode, Razorpay performs actual penny drop (active = false until webhook)
+            return BankVerificationResult.success(fundAccountId, active);
 
         } catch (RazorpayException e) {
             log.error("Bank account verification failed: {}", e.getMessage(), e);
-            throw new BusinessException("Failed to verify bank account: " + e.getMessage());
+            return BankVerificationResult.failure("Failed to verify bank account: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error during bank account verification: {}", e.getMessage(), e);
-            throw new BusinessException("Failed to verify bank account due to unexpected error");
+            return BankVerificationResult.failure("Failed to verify bank account due to unexpected error");
         }
     }
 
