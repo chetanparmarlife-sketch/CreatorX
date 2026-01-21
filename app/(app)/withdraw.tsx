@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,47 +12,26 @@ import { spacing, borderRadius } from '@/src/theme';
 import { formatCurrencyAmount } from '@/src/utils/walletFormatting';
 import { featureFlags } from '@/src/config/featureFlags';
 
-const withdrawalMethods = [
-  {
-    id: 'bank',
-    title: 'Bank Account',
-    subtitle: '2-3 Business Days • Free',
-    icon: 'credit-card' as const,
-    badge: 'LAST USED',
-  },
-  {
-    id: 'instant',
-    title: 'Instant Transfer',
-    subtitle: 'Instant • 1.5% Fee',
-    icon: 'zap' as const,
-    badge: 'NEW',
-  },
-  {
-    id: 'paypal',
-    title: 'PayPal',
-    subtitle: 'Instant • 1% Fee',
-    icon: 'dollar-sign' as const,
-  },
-  {
-    id: 'payoneer',
-    title: 'Payoneer',
-    subtitle: '1-2 Business Days • Free',
-    icon: 'globe' as const,
-  },
-];
+const MIN_WITHDRAWAL = 100;
+const MAX_WITHDRAWAL = 100000;
 
 export default function WithdrawScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { wallet, user } = useApp();
+  const { wallet, refreshWalletAll } = useApp();
   const { isAuthenticated } = useAuth();
-  const [selectedMethod, setSelectedMethod] = useState('bank');
+  const { user } = useApp();
+
+  // State
+  const [amount, setAmount] = useState('');
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [bankAccountsLoading, setBankAccountsLoading] = useState(false);
   const [bankAccountsLoaded, setBankAccountsLoaded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const alertShownRef = useRef(false);
 
-  // Controlled by feature flag - disabled until Phase 4
+  // Feature flag check
   const withdrawalsEnabled = featureFlags.isEnabled('USE_WITHDRAWALS_UI');
 
   const walletSummary = useMemo(
@@ -64,13 +43,20 @@ export default function WithdrawScreen() {
     [wallet]
   );
 
-  const hasVerifiedBankAccount = useMemo(
-    () => bankAccounts.some((account) => account.verified),
+  const verifiedBankAccounts = useMemo(
+    () => bankAccounts.filter((account) => account.verified),
     [bankAccounts]
   );
-  const isKycApproved = Boolean(user?.kycVerified);
-  const canSubmit = withdrawalsEnabled && isKycApproved && hasVerifiedBankAccount;
 
+  const hasVerifiedBankAccount = verifiedBankAccounts.length > 0;
+  const isKycApproved = Boolean(user?.kycVerified);
+
+  // Validation
+  const amountNum = parseFloat(amount) || 0;
+  const isAmountValid = amountNum >= MIN_WITHDRAWAL && amountNum <= MAX_WITHDRAWAL && amountNum <= walletSummary.availableBalance;
+  const canSubmit = withdrawalsEnabled && isKycApproved && hasVerifiedBankAccount && isAmountValid && selectedBankAccountId && !isSubmitting;
+
+  // Load bank accounts on mount
   useEffect(() => {
     if (!isAuthenticated) return;
     let isMounted = true;
@@ -81,6 +67,11 @@ export default function WithdrawScreen() {
         const accounts = await walletService.getBankAccounts();
         if (isMounted) {
           setBankAccounts(accounts);
+          // Auto-select first verified account
+          const firstVerified = accounts.find(a => a.verified);
+          if (firstVerified) {
+            setSelectedBankAccountId(firstVerified.id);
+          }
         }
       } catch (error) {
         console.warn('[Withdraw] Failed to load bank accounts', error);
@@ -99,6 +90,7 @@ export default function WithdrawScreen() {
     };
   }, [isAuthenticated]);
 
+  // Show eligibility alert
   useEffect(() => {
     if (!withdrawalsEnabled || !isAuthenticated || bankAccountsLoading || !bankAccountsLoaded) return;
     if (alertShownRef.current) return;
@@ -121,6 +113,71 @@ export default function WithdrawScreen() {
     hasVerifiedBankAccount,
   ]);
 
+  // Quick amount buttons
+  const quickAmounts = useMemo(() => {
+    const available = walletSummary.availableBalance;
+    return [
+      { label: '₹500', value: 500 },
+      { label: '₹1,000', value: 1000 },
+      { label: '₹5,000', value: 5000 },
+      { label: 'Max', value: Math.min(available, MAX_WITHDRAWAL) },
+    ].filter(q => q.value <= available && q.value >= MIN_WITHDRAWAL);
+  }, [walletSummary.availableBalance]);
+
+  // Handle withdrawal submission
+  const handleWithdraw = useCallback(async () => {
+    if (!canSubmit || !selectedBankAccountId) return;
+
+    setIsSubmitting(true);
+    try {
+      await walletService.withdrawFunds({
+        amount: amountNum,
+        bankAccountId: selectedBankAccountId,
+      });
+
+      Alert.alert(
+        'Withdrawal Requested',
+        `Your withdrawal of ₹${amountNum.toLocaleString()} has been submitted. It will be processed within 2-3 business days.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              refreshWalletAll();
+              router.back();
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('[Withdraw] Failed:', error);
+      let errorMessage = 'Failed to process withdrawal. Please try again.';
+
+      if (error.status === 400) {
+        errorMessage = error.message || 'Invalid withdrawal request.';
+      } else if (error.status === 403) {
+        errorMessage = 'You are not eligible for withdrawals. Please complete KYC.';
+      } else if (error.status === 422) {
+        errorMessage = 'Insufficient balance or invalid amount.';
+      }
+
+      Alert.alert('Withdrawal Failed', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [canSubmit, selectedBankAccountId, amountNum, refreshWalletAll, router]);
+
+  const getValidationMessage = () => {
+    if (!withdrawalsEnabled) return 'Withdrawals are currently disabled.';
+    if (!isKycApproved) return 'Complete KYC verification to withdraw.';
+    if (!hasVerifiedBankAccount) return 'Add a verified bank account.';
+    if (!amount) return 'Enter an amount.';
+    if (amountNum < MIN_WITHDRAWAL) return `Minimum withdrawal: ₹${MIN_WITHDRAWAL}`;
+    if (amountNum > walletSummary.availableBalance) return 'Insufficient balance.';
+    if (amountNum > MAX_WITHDRAWAL) return `Maximum withdrawal: ₹${MAX_WITHDRAWAL.toLocaleString()}`;
+    if (!selectedBankAccountId) return 'Select a bank account.';
+    return null;
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#050505' }]} edges={['top']}>
       <View style={styles.header}>
@@ -132,6 +189,7 @@ export default function WithdrawScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Available Balance */}
         <View style={styles.balanceBlock}>
           <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
           <Text style={styles.balanceValue}>
@@ -139,56 +197,118 @@ export default function WithdrawScreen() {
           </Text>
         </View>
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Select Withdrawal Method</Text>
-          <Text style={styles.sectionSubtitle}>Choose where you want to send your funds.</Text>
-        </View>
-
-        <View style={styles.methodList}>
-          {withdrawalMethods.map((method) => {
-            const isSelected = method.id === selectedMethod;
-            return (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.methodCard,
-                  isSelected && styles.methodCardSelected,
-                ]}
-                activeOpacity={0.85}
-                onPress={() => setSelectedMethod(method.id)}
-              >
-                {method.badge && (
-                  <View style={[
-                    styles.methodBadge,
-                    method.badge === 'NEW' ? styles.methodBadgeNew : styles.methodBadgeLast,
-                  ]}>
-                    <Text style={styles.methodBadgeText}>{method.badge}</Text>
-                  </View>
-                )}
-                <View style={styles.methodIcon}>
-                  <Feather name={method.icon} size={20} color="#FFFFFF" />
-                </View>
-                <View style={styles.methodInfo}>
-                  <Text style={styles.methodTitle}>{method.title}</Text>
-                  <Text style={styles.methodSubtitle}>{method.subtitle}</Text>
-                </View>
-                <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <TouchableOpacity style={styles.addMethod} activeOpacity={0.8}>
-          <View style={styles.addIcon}>
-            <Feather name="plus" size={16} color="#9ca3af" />
+        {/* Amount Input */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Withdrawal Amount</Text>
+          <View style={styles.amountInputContainer}>
+            <Text style={styles.currencySymbol}>₹</Text>
+            <TextInput
+              style={styles.amountInput}
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="0"
+              placeholderTextColor="#4b5563"
+              keyboardType="numeric"
+              maxLength={7}
+            />
           </View>
-          <Text style={styles.addText}>Add Payment Method</Text>
-        </TouchableOpacity>
+
+          {/* Quick Amount Buttons */}
+          <View style={styles.quickAmounts}>
+            {quickAmounts.map((q) => (
+              <TouchableOpacity
+                key={q.label}
+                style={[
+                  styles.quickAmountBtn,
+                  amountNum === q.value && styles.quickAmountBtnActive,
+                ]}
+                onPress={() => setAmount(q.value.toString())}
+              >
+                <Text
+                  style={[
+                    styles.quickAmountText,
+                    amountNum === q.value && styles.quickAmountTextActive,
+                  ]}
+                >
+                  {q.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Bank Accounts */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Withdraw To</Text>
+          {bankAccountsLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={styles.loadingText}>Loading bank accounts...</Text>
+            </View>
+          ) : verifiedBankAccounts.length === 0 ? (
+            <TouchableOpacity
+              style={styles.addBankCard}
+              onPress={() => router.push('/add-bank-account')}
+            >
+              <View style={styles.addBankIcon}>
+                <Feather name="plus" size={20} color="#9ca3af" />
+              </View>
+              <Text style={styles.addBankText}>Add Bank Account</Text>
+              <Feather name="chevron-right" size={18} color="#4b5563" />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.bankList}>
+              {verifiedBankAccounts.map((account) => {
+                const isSelected = account.id === selectedBankAccountId;
+                return (
+                  <TouchableOpacity
+                    key={account.id}
+                    style={[styles.bankCard, isSelected && styles.bankCardSelected]}
+                    onPress={() => setSelectedBankAccountId(account.id)}
+                  >
+                    <View style={styles.bankIcon}>
+                      <Feather name="credit-card" size={20} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.bankInfo}>
+                      <Text style={styles.bankName}>{account.bankName}</Text>
+                      <Text style={styles.bankNumber}>
+                        ••••{account.accountNumber.slice(-4)}
+                      </Text>
+                    </View>
+                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {/* Fee Info */}
+        <View style={styles.feeCard}>
+          <View style={styles.feeRow}>
+            <Text style={styles.feeLabel}>Transfer Fee</Text>
+            <Text style={styles.feeValue}>Free</Text>
+          </View>
+          <View style={styles.feeRow}>
+            <Text style={styles.feeLabel}>Processing Time</Text>
+            <Text style={styles.feeValue}>2-3 Business Days</Text>
+          </View>
+          <View style={[styles.feeRow, styles.feeRowLast]}>
+            <Text style={styles.feeLabel}>You'll receive</Text>
+            <Text style={styles.feeValueHighlight}>
+              {amountNum > 0 ? `₹${amountNum.toLocaleString()}` : '—'}
+            </Text>
+          </View>
+        </View>
       </ScrollView>
 
+      {/* Footer */}
       <View style={styles.footer}>
+        {getValidationMessage() && (
+          <Text style={styles.validationMessage}>{getValidationMessage()}</Text>
+        )}
         <TouchableOpacity
           style={[
             styles.continueButton,
@@ -196,13 +316,17 @@ export default function WithdrawScreen() {
           ]}
           activeOpacity={0.85}
           disabled={!canSubmit}
+          onPress={handleWithdraw}
         >
-          <Text style={styles.continueText}>Continue</Text>
-          <Feather name="arrow-right" size={20} color="#FFFFFF" />
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.continueText}>Withdraw</Text>
+              <Feather name="arrow-right" size={20} color="#FFFFFF" />
+            </>
+          )}
         </TouchableOpacity>
-        {!withdrawalsEnabled && (
-          <Text style={styles.disabledNote}>Withdrawals coming soon.</Text>
-        )}
         <View style={styles.secureRow}>
           <Feather name="lock" size={12} color="#9ca3af" />
           <Text style={styles.secureText}>Secure 256-bit SSL Encrypted</Text>
@@ -256,27 +380,80 @@ const styles = StyleSheet.create({
   },
   balanceValue: {
     color: '#FFFFFF',
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: '800',
     marginTop: spacing.sm,
   },
-  sectionHeader: {
-    marginBottom: spacing.lg,
+  section: {
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
+    marginBottom: spacing.md,
   },
-  sectionSubtitle: {
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#151515',
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  currencySymbol: {
     color: '#9ca3af',
-    fontSize: 13,
-    marginTop: 6,
+    fontSize: 32,
+    fontWeight: '600',
+    marginRight: spacing.sm,
   },
-  methodList: {
+  amountInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '700',
+    padding: 0,
+  },
+  quickAmounts: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  quickAmountBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    backgroundColor: '#1f1f1f',
+    alignItems: 'center',
+  },
+  quickAmountBtnActive: {
+    backgroundColor: '#1337ec',
+  },
+  quickAmountText: {
+    color: '#9ca3af',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  quickAmountTextActive: {
+    color: '#FFFFFF',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
+  loadingText: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  bankList: {
     gap: spacing.md,
   },
-  methodCard: {
+  bankCard: {
     backgroundColor: '#151515',
     borderRadius: borderRadius.xl,
     borderWidth: 1,
@@ -286,29 +463,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  methodCardSelected: {
+  bankCardSelected: {
     borderColor: '#1337ec',
   },
-  methodBadge: {
-    position: 'absolute',
-    top: -10,
-    right: spacing.md,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  methodBadgeLast: {
-    backgroundColor: '#1d4ed8',
-  },
-  methodBadgeNew: {
-    backgroundColor: '#16a34a',
-  },
-  methodBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  methodIcon: {
+  bankIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -316,18 +474,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  methodInfo: {
+  bankInfo: {
     flex: 1,
   },
-  methodTitle: {
+  bankName: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
-  methodSubtitle: {
+  bankNumber: {
     color: '#9ca3af',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 14,
+    marginTop: 2,
+  },
+  addBankCard: {
+    backgroundColor: '#151515',
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    borderStyle: 'dashed',
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  addBankIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1f1f1f',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBankText: {
+    flex: 1,
+    color: '#9ca3af',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  feeCard: {
+    backgroundColor: '#151515',
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    padding: spacing.lg,
+  },
+  feeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  feeRowLast: {
+    marginBottom: 0,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: '#1f2937',
+  },
+  feeLabel: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  feeValue: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  feeValueHighlight: {
+    color: '#10b981',
+    fontSize: 16,
+    fontWeight: '700',
   },
   radioOuter: {
     width: 22,
@@ -347,40 +562,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#1337ec',
   },
-  addMethod: {
-    marginTop: spacing.lg,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#374151',
-    paddingVertical: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  addIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#111827',
-  },
-  addText: {
-    color: '#9ca3af',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-    backgroundColor: 'rgba(5, 5, 5, 0.95)',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    backgroundColor: 'rgba(5, 5, 5, 0.98)',
+  },
+  validationMessage: {
+    color: '#6b7280',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
   },
   continueButton: {
     height: 56,
@@ -406,11 +602,5 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 11,
     fontWeight: '600',
-  },
-  disabledNote: {
-    color: '#6b7280',
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: spacing.sm,
   },
 });

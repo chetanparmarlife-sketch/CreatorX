@@ -16,6 +16,7 @@ import {
   CampaignApplication,
 } from '@/src/types';
 import { profileService } from '@/src/api/services/profileService';
+import { deliverableService } from '@/src/api/services/deliverableService';
 import { featureFlags } from '@/src/config/featureFlags';
 
 interface ApplicationFormData {
@@ -766,8 +767,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     activeCampaignId: string,
     deliverableId: string,
     file: { name: string; type: 'video' | 'image'; uri: string },
-    _description?: string
+    description?: string
   ) => {
+    const activeCampaign = activeCampaigns.find((ac) => ac.id === activeCampaignId);
+    const deliverable = activeCampaign?.deliverables.find((d) => d.id === deliverableId);
+
+    // If API deliverables flag is enabled, submit to backend
+    if (featureFlags.isEnabled('USE_API_DELIVERABLES') && deliverable) {
+      try {
+        // Get applicationId from the active campaign (should be stored when application is approved)
+        const applicationId = (activeCampaign as any).applicationId || activeCampaignId;
+
+        // Call backend API
+        await deliverableService.submitDeliverable(
+          applicationId,
+          deliverableId, // campaignDeliverableId
+          {
+            description,
+            file: {
+              uri: file.uri,
+              type: file.type === 'video' ? 'video/mp4' : 'image/jpeg',
+              name: file.name,
+            },
+          }
+        );
+        console.log('[Deliverable] Submitted to backend successfully');
+      } catch (error) {
+        console.error('[Deliverable] Backend submit failed:', error);
+        // Re-throw to let caller handle the error
+        throw error;
+      }
+    }
+
+    // Update local state (always, for immediate UI feedback)
     const updatedActiveCampaigns = activeCampaigns.map((ac) => {
       if (ac.id !== activeCampaignId) return ac;
       return {
@@ -787,7 +819,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setActiveCampaigns(updatedActiveCampaigns);
     await saveToStorage(STORAGE_KEYS.ACTIVE_CAMPAIGNS, updatedActiveCampaigns);
 
-    const activeCampaign = activeCampaigns.find((ac) => ac.id === activeCampaignId);
     addNotification({
       type: 'campaign',
       title: 'Content Submitted',
@@ -796,6 +827,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       read: false,
     });
   }, [activeCampaigns, saveToStorage, addNotification]);
+
 
   const processPaymentWithData = useCallback(async (campaignData: ActiveCampaign) => {
     setActiveCampaigns((prevCampaigns) => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,78 +18,81 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, borderRadius, typography } from '@/src/theme';
 import { Button, Badge } from '@/src/components';
 import { useApp } from '@/src/context';
+import { kycService, KYCStatusResponse } from '@/src/api/services/kycService';
+import { KYCDocument, DocumentType, DocumentStatus } from '@/src/api/types';
 
-interface KYCDocument {
+// ==================== Types ====================
+
+interface LocalDocument {
   id: string;
-  type: 'aadhaar' | 'pan' | 'passport' | 'selfie' | 'bank';
+  type: DocumentType;
   title: string;
   description: string;
-  status: 'not_uploaded' | 'pending' | 'verified' | 'rejected';
+  status: DocumentStatus | 'NOT_UPLOADED';
   uploadedAt?: string;
   rejectionReason?: string;
+  backendId?: string; // ID from backend if uploaded
 }
 
-const initialDocuments: KYCDocument[] = [
+// ==================== Constants ====================
+
+const DOCUMENT_CONFIG: Omit<LocalDocument, 'status' | 'backendId'>[] = [
   {
     id: '1',
-    type: 'aadhaar',
+    type: 'AADHAAR',
     title: 'Aadhaar Card',
     description: 'Front and back of your Aadhaar card',
-    status: 'verified',
-    uploadedAt: 'Oct 15, 2024',
   },
   {
     id: '2',
-    type: 'pan',
+    type: 'PAN',
     title: 'PAN Card',
     description: 'Your PAN card for tax purposes',
-    status: 'verified',
-    uploadedAt: 'Oct 15, 2024',
   },
   {
     id: '3',
-    type: 'selfie',
-    title: 'Selfie Verification',
-    description: 'A clear selfie holding your ID',
-    status: 'pending',
-    uploadedAt: 'Dec 1, 2024',
+    type: 'PASSPORT',
+    title: 'Passport (Optional)',
+    description: 'For international campaigns',
   },
   {
     id: '4',
-    type: 'bank',
-    title: 'Bank Account Details',
-    description: 'Cancelled cheque or bank statement',
-    status: 'not_uploaded',
+    type: 'DRIVING_LICENSE',
+    title: 'Driving License (Optional)',
+    description: 'Valid driving license',
   },
   {
     id: '5',
-    type: 'passport',
-    title: 'Passport (Optional)',
-    description: 'For international campaigns',
-    status: 'not_uploaded',
+    type: 'GST',
+    title: 'GST Certificate (Optional)',
+    description: 'For business accounts',
   },
 ];
+
+// ==================== Document Card Component ====================
 
 const DocumentUploadCard = memo(function DocumentUploadCard({
   document,
   onUpload,
   onView,
+  isUploading,
 }: {
-  document: KYCDocument;
+  document: LocalDocument;
   onUpload: () => void;
   onView: () => void;
+  isUploading: boolean;
 }) {
   const getIcon = () => {
     switch (document.type) {
-      case 'aadhaar':
+      case 'AADHAAR':
         return 'credit-card';
-      case 'pan':
+      case 'PAN':
         return 'file-text';
-      case 'passport':
+      case 'PASSPORT':
         return 'globe';
-      case 'selfie':
-        return 'camera';
-      case 'bank':
+      case 'DRIVING_LICENSE':
+        return 'truck';
+      case 'GST':
         return 'briefcase';
       default:
         return 'file';
@@ -95,11 +101,11 @@ const DocumentUploadCard = memo(function DocumentUploadCard({
 
   const getStatusBadge = () => {
     switch (document.status) {
-      case 'verified':
+      case 'APPROVED':
         return <Badge label="Verified" variant="success" />;
-      case 'pending':
+      case 'PENDING':
         return <Badge label="Under Review" variant="warning" />;
-      case 'rejected':
+      case 'REJECTED':
         return <Badge label="Rejected" variant="error" />;
       default:
         return <Badge label="Required" variant="default" />;
@@ -108,11 +114,11 @@ const DocumentUploadCard = memo(function DocumentUploadCard({
 
   const getStatusColor = () => {
     switch (document.status) {
-      case 'verified':
+      case 'APPROVED':
         return colors.emeraldLight;
-      case 'pending':
+      case 'PENDING':
         return colors.amberLight;
-      case 'rejected':
+      case 'REJECTED':
         return colors.redLight;
       default:
         return colors.card;
@@ -121,14 +127,27 @@ const DocumentUploadCard = memo(function DocumentUploadCard({
 
   const getBorderColor = () => {
     switch (document.status) {
-      case 'verified':
+      case 'APPROVED':
         return colors.emeraldBorder;
-      case 'pending':
+      case 'PENDING':
         return colors.amberBorder;
-      case 'rejected':
+      case 'REJECTED':
         return 'rgba(239, 68, 68, 0.3)';
       default:
         return colors.cardBorder;
+    }
+  };
+
+  const getIconColor = () => {
+    switch (document.status) {
+      case 'APPROVED':
+        return colors.emerald;
+      case 'PENDING':
+        return colors.amber;
+      case 'REJECTED':
+        return colors.red;
+      default:
+        return colors.textSecondary;
     }
   };
 
@@ -136,11 +155,7 @@ const DocumentUploadCard = memo(function DocumentUploadCard({
     <View style={[styles.documentCard, { borderColor: getBorderColor() }]}>
       <View style={styles.documentHeader}>
         <View style={[styles.documentIcon, { backgroundColor: getStatusColor() }]}>
-          <Feather
-            name={getIcon() as any}
-            size={20}
-            color={document.status === 'verified' ? colors.emerald : document.status === 'pending' ? colors.amber : document.status === 'rejected' ? colors.red : colors.textSecondary}
-          />
+          <Feather name={getIcon() as any} size={20} color={getIconColor()} />
         </View>
         <View style={styles.documentInfo}>
           <Text style={styles.documentTitle}>{document.title}</Text>
@@ -160,16 +175,23 @@ const DocumentUploadCard = memo(function DocumentUploadCard({
       )}
 
       <View style={styles.documentActions}>
-        {document.status === 'not_uploaded' || document.status === 'rejected' ? (
+        {document.status === 'NOT_UPLOADED' || document.status === 'REJECTED' ? (
           <Button
-            title="Upload Document"
+            title={isUploading ? 'Uploading...' : 'Upload Document'}
             onPress={onUpload}
             variant="primary"
             size="sm"
-            icon={<Feather name="upload" size={16} color={colors.text} />}
+            icon={
+              isUploading ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Feather name="upload" size={16} color={colors.text} />
+              )
+            }
             fullWidth
+            disabled={isUploading}
           />
-        ) : document.status === 'pending' ? (
+        ) : document.status === 'PENDING' ? (
           <View style={styles.pendingMessage}>
             <Feather name="clock" size={14} color={colors.amber} />
             <Text style={styles.pendingText}>Verification in progress (24-48 hrs)</Text>
@@ -185,16 +207,104 @@ const DocumentUploadCard = memo(function DocumentUploadCard({
   );
 });
 
+// ==================== Main Screen Component ====================
+
 export default function KYCScreen() {
   const router = useRouter();
-  const { user, addNotification } = useApp();
-  const [documents, setDocuments] = useState(initialDocuments);
+  const { user, addNotification, setUser } = useApp();
 
-  const verifiedCount = documents.filter((d) => d.status === 'verified').length;
-  const totalRequired = documents.filter((d) => d.type !== 'passport').length;
-  const progress = Math.round((verifiedCount / totalRequired) * 100);
+  // State
+  const [documents, setDocuments] = useState<LocalDocument[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [kycStatus, setKycStatus] = useState<KYCStatusResponse | null>(null);
 
-  const handleUpload = useCallback(async (doc: KYCDocument) => {
+  // Document number modal
+  const [showDocNumberModal, setShowDocNumberModal] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState<{
+    docType: DocumentType;
+    docId: string;
+    imageResult: ImagePicker.ImagePickerAsset;
+  } | null>(null);
+  const [documentNumber, setDocumentNumber] = useState('');
+
+  // ==================== Load KYC Status ====================
+
+  useEffect(() => {
+    loadKYCStatus();
+  }, []);
+
+  const loadKYCStatus = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await kycService.getKYCStatus();
+      setKycStatus(response);
+
+      // Merge backend documents with local config
+      const mergedDocs = DOCUMENT_CONFIG.map((config) => {
+        const backendDoc = response.documents?.find((d) => d.documentType === config.type);
+
+        if (backendDoc) {
+          return {
+            ...config,
+            status: backendDoc.status,
+            uploadedAt: backendDoc.createdAt
+              ? new Date(backendDoc.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+              : undefined,
+            rejectionReason: backendDoc.rejectionReason,
+            backendId: backendDoc.id,
+          } as LocalDocument;
+        }
+
+        return {
+          ...config,
+          status: 'NOT_UPLOADED' as const,
+        } as LocalDocument;
+      });
+
+      setDocuments(mergedDocs);
+
+      // Update user KYC status in context
+      if (response.isVerified !== user.kycVerified) {
+        setUser({ ...user, kycVerified: response.isVerified });
+      }
+    } catch (err: any) {
+      console.error('[KYC] Failed to load status:', err);
+      setError(err.message || 'Failed to load KYC status');
+
+      // Use default documents on error
+      setDocuments(
+        DOCUMENT_CONFIG.map((config) => ({
+          ...config,
+          status: 'NOT_UPLOADED' as const,
+        }))
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ==================== Calculate Progress ====================
+
+  const verifiedCount = documents.filter((d) => d.status === 'APPROVED').length;
+  const requiredDocs = documents.filter((d) =>
+    d.type === 'AADHAAR' || d.type === 'PAN'
+  );
+  const requiredVerified = requiredDocs.filter((d) => d.status === 'APPROVED').length;
+  const progress = requiredDocs.length > 0
+    ? Math.round((requiredVerified / requiredDocs.length) * 100)
+    : 0;
+
+  // ==================== Handle Upload ====================
+
+  const handleUpload = useCallback(async (doc: LocalDocument) => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
@@ -209,18 +319,59 @@ export default function KYCScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
+      // For AADHAAR and PAN, ask for document number
+      if (doc.type === 'AADHAAR' || doc.type === 'PAN') {
+        setPendingUpload({
+          docType: doc.type,
+          docId: doc.id,
+          imageResult: result.assets[0],
+        });
+        setDocumentNumber('');
+        setShowDocNumberModal(true);
+      } else {
+        // Direct upload for other documents
+        await submitDocument(doc.id, doc.type, result.assets[0]);
+      }
+    }
+  }, []);
+
+  // ==================== Submit Document ====================
+
+  const submitDocument = async (
+    docId: string,
+    docType: DocumentType,
+    imageAsset: ImagePicker.ImagePickerAsset,
+    docNumber?: string
+  ) => {
+    setUploadingDocId(docId);
+    setShowDocNumberModal(false);
+
+    try {
+      const response = await kycService.submitKYC({
+        documentType: docType,
+        documentNumber: docNumber,
+        file: {
+          uri: imageAsset.uri,
+          type: imageAsset.mimeType || 'image/jpeg',
+          name: imageAsset.fileName || `kyc_${docType}_${Date.now()}.jpg`,
+        },
+      });
+
+      // Update local state
       setDocuments((prev) =>
         prev.map((d) =>
-          d.id === doc.id
+          d.id === docId
             ? {
-                ...d,
-                status: 'pending',
-                uploadedAt: new Date().toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                }),
-              }
+              ...d,
+              status: 'PENDING' as const,
+              uploadedAt: new Date().toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              }),
+              backendId: response.id,
+              rejectionReason: undefined,
+            }
             : d
         )
       );
@@ -228,22 +379,66 @@ export default function KYCScreen() {
       addNotification({
         type: 'system',
         title: 'Document Uploaded',
-        description: `Your ${doc.title} has been submitted for verification`,
+        description: `Your ${getDocTitle(docType)} has been submitted for verification`,
         time: 'Just now',
         read: false,
       });
 
       Alert.alert(
         'Document Uploaded',
-        `Your ${doc.title} has been submitted for verification. This typically takes 24-48 hours.`
+        `Your ${getDocTitle(docType)} has been submitted for verification. This typically takes 24-48 hours.`
       );
-    }
-  }, [addNotification]);
+    } catch (err: any) {
+      console.error('[KYC] Upload failed:', err);
 
-  const handleView = useCallback((doc: KYCDocument) => {
+      let errorMessage = 'Failed to upload document. Please try again.';
+      if (err.status === 400) {
+        errorMessage = err.message || 'Invalid document format or details.';
+      } else if (err.status === 413) {
+        errorMessage = 'File size too large. Please use a smaller image.';
+      } else if (err.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+
+      Alert.alert('Upload Failed', errorMessage);
+    } finally {
+      setUploadingDocId(null);
+      setPendingUpload(null);
+    }
+  };
+
+  const getDocTitle = (type: DocumentType): string => {
+    const doc = DOCUMENT_CONFIG.find((d) => d.type === type);
+    return doc?.title || type;
+  };
+
+  // ==================== Handle Document Number Submit ====================
+
+  const handleDocNumberSubmit = () => {
+    if (!pendingUpload) return;
+
+    const { docType, docId, imageResult } = pendingUpload;
+
+    // Validate document number format
+    if (docType === 'AADHAAR' && !/^\d{12}$/.test(documentNumber.replace(/\s/g, ''))) {
+      Alert.alert('Invalid Aadhaar', 'Please enter a valid 12-digit Aadhaar number.');
+      return;
+    }
+
+    if (docType === 'PAN' && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(documentNumber.toUpperCase())) {
+      Alert.alert('Invalid PAN', 'Please enter a valid PAN number (e.g., ABCDE1234F).');
+      return;
+    }
+
+    submitDocument(docId, docType, imageResult, documentNumber);
+  };
+
+  // ==================== Handle View ====================
+
+  const handleView = useCallback((doc: LocalDocument) => {
     Alert.alert(
       doc.title,
-      `Status: Verified\nUploaded: ${doc.uploadedAt}\n\nThis document has been verified and is on file.`,
+      `Status: ${doc.status === 'APPROVED' ? 'Verified' : doc.status}\nUploaded: ${doc.uploadedAt}\n\nThis document is on file.`,
       [
         { text: 'Close', style: 'cancel' },
         {
@@ -254,48 +449,18 @@ export default function KYCScreen() {
     );
   }, [handleUpload]);
 
-  const handleCaptureWithCamera = useCallback(async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+  // ==================== Render ====================
 
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Required', 'Please allow camera access to take a selfie.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setDocuments((prev) =>
-        prev.map((d) =>
-          d.type === 'selfie'
-            ? {
-                ...d,
-                status: 'pending',
-                uploadedAt: new Date().toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                }),
-              }
-            : d
-        )
-      );
-
-      addNotification({
-        type: 'system',
-        title: 'Selfie Uploaded',
-        description: 'Your selfie verification photo has been submitted',
-        time: 'Just now',
-        read: false,
-      });
-
-      Alert.alert('Selfie Captured', 'Your verification selfie has been submitted for review.');
-    }
-  }, [addNotification]);
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading KYC status...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -306,41 +471,66 @@ export default function KYCScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.title}>KYC Verification</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.refreshButton} onPress={loadKYCStatus}>
+          <Feather name="refresh-cw" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
       </View>
+
+      {error && (
+        <View style={styles.errorBanner}>
+          <Feather name="alert-triangle" size={16} color={colors.red} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={loadKYCStatus}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {/* Progress Card */}
         <View style={styles.progressCard}>
           <LinearGradient
-            colors={user.kycVerified 
-              ? ['rgba(52, 211, 153, 0.2)', 'rgba(52, 211, 153, 0.05)']
-              : ['rgba(251, 191, 36, 0.2)', 'rgba(251, 191, 36, 0.05)']}
+            colors={
+              kycStatus?.isVerified
+                ? ['rgba(52, 211, 153, 0.2)', 'rgba(52, 211, 153, 0.05)']
+                : ['rgba(251, 191, 36, 0.2)', 'rgba(251, 191, 36, 0.05)']
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.progressGradient}
           >
             <View style={styles.progressHeader}>
-              <View style={[styles.progressIcon, { backgroundColor: user.kycVerified ? colors.emeraldLight : colors.amberLight }]}>
+              <View
+                style={[
+                  styles.progressIcon,
+                  { backgroundColor: kycStatus?.isVerified ? colors.emeraldLight : colors.amberLight },
+                ]}
+              >
                 <Feather
-                  name={user.kycVerified ? 'check-circle' : 'clock'}
+                  name={kycStatus?.isVerified ? 'check-circle' : 'clock'}
                   size={28}
-                  color={user.kycVerified ? colors.emerald : colors.amber}
+                  color={kycStatus?.isVerified ? colors.emerald : colors.amber}
                 />
               </View>
               <View style={styles.progressInfo}>
                 <Text style={styles.progressTitle}>
-                  {user.kycVerified ? 'KYC Verified' : 'Verification In Progress'}
+                  {kycStatus?.isVerified ? 'KYC Verified' : 'Verification In Progress'}
                 </Text>
                 <Text style={styles.progressSubtitle}>
-                  {verifiedCount} of {totalRequired} documents verified
+                  {verifiedCount} of {documents.length} documents verified
                 </Text>
               </View>
               <View style={styles.progressBadge}>
-                <Text style={[styles.progressPercent, { color: user.kycVerified ? colors.emerald : colors.amber }]}>
+                <Text
+                  style={[
+                    styles.progressPercent,
+                    { color: kycStatus?.isVerified ? colors.emerald : colors.amber },
+                  ]}
+                >
                   {progress}%
                 </Text>
               </View>
@@ -353,24 +543,25 @@ export default function KYCScreen() {
                     styles.progressBarFill,
                     {
                       width: `${progress}%`,
-                      backgroundColor: user.kycVerified ? colors.emerald : colors.amber,
+                      backgroundColor: kycStatus?.isVerified ? colors.emerald : colors.amber,
                     },
                   ]}
                 />
               </View>
             </View>
 
-            {!user.kycVerified && (
+            {!kycStatus?.isVerified && (
               <View style={styles.infoBox}>
                 <Feather name="info" size={14} color={colors.amber} />
                 <Text style={styles.infoText}>
-                  Complete all required documents to unlock full earning potential
+                  Complete Aadhaar and PAN verification to unlock full earning potential
                 </Text>
               </View>
             )}
           </LinearGradient>
         </View>
 
+        {/* Benefits Section */}
         <View style={styles.benefitsSection}>
           <Text style={styles.sectionTitle}>Why Complete KYC?</Text>
           <View style={styles.benefitsGrid}>
@@ -401,34 +592,95 @@ export default function KYCScreen() {
           </View>
         </View>
 
+        {/* Documents Section */}
         <View style={styles.documentsSection}>
           <Text style={styles.sectionTitle}>Required Documents</Text>
-          
+
           {documents.map((doc) => (
             <DocumentUploadCard
               key={doc.id}
               document={doc}
-              onUpload={() => doc.type === 'selfie' ? handleCaptureWithCamera() : handleUpload(doc)}
+              onUpload={() => handleUpload(doc)}
               onView={() => handleView(doc)}
+              isUploading={uploadingDocId === doc.id}
             />
           ))}
         </View>
 
+        {/* Security Note */}
         <View style={styles.securityNote}>
           <Feather name="lock" size={16} color={colors.textSecondary} />
           <Text style={styles.securityText}>
-            Your documents are encrypted and stored securely. We never share your personal information with third parties.
+            Your documents are encrypted and stored securely. We never share your personal
+            information with third parties.
           </Text>
         </View>
       </ScrollView>
+
+      {/* Document Number Modal */}
+      <Modal
+        visible={showDocNumberModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDocNumberModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Enter {pendingUpload?.docType === 'AADHAAR' ? 'Aadhaar' : 'PAN'} Number
+            </Text>
+            <Text style={styles.modalSubtitle}>
+              {pendingUpload?.docType === 'AADHAAR'
+                ? 'Enter your 12-digit Aadhaar number'
+                : 'Enter your 10-character PAN number'}
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={documentNumber}
+              onChangeText={setDocumentNumber}
+              placeholder={pendingUpload?.docType === 'AADHAAR' ? '1234 5678 9012' : 'ABCDE1234F'}
+              placeholderTextColor={colors.textMuted}
+              keyboardType={pendingUpload?.docType === 'AADHAAR' ? 'numeric' : 'default'}
+              autoCapitalize="characters"
+              maxLength={pendingUpload?.docType === 'AADHAAR' ? 14 : 10}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setShowDocNumberModal(false);
+                  setPendingUpload(null);
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSubmitButton} onPress={handleDocNumberSubmit}>
+                <Text style={styles.modalSubmitText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+// ==================== Styles ====================
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
   },
   header: {
     flexDirection: 'row',
@@ -446,6 +698,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerCenter: {
     flex: 1,
     marginLeft: spacing.md,
@@ -453,6 +713,23 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h4,
     color: colors.text,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.redLight,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  errorText: {
+    ...typography.small,
+    color: colors.red,
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  retryText: {
+    ...typography.smallMedium,
+    color: colors.primary,
   },
   scrollView: {
     flex: 1,
@@ -666,5 +943,67 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     flex: 1,
     lineHeight: 20,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    ...typography.h4,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  modalInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    ...typography.body,
+    color: colors.text,
+    marginBottom: spacing.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
+  },
+  modalSubmitButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    ...typography.bodyMedium,
+    color: colors.text,
   },
 });

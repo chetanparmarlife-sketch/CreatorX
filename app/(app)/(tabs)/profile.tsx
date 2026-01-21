@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, Alert, StyleSheet, Image, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, Alert, StyleSheet, Image, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { spacing, borderRadius } from '@/src/theme';
 import { Avatar } from '@/src/components';
 import { useApp } from '@/src/context';
@@ -13,28 +13,25 @@ import { useAuth } from '@/src/context/AuthContext';
 import { API_BASE_URL_READY } from '@/src/config/env';
 import { openExternalUrl } from '@/src/utils/openExternalUrl';
 import { SocialProvider } from '@/src/api/services/socialConnectService';
-
-const STORAGE_KEYS = {
-  CREATOR_PROFILE: '@creator_profile',
-  COMMERCIAL_PROFILE: '@creator_commercial_profile',
-};
+import { profileService } from '@/src/api/services/profileService';
+import { featureFlags } from '@/src/config/featureFlags';
 
 const baseSocialAccounts = [
-  { 
+  {
     id: 'instagram' as const,
-    platform: 'Instagram', 
+    platform: 'Instagram',
     gradient: ['#f09433', '#e6683c', '#dc2743', '#cc2366', '#bc1888'] as const,
     icon: 'camera' as const,
   },
-  { 
+  {
     id: 'facebook' as const,
-    platform: 'Facebook', 
+    platform: 'Facebook',
     bgColor: '#1877f2',
     icon: 'facebook' as const,
   },
-  { 
+  {
     id: 'linkedin' as const,
-    platform: 'LinkedIn', 
+    platform: 'LinkedIn',
     bgColor: '#0a66c2',
     icon: 'linkedin' as const,
   },
@@ -75,7 +72,7 @@ export default function ProfileScreen() {
   const borderColor = isDark ? '#272727' : colors.cardBorder;
   const mutedText = isDark ? '#94a3b8' : colors.textMuted;
   const secondaryText = isDark ? '#9ca3af' : colors.textSecondary;
-  
+
   const [fullName, setFullName] = useState(user.name);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [city, setCity] = useState('');
@@ -93,88 +90,70 @@ export default function ProfileScreen() {
     short: '',
     live: '',
   });
-  
+
   const [preferences, setPreferences] = useState({
     pushNotifications: true,
     emailDigest: false,
     profileVisibility: true,
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const togglePreference = (key: string) => {
     setPreferences(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
   };
 
   const handleSave = async () => {
-    const creatorProfile = {
-      fullName: fullName.trim(),
-      phoneNumber: phoneNumber.trim(),
-      city: city.trim(),
-      bio: bio.trim(),
-      email: email.trim(),
-      category: selectedCategories.join(', '),
-      primaryPlatform: selectedPlatform,
-      socialHandle: socialHandle.trim(),
-      followerCount: followerCount.trim() ? parseInt(followerCount, 10) : 0,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const commercialProfile = {
-      reelRate: pricing.reel.trim() || null,
-      storyRate: pricing.story.trim() || null,
-      postRate: pricing.post.trim() || null,
-      youtubeRate: pricing.youtube.trim() || null,
-      shortRate: pricing.short.trim() || null,
-      liveRate: pricing.live.trim() || null,
-    };
-
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEYS.CREATOR_PROFILE, JSON.stringify(creatorProfile)),
-      AsyncStorage.setItem(STORAGE_KEYS.COMMERCIAL_PROFILE, JSON.stringify(commercialProfile)),
-    ]);
-
-    Alert.alert('Saved', 'Your profile has been updated.');
+    setIsSaving(true);
+    try {
+      if (featureFlags.isEnabled('USE_API_PROFILE')) {
+        // Save to backend API
+        await profileService.updateProfile({
+          fullName: fullName.trim(),
+          bio: bio.trim(),
+          location: city.trim(),
+          phone: phoneNumber.trim(),
+        });
+      }
+      Alert.alert('Saved', 'Your profile has been updated.');
+    } catch (error: any) {
+      console.error('[Profile] Save failed:', error);
+      Alert.alert('Save Failed', error.message || 'Unable to save profile.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   useEffect(() => {
     let isMounted = true;
 
     const hydrateProfile = async () => {
-      const [creatorRaw, commercialRaw] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.CREATOR_PROFILE),
-        AsyncStorage.getItem(STORAGE_KEYS.COMMERCIAL_PROFILE),
-      ]);
+      setIsLoading(true);
+      try {
+        if (featureFlags.isEnabled('USE_API_PROFILE') && isAuthenticated) {
+          // Fetch from backend API
+          const profile = await profileService.getProfile();
+          if (!isMounted) return;
 
-      if (!isMounted) return;
-
-      if (creatorRaw) {
-        const creator = JSON.parse(creatorRaw);
-        setFullName(creator.fullName || user.name);
-        setPhoneNumber(creator.phoneNumber || '');
-        setCity(creator.city || '');
-        setBio(creator.bio || bio);
-        setEmail(creator.email || email);
-        setSelectedCategories(
-          typeof creator.category === 'string' && creator.category.length
-            ? creator.category.split(',').map((item: string) => item.trim()).filter(Boolean)
-            : []
-        );
-        setSelectedPlatform(creator.primaryPlatform || 'instagram');
-        setSocialHandle(creator.socialHandle || '');
-        setFollowerCount(creator.followerCount ? String(creator.followerCount) : '');
+          setFullName(profile.fullName || user.name);
+          setPhoneNumber(profile.phone || '');
+          setCity(profile.location || '');
+          setBio(profile.bio || '');
+          setEmail(profile.email || '');
+        } else {
+          // Use context user data as fallback
+          setFullName(user.name);
+          setBio(user.bio || '');
+          setEmail(user.email || '');
+        }
+      } catch (error) {
+        console.warn('[Profile] Failed to load from API:', error);
+        // Fall back to context data
+        setFullName(user.name);
+        setBio(user.bio || '');
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-
-      if (commercialRaw) {
-        const commercial = JSON.parse(commercialRaw);
-        setPricing({
-          reel: commercial.reelRate || '',
-          story: commercial.storyRate || '',
-          post: commercial.postRate || '',
-          youtube: commercial.youtubeRate || '',
-          short: commercial.shortRate || '',
-          live: commercial.liveRate || '',
-        });
-      }
-
     };
 
     hydrateProfile();
@@ -182,7 +161,42 @@ export default function ProfileScreen() {
     return () => {
       isMounted = false;
     };
-  }, [user.name]);
+  }, [user.name, isAuthenticated]);
+
+  // Handle avatar upload
+  const handleAvatarPress = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      try {
+        setIsLoading(true);
+        if (featureFlags.isEnabled('USE_API_PROFILE')) {
+          await profileService.uploadAvatar({
+            uri: result.assets[0].uri,
+            type: result.assets[0].mimeType || 'image/jpeg',
+            name: result.assets[0].fileName || `avatar_${Date.now()}.jpg`,
+          });
+          Alert.alert('Success', 'Avatar updated successfully!');
+        }
+      } catch (error: any) {
+        console.error('[Profile] Avatar upload failed:', error);
+        Alert.alert('Upload Failed', error.message || 'Unable to upload avatar.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const { refreshing, handleRefresh } = useRefresh(async () => {
     if (!isAuthenticated || !API_BASE_URL_READY) return;
@@ -293,7 +307,7 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => {} },
+      { text: 'Logout', style: 'destructive', onPress: () => { } },
     ]);
   };
 
@@ -317,20 +331,24 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: backgroundColor }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor: backgroundColor }]}>
-        <TouchableOpacity 
-          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)' }]} 
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)' }]}
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Profile & Settings</Text>
-        <TouchableOpacity onPress={handleSave} activeOpacity={0.7}>
-          <Text style={[styles.saveButton, { color: colors.primary }]}>Save</Text>
+        <TouchableOpacity onPress={handleSave} activeOpacity={0.7} disabled={isSaving}>
+          {isSaving ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={[styles.saveButton, { color: colors.primary }]}>Save</Text>
+          )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -355,11 +373,16 @@ export default function ProfileScreen() {
                 <Avatar size={88} name={fullName || user.name} imageUrl={user.avatarUri} />
               </View>
             </LinearGradient>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.editAvatarButton, { backgroundColor: colors.primary, borderColor: backgroundColor }]}
               activeOpacity={0.8}
+              onPress={handleAvatarPress}
             >
-              <Feather name="edit-2" size={14} color="#ffffff" />
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Feather name="edit-2" size={14} color="#ffffff" />
+              )}
             </TouchableOpacity>
           </View>
           <Text style={[styles.userName, { color: colors.text }]}>{fullName || user.name}</Text>
@@ -369,7 +392,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             <Text style={[styles.sectionLabel, { color: mutedText }]}>PERSONAL INFO</Text>
-            
+
             <View style={styles.formGroup}>
               <Text style={[styles.inputLabel, { color: secondaryText }]}>Full Name</Text>
               <TextInput
@@ -434,7 +457,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: mutedText }]}>CONNECTED ACCOUNTS</Text>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             {connectedAccounts.map((account, index) => (
-              <View 
+              <View
                 key={account.id}
                 style={[
                   styles.accountItem,
@@ -444,8 +467,8 @@ export default function ProfileScreen() {
                 <View style={styles.accountLeft}>
                   <View style={[
                     styles.accountIcon,
-                    account.gradient 
-                      ? {} 
+                    account.gradient
+                      ? {}
                       : { backgroundColor: account.bgColor }
                   ]}>
                     {account.gradient ? (
@@ -475,7 +498,7 @@ export default function ProfileScreen() {
                 >
                   <Text style={[
                     styles.accountAction,
-                    account.connected 
+                    account.connected
                       ? { color: mutedText }
                       : { color: colors.primary, fontWeight: '700' }
                   ]}>
@@ -491,7 +514,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: mutedText }]}>CREATOR TOOLKIT</Text>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             {creatorToolkit.map((item, index) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={item.action}
                 style={[
                   styles.menuItem,
@@ -519,7 +542,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: mutedText }]}>APP PREFERENCES</Text>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
             {appPreferences.map((pref, index) => (
-              <View 
+              <View
                 key={pref.key}
                 style={[
                   styles.preferenceItem,
@@ -548,7 +571,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.simpleMenuItem, { borderBottomWidth: 1, borderBottomColor: borderColor }]}
               onPress={() => router.push('/wallet')}
               activeOpacity={0.7}
@@ -556,8 +579,8 @@ export default function ProfileScreen() {
               <Text style={[styles.simpleMenuLabel, { color: colors.text }]}>Payment Methods</Text>
               <Feather name="chevron-right" size={20} color={colors.textMuted} />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.simpleMenuItem, { borderBottomWidth: 1, borderBottomColor: borderColor }]}
               onPress={() => router.push('/help')}
               activeOpacity={0.7}
@@ -565,8 +588,8 @@ export default function ProfileScreen() {
               <Text style={[styles.simpleMenuLabel, { color: colors.text }]}>Help & Support</Text>
               <Feather name="chevron-right" size={20} color={colors.textMuted} />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.simpleMenuItem}
               onPress={handleLogout}
               activeOpacity={0.7}

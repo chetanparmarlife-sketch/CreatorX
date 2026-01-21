@@ -105,6 +105,8 @@ export interface UserProfile {
   location?: string;
   dateOfBirth?: string;
   gender?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface CreatorProfile {
@@ -218,15 +220,15 @@ export interface SubmitApplicationRequest {
 
 // ==================== Deliverable Types ====================
 
-export type DeliverableStatus = 
-  | 'PENDING' 
-  | 'SUBMITTED' 
-  | 'REVISION' 
-  | 'APPROVED' 
-  | 'REJECTED' 
-  | 'DRAFT_SUBMITTED' 
-  | 'BRAND_REVIEWING' 
-  | 'CHANGES_REQUESTED' 
+export type DeliverableStatus =
+  | 'PENDING'
+  | 'SUBMITTED'
+  | 'REVISION'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'DRAFT_SUBMITTED'
+  | 'BRAND_REVIEWING'
+  | 'CHANGES_REQUESTED'
   | 'POSTED';
 
 export type SubmissionStatus = 'PENDING' | 'APPROVED' | 'REVISION_REQUESTED' | 'REJECTED';
@@ -407,7 +409,7 @@ export interface SendMessageRequest {
 
 // ==================== Notification Types ====================
 
-export type NotificationType = 
+export type NotificationType =
   | 'CAMPAIGN_APPLICATION'
   | 'CAMPAIGN_SELECTED'
   | 'CAMPAIGN_REJECTED'
@@ -445,6 +447,8 @@ export interface UpdateProfileRequest {
   location?: string;
   dateOfBirth?: string;
   gender?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface PortfolioItem {
