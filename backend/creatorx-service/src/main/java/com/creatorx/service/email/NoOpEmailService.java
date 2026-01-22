@@ -7,28 +7,39 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 /**
- * No-operation email service for when email is disabled
- * Logs email attempts without sending
+ * No-op email service for development/testing
+ * Used when EMAIL_ENABLED=false
  */
 @Service
 @ConditionalOnProperty(name = "creatorx.email.enabled", havingValue = "false", matchIfMissing = true)
 @Slf4j
 public class NoOpEmailService implements EmailService {
-    
+
+    public NoOpEmailService() {
+        log.info("NoOpEmailService initialized - emails will be logged but not sent");
+    }
+
     @Override
     public void sendEmail(String to, String subject, String body) {
-        log.info("[EMAIL DISABLED] Would send email to={} subject={}", to, subject);
-        log.debug("[EMAIL DISABLED] Body: {}", body);
+        log.info("[NO-OP EMAIL] to={} subject={} body={}", to, subject, truncate(body));
     }
-    
+
     @Override
-    public void sendTemplatedEmail(String to, String templateId, Map<String, String> variables) {
-        log.info("[EMAIL DISABLED] Would send templated email to={} templateId={} vars={}", 
-                to, templateId, variables.keySet());
+    public void sendHtmlEmail(String to, String subject, String htmlBody) {
+        log.info("[NO-OP HTML EMAIL] to={} subject={} htmlLength={}", to, subject, htmlBody.length());
     }
-    
+
+    @Override
+    public void sendTemplatedEmail(String to, String templateId, Map<String, Object> variables) {
+        log.info("[NO-OP TEMPLATE EMAIL] to={} templateId={} variables={}", to, templateId, variables);
+    }
+
     @Override
     public boolean isEnabled() {
         return false;
+    }
+
+    private String truncate(String text) {
+        return text.length() > 100 ? text.substring(0, 100) + "..." : text;
     }
 }
