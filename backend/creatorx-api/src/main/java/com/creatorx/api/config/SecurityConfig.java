@@ -1,6 +1,7 @@
 package com.creatorx.api.config;
 
 import com.creatorx.api.security.IdempotencyFilter;
+import com.creatorx.api.security.RateLimitFilter;
 import com.creatorx.api.security.SupabaseJwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Security configuration with:
+ * - CORS configuration
+ * - JWT authentication (Supabase)
+ * - Rate limiting (Redis-based)
+ * - Idempotency for payment operations
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -32,44 +40,45 @@ public class SecurityConfig {
 
     private final SupabaseJwtAuthenticationFilter supabaseJwtAuthenticationFilter;
     private final IdempotencyFilter idempotencyFilter;
-    
+    private final RateLimitFilter rateLimitFilter;
+
     @Value("${creatorx.cors.allowed-origins:}")
     private String allowedOrigins;
-    
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
-                .requestMatchers(
-                    "/api/v1/auth/**",
-                    "/api/v1/health",
-                    "/actuator/health",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html",
-                    "/error"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(supabaseJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(idempotencyFilter, SupabaseJwtAuthenticationFilter.class);
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
+                        .requestMatchers(
+                                "/api/v1/auth/**",
+                                "/api/v1/health",
+                                "/actuator/health",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/error")
+                        .permitAll()
+                        .anyRequest().authenticated())
+                // Filter order: RateLimit -> JWT Auth -> Idempotency
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(supabaseJwtAuthenticationFilter, RateLimitFilter.class)
+                .addFilterAfter(idempotencyFilter, SupabaseJwtAuthenticationFilter.class);
 
         return http.build();
     }
-    
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         List<String> baseOrigins = Arrays.asList(
-            "http://localhost:8081", // Expo default
-            "http://localhost:19006", // Expo web
-            "exp://localhost:8081",
-            "http://localhost:3000"
-        );
+                "http://localhost:8081", // Expo default
+                "http://localhost:19006", // Expo web
+                "exp://localhost:8081",
+                "http://localhost:3000");
         List<String> extraOrigins = parseAllowedOrigins(allowedOrigins);
         if (extraOrigins.isEmpty()) {
             configuration.setAllowedOrigins(baseOrigins);
@@ -80,16 +89,21 @@ public class SecurityConfig {
         }
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
-            "Authorization",
-            "Content-Type",
-            "Idempotency-Key",
-            "Idempotent-Key",
-            "X-Razorpay-Signature"
-        ));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+                "Authorization",
+                "Content-Type",
+                "Idempotency-Key",
+                "Idempotent-Key",
+                "X-Razorpay-Signature"));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-RateLimit-Limit",
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Reset",
+                "Retry-After"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration webhookConfiguration = new CorsConfiguration(configuration);
         webhookConfiguration.setAllowedMethods(Collections.singletonList("POST"));
@@ -104,9 +118,8 @@ public class SecurityConfig {
             return Collections.emptyList();
         }
         return Arrays.stream(raw.split(","))
-            .map(String::trim)
-            .filter(value -> !value.isEmpty())
-            .collect(Collectors.toList());
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.toList());
     }
 }
-

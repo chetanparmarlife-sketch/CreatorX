@@ -178,6 +178,14 @@ creatorx:
     cron: ${RECONCILIATION_CRON:0 0 2 * * *}  # 2 AM daily
     retry-cron: ${RECONCILIATION_RETRY_CRON:0 0 6 * * *}  # 6 AM daily
     alert-threshold: ${RECONCILIATION_ALERT_THRESHOLD:0.01}
+  # Rate Limiting Configuration
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    general-limit: ${RATE_LIMIT_GENERAL:100}      # requests per minute for general APIs
+    auth-limit: ${RATE_LIMIT_AUTH:5}              # requests per minute for login/register
+    payment-limit: ${RATE_LIMIT_PAYMENT:10}       # requests per minute for payment operations
+    window-seconds: ${RATE_LIMIT_WINDOW:60}       # time window in seconds
+    key-prefix: rate_limit:
 
 # OpenAPI Configuration
 springdoc:
