@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Unit tests for RateLimitFilter
@@ -37,7 +38,8 @@ class RateLimitFilterTest {
 
     @BeforeEach
     void setUp() {
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        // Use lenient stubbing since some tests (health check, webhooks) skip rate limiting
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         rateLimitFilter = new RateLimitFilter(redisTemplate);
     }
 

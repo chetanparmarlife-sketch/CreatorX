@@ -185,7 +185,7 @@ creatorx:
     auth-limit: ${RATE_LIMIT_AUTH:5}              # requests per minute for login/register
     payment-limit: ${RATE_LIMIT_PAYMENT:10}       # requests per minute for payment operations
     window-seconds: ${RATE_LIMIT_WINDOW:60}       # time window in seconds
-    key-prefix: rate_limit:
+    key-prefix: "rate_limit:"
 
 # OpenAPI Configuration
 springdoc:

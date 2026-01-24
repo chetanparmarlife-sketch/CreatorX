@@ -51,6 +51,8 @@ spring:
 # Disable Supabase in tests (use mocks)
 supabase:
   url: http://localhost:9999
+  jwt:
+    secret: test-supabase-jwt-secret-key-minimum-32-characters-for-tests
   service:
     role:
       key: test-key
