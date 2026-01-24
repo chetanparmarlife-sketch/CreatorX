@@ -99,7 +99,8 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
         // Mock Razorpay service (disabled by default)
         when(razorpayService.createPayout(any(), any(), any())).thenReturn("pout_test_123");
-        when(razorpayService.verifyBankAccount(any())).thenReturn(true);
+        when(razorpayService.verifyBankAccount(any())).thenReturn(
+                com.creatorx.service.razorpay.BankVerificationResult.success("fa_test123", true));
 
         // Authenticate as creator
         authenticateAsCreator();
@@ -303,14 +304,14 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
             String idempotencyKey = "test-key-bank-001";
 
             String bankAccountRequest = """
-                {
-                    "accountHolderName": "New Account Holder",
-                    "accountNumber": "9876543210123",
-                    "ifscCode": "SBIN0001234",
-                    "bankName": "State Bank of India",
-                    "branchName": "Mumbai Main"
-                }
-                """;
+                    {
+                        "accountHolderName": "New Account Holder",
+                        "accountNumber": "9876543210123",
+                        "ifscCode": "SBIN0001234",
+                        "bankName": "State Bank of India",
+                        "branchName": "Mumbai Main"
+                    }
+                    """;
 
             // First request
             mockMvc.perform(post(BANK_ACCOUNTS_ENDPOINT)
@@ -366,25 +367,25 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
     private String createWithdrawRequest(String bankAccountId, String amount) {
         return String.format("""
-            {
-                "bankAccountId": "%s",
-                "amount": %s
-            }
-            """, bankAccountId, amount);
+                {
+                    "bankAccountId": "%s",
+                    "amount": %s
+                }
+                """, bankAccountId, amount);
     }
 
     private String createCampaignRequest() {
         return """
-            {
-                "title": "Test Campaign",
-                "description": "A test campaign for idempotency testing",
-                "budget": 10000,
-                "category": "FASHION",
-                "targetPlatforms": ["INSTAGRAM"],
-                "deliverableTypes": ["POST"],
-                "startDate": "2025-02-01",
-                "endDate": "2025-03-01"
-            }
-            """;
+                {
+                    "title": "Test Campaign",
+                    "description": "A test campaign for idempotency testing",
+                    "budget": 10000,
+                    "category": "FASHION",
+                    "targetPlatforms": ["INSTAGRAM"],
+                    "deliverableTypes": ["POST"],
+                    "startDate": "2025-02-01",
+                    "endDate": "2025-03-01"
+                }
+                """;
     }
 }

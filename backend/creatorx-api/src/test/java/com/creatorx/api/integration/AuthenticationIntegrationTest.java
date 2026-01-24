@@ -314,10 +314,12 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
 
             // Refresh endpoint may return new access token
             // This is a placeholder - actual behavior depends on implementation
-            mockMvc.perform(post("/api/v1/auth/refresh-token")
+            MvcResult result = mockMvc.perform(post("/api/v1/auth/refresh-token")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk().or(result -> result.isForbidden()));
+                    .andReturn();
+            int status = result.getResponse().getStatus();
+            assertThat(status == 200 || status == 403).isTrue();
         }
     }
 
@@ -487,10 +489,12 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
                     .andExpect(status().isOk());
 
             // Logout
-            mockMvc.perform(post("/api/v1/auth/logout")
+            MvcResult logoutResult = mockMvc.perform(post("/api/v1/auth/logout")
                     .header("Authorization", "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk().or(result -> result.isNoContent()));
+                    .andReturn();
+            int logoutStatus = logoutResult.getResponse().getStatus();
+            assertThat(logoutStatus == 200 || logoutStatus == 204).isTrue();
 
             // Note: For stateless JWT, the token may still be valid until expiry
             // A token blacklist would be needed for immediate invalidation

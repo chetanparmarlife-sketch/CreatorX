@@ -95,6 +95,11 @@ public class TestDataBuilder {
             return this;
         }
 
+        public UserBuilder withSupabaseId(String supabaseId) {
+            this.supabaseId = supabaseId;
+            return this;
+        }
+
         public User build() {
             return User.builder()
                     .id(id)

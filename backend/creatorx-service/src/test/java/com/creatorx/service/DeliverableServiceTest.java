@@ -146,7 +146,8 @@ class DeliverableServiceTest {
                                 .thenReturn(latestPage);
 
                 // When
-                List<DeliverableDTO> result = deliverableService.getDeliverables(creatorUser.getId(), null);
+                Page<DeliverableDTO> resultPage = deliverableService.getDeliverables(creatorUser.getId(), null, 0, 100);
+                List<DeliverableDTO> result = resultPage.getContent();
 
                 // Then
                 assertThat(result).hasSize(1);
