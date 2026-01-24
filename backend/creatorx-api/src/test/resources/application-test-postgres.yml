@@ -41,6 +41,12 @@ spring:
       repositories:
         enabled: false
   
+  # Exclude Redis auto-configuration in tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  
   # Disable scheduled tasks during tests
   task:
     scheduling:

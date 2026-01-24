@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,10 +26,15 @@ import java.util.concurrent.TimeUnit;
  * - Payment operations: 10 requests per minute per IP
  * 
  * Uses sliding window algorithm with Redis for distributed environments.
+ * 
+ * Note: This filter is only active when Redis is available (StringRedisTemplate
+ * bean exists).
+ * In test environments without Redis, this filter is not loaded.
  */
 @Component
 @Slf4j
 @RequiredArgsConstructor
+@ConditionalOnBean(StringRedisTemplate.class)
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final StringRedisTemplate redisTemplate;

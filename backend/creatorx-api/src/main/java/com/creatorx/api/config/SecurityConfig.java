@@ -23,13 +23,14 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Security configuration with:
  * - CORS configuration
  * - JWT authentication (Supabase)
- * - Rate limiting (Redis-based)
+ * - Rate limiting (Redis-based, optional)
  * - Idempotency for payment operations
  */
 @Configuration
@@ -40,7 +41,7 @@ public class SecurityConfig {
 
     private final SupabaseJwtAuthenticationFilter supabaseJwtAuthenticationFilter;
     private final IdempotencyFilter idempotencyFilter;
-    private final RateLimitFilter rateLimitFilter;
+    private final Optional<RateLimitFilter> rateLimitFilter;
 
     @Value("${creatorx.cors.allowed-origins:}")
     private String allowedOrigins;
@@ -62,11 +63,18 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/error")
                         .permitAll()
-                        .anyRequest().authenticated())
-                // Filter order: RateLimit -> JWT Auth -> Idempotency
-                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(supabaseJwtAuthenticationFilter, RateLimitFilter.class)
-                .addFilterAfter(idempotencyFilter, SupabaseJwtAuthenticationFilter.class);
+                        .anyRequest().authenticated());
+
+        // Add rate limit filter if Redis is available
+        if (rateLimitFilter.isPresent()) {
+            http.addFilterBefore(rateLimitFilter.get(), UsernamePasswordAuthenticationFilter.class);
+            http.addFilterAfter(supabaseJwtAuthenticationFilter, RateLimitFilter.class);
+        } else {
+            // Without rate limiting, add JWT filter directly
+            http.addFilterBefore(supabaseJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        }
+
+        http.addFilterAfter(idempotencyFilter, SupabaseJwtAuthenticationFilter.class);
 
         return http.build();
     }

@@ -33,6 +33,12 @@ spring:
       repositories:
         enabled: false
   
+  # Exclude Redis auto-configuration in tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  
   # Disable web server for unit tests
   main:
     web-application-type: servlet
