@@ -51,14 +51,14 @@ public class RefundService {
      * Initiate a refund for a captured payment
      *
      * @param paymentOrderId Payment order ID
-     * @param amount Amount to refund (null for full refund)
-     * @param reason Reason for refund
-     * @param initiatedById User ID of the person initiating refund
+     * @param amount         Amount to refund (null for full refund)
+     * @param reason         Reason for refund
+     * @param initiatedById  User ID of the person initiating refund
      * @return RefundDTO with refund details
      */
     @Transactional
     public RefundDTO initiateRefund(String paymentOrderId, BigDecimal amount,
-                                     String reason, String initiatedById) {
+            String reason, String initiatedById) {
         // Validate payment order exists
         PaymentOrder paymentOrder = paymentOrderRepository.findById(paymentOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("PaymentOrder", paymentOrderId));
@@ -100,26 +100,25 @@ public class RefundService {
                 .reason(reason)
                 .build();
 
-        refund = refundRepository.save(refund);
+        Refund savedRefund = refundRepository.save(refund);
         log.info("Refund created: {} for payment order: {}, amount: {} INR",
-                refund.getId(), paymentOrderId, refundAmount);
+                savedRefund.getId(), paymentOrderId, refundAmount);
 
         // Initiate refund with Razorpay
         String razorpayRefundId = createRazorpayRefund(
                 paymentOrder.getRazorpayPaymentId(),
                 refundAmount,
-                refund.getId(),
-                reason
-        );
+                savedRefund.getId(),
+                reason);
 
         // Update refund with Razorpay ID and set to pending
-        refund.setRazorpayRefundId(razorpayRefundId);
-        refund.setStatus(RefundStatus.PENDING);
-        refundRepository.save(refund);
+        savedRefund.setRazorpayRefundId(razorpayRefundId);
+        savedRefund.setStatus(RefundStatus.PENDING);
+        Refund finalRefund = refundRepository.save(savedRefund);
 
-        log.info("Razorpay refund initiated: {} for refund: {}", razorpayRefundId, refund.getId());
+        log.info("Razorpay refund initiated: {} for refund: {}", razorpayRefundId, finalRefund.getId());
 
-        return refundMapper.map(mapper -> mapper.toDTO(refund))
+        return refundMapper.map(mapper -> mapper.toDTO(finalRefund))
                 .orElseThrow(() -> new BusinessException("RefundMapper not available"));
     }
 
@@ -127,7 +126,7 @@ public class RefundService {
      * Create refund via Razorpay API
      */
     private String createRazorpayRefund(String razorpayPaymentId, BigDecimal amount,
-                                         String refundId, String reason) {
+            String refundId, String reason) {
         if (razorpayClient.isEmpty()) {
             throw new BusinessException("Razorpay is not configured");
         }
@@ -141,12 +140,10 @@ public class RefundService {
             refundRequest.put("notes", new JSONObject()
                     .put("platform", "CreatorX")
                     .put("refund_id", refundId)
-                    .put("reason", reason != null ? reason : "")
-            );
+                    .put("reason", reason != null ? reason : ""));
 
             // Razorpay Refund API: POST /payments/{paymentId}/refund
-            com.razorpay.Refund razorpayRefund = razorpayClient.get()
-                    .payments.refund(razorpayPaymentId, refundRequest);
+            com.razorpay.Refund razorpayRefund = razorpayClient.get().payments.refund(razorpayPaymentId, refundRequest);
 
             return razorpayRefund.get("id");
 
@@ -161,7 +158,7 @@ public class RefundService {
      * Validate refund amount doesn't exceed payment or already refunded amount
      */
     private void validateRefundAmount(String razorpayPaymentId, BigDecimal requestedAmount,
-                                       BigDecimal originalAmount) {
+            BigDecimal originalAmount) {
         if (requestedAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Refund amount must be greater than zero");
         }
@@ -173,7 +170,7 @@ public class RefundService {
         if (requestedAmount.compareTo(remainingRefundable) > 0) {
             throw new BusinessException(String.format(
                     "Refund amount (₹%.2f) exceeds refundable amount (₹%.2f). " +
-                    "Original: ₹%.2f, Already refunded: ₹%.2f",
+                            "Original: ₹%.2f, Already refunded: ₹%.2f",
                     requestedAmount, remainingRefundable, originalAmount, alreadyRefunded));
         }
     }
@@ -182,8 +179,8 @@ public class RefundService {
      * Process refund status update from webhook
      *
      * @param razorpayRefundId Razorpay refund ID
-     * @param isProcessed true if refund processed, false if failed
-     * @param failureReason Failure reason (if failed)
+     * @param isProcessed      true if refund processed, false if failed
+     * @param failureReason    Failure reason (if failed)
      */
     @Transactional
     public void processRefundWebhook(String razorpayRefundId, boolean isProcessed, String failureReason) {
@@ -199,7 +196,7 @@ public class RefundService {
 
         // Idempotency: skip if already in terminal state
         if (refund.getStatus() == RefundStatus.PROCESSED ||
-            refund.getStatus() == RefundStatus.FAILED) {
+                refund.getStatus() == RefundStatus.FAILED) {
             log.info("Refund {} already in terminal state: {}", refund.getId(), refund.getStatus());
             return;
         }

@@ -58,8 +58,7 @@ public class AdminCampaignManagementController {
             @RequestParam(required = false, defaultValue = "desc") String sortDirection,
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "20") int size,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         Pageable pageable = PageRequest.of(page, size, buildSort(sortBy, sortDirection));
         return adminCampaignManagementService.listCampaigns(
@@ -70,8 +69,7 @@ public class AdminCampaignManagementController {
                 budgetMin,
                 budgetMax,
                 search,
-                pageable
-        );
+                pageable);
     }
 
     @GetMapping("/{campaignId}")
@@ -79,8 +77,7 @@ public class AdminCampaignManagementController {
     @Operation(summary = "Get campaign", description = "Get campaign details for admin management")
     public CampaignDTO getCampaign(
             @PathVariable String campaignId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         return adminCampaignManagementService.getCampaign(campaignId);
     }
@@ -91,8 +88,7 @@ public class AdminCampaignManagementController {
     public CampaignDTO createCampaign(
             @RequestParam String brandId,
             @Valid @RequestBody CampaignCreateRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         CampaignDTO dto = mapCreateRequestToDTO(request);
         return adminCampaignManagementService.createCampaign(authentication.getName(), brandId, dto);
@@ -104,8 +100,7 @@ public class AdminCampaignManagementController {
     public CampaignDTO updateCampaign(
             @PathVariable String campaignId,
             @Valid @RequestBody CampaignUpdateRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         CampaignDTO dto = mapUpdateRequestToDTO(request);
         return adminCampaignManagementService.updateCampaign(authentication.getName(), campaignId, dto);
@@ -116,8 +111,7 @@ public class AdminCampaignManagementController {
     @Operation(summary = "Delete campaign", description = "Delete a campaign on behalf of the brand")
     public void deleteCampaign(
             @PathVariable String campaignId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         adminCampaignManagementService.deleteCampaign(authentication.getName(), campaignId);
     }
@@ -128,15 +122,13 @@ public class AdminCampaignManagementController {
     public ApplicationDTO inviteCreator(
             @PathVariable String campaignId,
             @Valid @RequestBody InviteCreatorRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         return adminCampaignManagementService.inviteCreator(
                 authentication.getName(),
                 campaignId,
                 request.getCreatorId(),
-                request.getMessage()
-        );
+                request.getMessage());
     }
 
     @GetMapping("/{campaignId}/applications")
@@ -148,8 +140,7 @@ public class AdminCampaignManagementController {
             @RequestParam(required = false, defaultValue = "20") int size,
             @RequestParam(required = false, defaultValue = "applied_at") String sortBy,
             @RequestParam(required = false, defaultValue = "desc") String sortDirection,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), buildApplicationSort(sortBy, sortDirection));
         return adminCampaignManagementService.getApplications(campaignId, pageable);
@@ -164,8 +155,7 @@ public class AdminCampaignManagementController {
             @RequestParam(required = false) com.creatorx.common.enums.ApplicationStatus status,
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "20") int size,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(Sort.Direction.DESC, "appliedAt"));
         return adminCampaignManagementService.listApplications(brandId, campaignId, status, pageable);
@@ -176,8 +166,7 @@ public class AdminCampaignManagementController {
     @Operation(summary = "Shortlist application", description = "Shortlist an application on behalf of the brand")
     public void shortlistApplication(
             @PathVariable String applicationId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         adminCampaignManagementService.shortlistApplication(authentication.getName(), applicationId);
     }
@@ -187,8 +176,7 @@ public class AdminCampaignManagementController {
     @Operation(summary = "Select application", description = "Select an application on behalf of the brand")
     public void selectApplication(
             @PathVariable String applicationId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         adminCampaignManagementService.selectApplication(authentication.getName(), applicationId);
     }
@@ -200,8 +188,7 @@ public class AdminCampaignManagementController {
             @PathVariable String applicationId,
             @RequestParam(required = false) String reason,
             @RequestBody(required = false) Map<String, String> body,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         String rejectionReason = reason;
         if (rejectionReason == null && body != null && body.containsKey("reason")) {
@@ -210,8 +197,7 @@ public class AdminCampaignManagementController {
         adminCampaignManagementService.rejectApplication(
                 authentication.getName(),
                 applicationId,
-                rejectionReason != null ? rejectionReason : "Not selected"
-        );
+                rejectionReason != null ? rejectionReason : "Not selected");
     }
 
     @PutMapping("/applications/{applicationId}/status")
@@ -220,15 +206,13 @@ public class AdminCampaignManagementController {
     public void updateApplicationStatus(
             @PathVariable String applicationId,
             @Valid @RequestBody UpdateStatusRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         adminCampaignManagementService.updateApplicationStatus(
                 authentication.getName(),
                 applicationId,
                 request.getStatus(),
-                request.getReason()
-        );
+                request.getReason());
     }
 
     @PostMapping("/applications/bulk-status")
@@ -236,15 +220,13 @@ public class AdminCampaignManagementController {
     @Operation(summary = "Bulk update application status", description = "Bulk update application status on behalf of the brand")
     public void bulkUpdateApplications(
             @Valid @RequestBody BulkStatusRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         adminCampaignManagementService.bulkUpdateApplications(
                 authentication.getName(),
                 request.getApplicationIds(),
                 request.getStatus(),
-                request.getReason()
-        );
+                request.getReason());
     }
 
     @GetMapping("/{campaignId}/deliverables")
@@ -253,10 +235,9 @@ public class AdminCampaignManagementController {
     public List<DeliverableDTO> listDeliverables(
             @PathVariable String campaignId,
             @RequestParam(required = false) SubmissionStatus status,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
-        return adminCampaignManagementService.getDeliverablesByCampaign(campaignId, status);
+        return adminCampaignManagementService.getDeliverablesByCampaign(campaignId, status).getContent();
     }
 
     @GetMapping("/deliverables")
@@ -268,8 +249,7 @@ public class AdminCampaignManagementController {
             @RequestParam(required = false) SubmissionStatus status,
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "20") int size,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(Sort.Direction.DESC, "submittedAt"));
         return adminCampaignManagementService.listDeliverables(brandId, campaignId, status, pageable);
@@ -281,15 +261,13 @@ public class AdminCampaignManagementController {
     public void reviewDeliverable(
             @PathVariable String submissionId,
             @Valid @RequestBody ReviewRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         adminCampaignManagementService.reviewDeliverable(
                 authentication.getName(),
                 submissionId,
                 request.getStatus(),
-                request.getFeedback()
-        );
+                request.getFeedback());
     }
 
     @GetMapping("/templates")
@@ -297,8 +275,7 @@ public class AdminCampaignManagementController {
     @Operation(summary = "List templates", description = "List campaign templates for a brand")
     public List<CampaignTemplateDTO> listTemplates(
             @RequestParam String brandId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         return adminCampaignManagementService.listTemplates(brandId);
     }
@@ -308,8 +285,7 @@ public class AdminCampaignManagementController {
     @Operation(summary = "Get template", description = "Get campaign template details")
     public CampaignTemplateDTO getTemplate(
             @PathVariable String templateId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         return adminCampaignManagementService.getTemplate(templateId);
     }
@@ -320,8 +296,7 @@ public class AdminCampaignManagementController {
     public CampaignTemplateDTO createTemplate(
             @RequestParam String brandId,
             @Valid @RequestBody CampaignTemplateDTO request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         return adminCampaignManagementService.createTemplate(authentication.getName(), brandId, request);
     }
@@ -332,8 +307,7 @@ public class AdminCampaignManagementController {
     public CampaignTemplateDTO createTemplateFromCampaign(
             @PathVariable String campaignId,
             @RequestParam String brandId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         return adminCampaignManagementService.createTemplateFromCampaign(authentication.getName(), brandId, campaignId);
     }
@@ -344,8 +318,7 @@ public class AdminCampaignManagementController {
     public CampaignTemplateDTO updateTemplate(
             @PathVariable String templateId,
             @Valid @RequestBody CampaignTemplateDTO request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         return adminCampaignManagementService.updateTemplate(authentication.getName(), templateId, request);
     }
@@ -355,8 +328,7 @@ public class AdminCampaignManagementController {
     @Operation(summary = "Delete template", description = "Delete a campaign template")
     public void deleteTemplate(
             @PathVariable String templateId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
         adminCampaignManagementService.deleteTemplate(authentication.getName(), templateId);
     }

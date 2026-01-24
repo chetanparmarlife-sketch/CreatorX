@@ -16,7 +16,7 @@ import java.util.List;
 public interface PaymentOrderMapper {
 
     @Mapping(source = "brand.id", target = "brandId")
-    @Mapping(source = "brand.displayName", target = "brandName")
+    @Mapping(source = "brand.brandProfile.companyName", target = "brandName")
     @Mapping(source = "campaign.id", target = "campaignId")
     @Mapping(source = "campaign.title", target = "campaignTitle")
     PaymentOrderDTO toDTO(PaymentOrder paymentOrder);

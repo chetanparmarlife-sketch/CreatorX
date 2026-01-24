@@ -17,7 +17,7 @@ public interface RefundMapper {
 
     @Mapping(source = "paymentOrder.id", target = "paymentOrderId")
     @Mapping(source = "initiatedBy.id", target = "initiatedById")
-    @Mapping(source = "initiatedBy.displayName", target = "initiatedByName")
+    @Mapping(source = "initiatedBy.userProfile.fullName", target = "initiatedByName")
     RefundDTO toDTO(Refund refund);
 
     List<RefundDTO> toDTOList(List<Refund> refunds);

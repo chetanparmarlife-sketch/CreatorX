@@ -54,15 +54,15 @@ public class PaymentCollectionService {
     /**
      * Create a Razorpay order for brand payment
      *
-     * @param brandId Brand user ID
-     * @param campaignId Campaign ID (optional)
-     * @param amount Amount in INR
+     * @param brandId        Brand user ID
+     * @param campaignId     Campaign ID (optional)
+     * @param amount         Amount in INR
      * @param idempotencyKey Unique key for idempotency
      * @return PaymentOrderDTO with Razorpay order details
      */
     @Transactional
     public PaymentOrderDTO createPaymentOrder(String brandId, String campaignId,
-                                               BigDecimal amount, String idempotencyKey) {
+            BigDecimal amount, String idempotencyKey) {
         // Validate brand exists
         User brand = userRepository.findById(brandId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", brandId));
@@ -113,15 +113,14 @@ public class PaymentCollectionService {
                 .notes(Map.of(
                         "brand_id", brandId,
                         "campaign_id", campaignId != null ? campaignId : "",
-                        "platform", "CreatorX"
-                ))
+                        "platform", "CreatorX"))
                 .build();
 
-        paymentOrder = paymentOrderRepository.save(paymentOrder);
+        PaymentOrder savedPaymentOrder = paymentOrderRepository.save(paymentOrder);
         log.info("Payment order created: {} with Razorpay order: {}",
-                paymentOrder.getId(), razorpayOrderId);
+                savedPaymentOrder.getId(), razorpayOrderId);
 
-        return paymentOrderMapper.map(mapper -> mapper.toDTO(paymentOrder))
+        return paymentOrderMapper.map(mapper -> mapper.toDTO(savedPaymentOrder))
                 .orElseThrow(() -> new BusinessException("PaymentOrderMapper not available"));
     }
 
@@ -142,8 +141,7 @@ public class PaymentCollectionService {
             orderRequest.put("receipt", receiptId);
             orderRequest.put("notes", new JSONObject()
                     .put("platform", "CreatorX")
-                    .put("receipt_id", receiptId)
-            );
+                    .put("receipt_id", receiptId));
 
             Order order = razorpayClient.get().orders.create(orderRequest);
             String orderId = order.get("id");
@@ -182,9 +180,10 @@ public class PaymentCollectionService {
      */
     @Transactional
     public void processPaymentCapture(String razorpayOrderId, String razorpayPaymentId,
-                                       String paymentMethod, String bank, String vpa) {
+            String paymentMethod, String bank, String vpa) {
         PaymentOrder paymentOrder = paymentOrderRepository.findByRazorpayOrderId(razorpayOrderId)
-                .orElseThrow(() -> new ResourceNotFoundException("PaymentOrder with razorpay_order_id", razorpayOrderId));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("PaymentOrder with razorpay_order_id", razorpayOrderId));
 
         // Idempotency: skip if already captured
         if (paymentOrder.getStatus() == PaymentOrderStatus.CAPTURED) {
@@ -215,13 +214,14 @@ public class PaymentCollectionService {
      */
     @Transactional
     public void processPaymentFailure(String razorpayOrderId, String razorpayPaymentId,
-                                       String errorCode, String errorDescription) {
+            String errorCode, String errorDescription) {
         PaymentOrder paymentOrder = paymentOrderRepository.findByRazorpayOrderId(razorpayOrderId)
-                .orElseThrow(() -> new ResourceNotFoundException("PaymentOrder with razorpay_order_id", razorpayOrderId));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("PaymentOrder with razorpay_order_id", razorpayOrderId));
 
         // Idempotency: skip if already failed or captured
         if (paymentOrder.getStatus() == PaymentOrderStatus.FAILED ||
-            paymentOrder.getStatus() == PaymentOrderStatus.CAPTURED) {
+                paymentOrder.getStatus() == PaymentOrderStatus.CAPTURED) {
             log.info("Payment already processed for order: {}", razorpayOrderId);
             return;
         }
