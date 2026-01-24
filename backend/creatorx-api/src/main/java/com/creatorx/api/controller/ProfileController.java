@@ -45,9 +45,9 @@ public class ProfileController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get profile", description = "Get current user's profile. For brands, returns brand profile.")
     public ResponseEntity<?> getProfile(Authentication authentication) {
-        String userId = authentication.getName();
         User user = (User) authentication.getPrincipal();
-        
+        String userId = user.getId();
+
         if (user.getRole() == UserRole.BRAND) {
             // Return brand profile
             BrandProfileDTO brandProfile = profileService.getBrandProfile(userId);
@@ -69,7 +69,7 @@ public class ProfileController {
             @Valid @RequestBody UpdateProfileRequest request,
             Authentication authentication
     ) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         UserProfileDTO profile = profileService.updateProfile(
                 userId,
                 request.getFullName(),
@@ -89,7 +89,7 @@ public class ProfileController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication
     ) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         String avatarUrl = profileService.uploadAvatar(userId, file);
         return ResponseEntity.ok(avatarUrl);
     }
@@ -104,7 +104,7 @@ public class ProfileController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication
     ) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         String avatarUrl = profileService.uploadAvatar(userId, file);
         return ResponseEntity.ok(avatarUrl);
     }
@@ -116,7 +116,7 @@ public class ProfileController {
     @PreAuthorize("hasRole('CREATOR')")
     @Operation(summary = "Get creator profile", description = "Get creator profile (Creator only)")
     public ResponseEntity<CreatorProfileDTO> getCreatorProfile(Authentication authentication) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         CreatorProfileDTO profile = profileService.getCreatorProfile(userId);
         return ResponseEntity.ok(profile);
     }
@@ -131,7 +131,7 @@ public class ProfileController {
             @Valid @RequestBody UpdateCreatorProfileRequest request,
             Authentication authentication
     ) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         CreatorProfileDTO profile = profileService.updateCreatorProfile(
                 userId,
                 request.getUsername(),
@@ -150,7 +150,7 @@ public class ProfileController {
     @PreAuthorize("hasRole('CREATOR')")
     @Operation(summary = "Get portfolio", description = "Get creator portfolio items (Creator only)")
     public ResponseEntity<List<PortfolioItem>> getPortfolio(Authentication authentication) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         List<PortfolioItem> portfolio = profileService.getPortfolio(userId);
         return ResponseEntity.ok(portfolio);
     }
@@ -167,7 +167,7 @@ public class ProfileController {
             @RequestPart("media") MultipartFile media,
             Authentication authentication
     ) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         PortfolioItem item = profileService.addPortfolioItem(userId, title, description, media);
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
@@ -182,7 +182,7 @@ public class ProfileController {
             @PathVariable String itemId,
             Authentication authentication
     ) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         profileService.deletePortfolioItem(userId, itemId);
         return ResponseEntity.noContent().build();
     }
@@ -194,7 +194,7 @@ public class ProfileController {
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Get brand profile", description = "Get brand profile (Brand only)")
     public ResponseEntity<BrandProfileDTO> getBrandProfile(Authentication authentication) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         BrandProfileDTO profile = profileService.getBrandProfile(userId);
         return ResponseEntity.ok(profile);
     }
@@ -209,7 +209,7 @@ public class ProfileController {
             @Valid @RequestBody UpdateBrandProfileRequest request,
             Authentication authentication
     ) {
-        String userId = authentication.getName();
+        String userId = ((User) authentication.getPrincipal()).getId();
         BrandProfileDTO profile = profileService.updateBrandProfile(
                 userId,
                 request.getCompanyName(),

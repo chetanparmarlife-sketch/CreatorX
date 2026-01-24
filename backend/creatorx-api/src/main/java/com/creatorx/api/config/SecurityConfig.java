@@ -19,6 +19,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,8 +55,20 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
+                        // Public auth endpoints (login, register, password reset, link)
                         .requestMatchers(
-                                "/api/v1/auth/**",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/reset-password",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/otp/**",
+                                "/api/v1/auth/link-supabase-user",
+                                "/api/v1/auth/verify-email",
+                                "/api/v1/auth/verify-phone",
+                                "/api/v1/auth/refresh")
+                        .permitAll()
+                        // Other public endpoints
+                        .requestMatchers(
                                 "/api/v1/health",
                                 "/actuator/health",
                                 "/swagger-ui/**",
@@ -63,7 +76,14 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/error")
                         .permitAll()
-                        .anyRequest().authenticated());
+                        .anyRequest().authenticated())
+                .exceptionHandling(exceptions -> exceptions
+                        // Return 401 for unauthenticated requests (not 403)
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}");
+                        }));
 
         // Add rate limit filter if Redis is available
         if (rateLimitFilter.isPresent()) {
