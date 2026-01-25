@@ -5,8 +5,9 @@ FROM gradle:8.5-jdk17 AS build
 WORKDIR /app
 
 # Copy Gradle configuration files
+# Note: gradle/ wrapper directory is excluded in .dockerignore
+# The base image (gradle:8.5-jdk17) already includes Gradle
 COPY build.gradle settings.gradle gradle.properties ./
-COPY gradle ./gradle
 
 # Copy source code
 COPY creatorx-api ./creatorx-api
