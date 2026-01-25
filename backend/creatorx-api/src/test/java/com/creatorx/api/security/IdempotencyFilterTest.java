@@ -20,9 +20,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -116,6 +123,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
             String idempotencyKey = "test-key-001";
 
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -132,6 +140,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // Using legacy header name - should still work for backwards compatibility
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotent-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -150,6 +159,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
         @DisplayName("Missing idempotency key should passthrough")
         void missingKey_passthrough() throws Exception {
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
                     .andExpect(status().isOk());
@@ -163,6 +173,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
         void nonPostRequest_passthrough() throws Exception {
             // GET request to wallet (not idempotent endpoint)
             mockMvc.perform(get("/api/v1/wallet")
+                    .with(creatorAuth())
                     .header("Idempotency-Key", "test-key-get"))
                     .andExpect(status().isOk());
 
@@ -197,6 +208,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // First request
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -209,6 +221,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // Second request with same key - should return cached response
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -244,6 +257,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // Request with expired key - should process new request
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -263,6 +277,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
             String idempotencyKey = "test-key-success";
 
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -284,6 +299,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // Create invalid request (amount below minimum)
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "10.00"))) // Below minimum
@@ -315,6 +331,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // First request
             mockMvc.perform(post(BANK_ACCOUNTS_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(bankAccountRequest))
@@ -325,6 +342,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // Second request with same key
             mockMvc.perform(post(BANK_ACCOUNTS_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(bankAccountRequest))
@@ -347,6 +365,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // First request
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -355,6 +374,7 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
 
             // Second request - should return cached with same content type
             mockMvc.perform(post(WITHDRAW_ENDPOINT)
+                    .with(creatorAuth())
                     .header("Idempotency-Key", idempotencyKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createWithdrawRequest(testBankAccount.getId(), "500.00")))
@@ -364,6 +384,32 @@ class IdempotencyFilterTest extends BaseIntegrationTest {
     }
 
     // Helper methods
+
+    private RequestPostProcessor creatorAuth() {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                testCreator,
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_CREATOR"))
+        ) {
+            @Override
+            public String getName() {
+                return testCreator.getId();
+            }
+        });
+    }
+
+    private RequestPostProcessor brandAuth() {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                testBrand,
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_BRAND"))
+        ) {
+            @Override
+            public String getName() {
+                return testBrand.getId();
+            }
+        });
+    }
 
     private String createWithdrawRequest(String bankAccountId, String amount) {
         return String.format("""

@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "idempotency_keys",
-       uniqueConstraints = @UniqueConstraint(name = "uk_idempotency_keys_key", columnNames = "key"),
+       uniqueConstraints = @UniqueConstraint(name = "uk_idempotency_keys_key", columnNames = "idempotency_key"),
        indexes = {
-           @Index(name = "idx_idempotency_keys_key", columnList = "key"),
+           @Index(name = "idx_idempotency_keys_key", columnList = "idempotency_key"),
            @Index(name = "idx_idempotency_keys_expires_at", columnList = "expires_at")
        })
 @Data
@@ -29,7 +29,7 @@ public class IdempotencyKey extends BaseEntity {
      * Unique idempotency key from request header (e.g., Idempotent-Key: uuid)
      * Used to identify duplicate requests
      */
-    @Column(name = "key", nullable = false, unique = true, length = 255)
+    @Column(name = "idempotency_key", nullable = false, unique = true, length = 255)
     private String key;
 
     /**
