@@ -10,6 +10,11 @@ on:
     paths:
       - 'backend/**'
 
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
+
 jobs:
   test:
     name: Backend Tests (Testcontainers)
