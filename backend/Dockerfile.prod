@@ -20,9 +20,11 @@ ARG BUILD_VERSION=unknown
 ENV BUILD_VERSION=${BUILD_VERSION}
 
 # Build the application (skip tests - already run in CI)
+# Use the boot jar (not the -plain.jar) for layer extraction
 RUN gradle clean build -x test --no-daemon \
     && mkdir -p /app/extracted \
-    && java -Djarmode=layertools -jar creatorx-api/build/libs/*.jar extract --destination /app/extracted
+    && java -Djarmode=layertools -jar creatorx-api/build/libs/creatorx-api-*.jar extract --destination /app/extracted \
+    || java -Djarmode=layertools -jar $(ls creatorx-api/build/libs/*.jar | grep -v plain | head -1) extract --destination /app/extracted
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre-alpine
