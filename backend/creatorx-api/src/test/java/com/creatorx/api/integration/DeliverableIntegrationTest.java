@@ -113,7 +113,8 @@ class DeliverableIntegrationTest extends BaseIntegrationTest {
                 mockMvc.perform(get("/api/v1/deliverables")
                                 .with(csrf()))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$").isArray());
+                                .andExpect(jsonPath("$.items").isArray())
+                                .andExpect(jsonPath("$.total").value(1));
         }
 
         @Test
