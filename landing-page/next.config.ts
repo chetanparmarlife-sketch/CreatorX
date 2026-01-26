@@ -1,20 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["*"],
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-store, no-cache, must-revalidate",
-          },
-        ],
-      },
-    ];
+  output: "export",
+  distDir: "out",
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
   },
+  allowedDevOrigins: ["*"],
 };
 
 export default nextConfig;
