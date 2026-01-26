@@ -4,6 +4,7 @@
 CreatorX is a comprehensive React Native/Expo mobile application for content creators to discover brand collaboration campaigns, manage deliverables, track earnings, and communicate with brands. The app features a premium dark mode design aesthetic inspired by Linear and Stripe.
 
 ## Recent Changes
+- **January 2026**: Added new Marketing Landing Page (landing-page/) - Professional landing page similar to amplify.club with Hero, Brand Marquee, Value Props, Features, Platform showcase, How It Works, CTA, and Footer sections
 - **January 2026**: Created new splash screen matching Figma design: dark navy gradient background, dark logo box with blue X icon, "CreatorX" branding, animated loading spinner, and version display (v1.0.2)
 - **January 2026**: Updated UI design system with new primary color (#1337ec blue), darker backgrounds (#050505), and modernized gradients across all screens
 - **January 2026**: Redesigned Explore screen header with "Discover" title, avatar, and notification bell
@@ -65,6 +66,25 @@ src/
 ├── hooks/              # Custom React hooks
 ├── theme/              # Colors, typography, spacing
 └── types/              # TypeScript definitions
+```
+
+#### Landing Page (landing-page/)
+```
+src/
+├── app/
+│   ├── page.tsx        # Main landing page
+│   ├── layout.tsx      # Root layout with metadata
+│   └── globals.css     # Global styles and animations
+└── components/
+    ├── Navbar.tsx      # Navigation bar
+    ├── Hero.tsx        # Hero section with CTA
+    ├── BrandMarquee.tsx # Scrolling brand logos
+    ├── ValueProps.tsx  # Value proposition bar
+    ├── WhyCreatorX.tsx # Features grid
+    ├── Platform.tsx    # Platform showcase
+    ├── HowItWorks.tsx  # Step-by-step guide
+    ├── CTA.tsx         # Call to action section
+    └── Footer.tsx      # Footer with links
 ```
 
 #### Brand Dashboard (brand-dashboard/)
@@ -146,11 +166,17 @@ components/
 
 ## Running the Project
 
-### Mobile App
+### Landing Page (Marketing Website)
+```bash
+cd landing-page && npm run dev -- -p 5000 -H 0.0.0.0
+```
+Runs on port 5000. This is the main marketing landing page.
+
+### Mobile App (Expo)
 ```bash
 npm run dev
 ```
-This starts Metro bundler with Expo tunnel on port 5000.
+This starts Metro bundler with Expo tunnel.
 
 ### Brand Dashboard
 ```bash
