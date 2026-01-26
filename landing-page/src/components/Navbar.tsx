@@ -12,7 +12,6 @@ export default function Navbar() {
           <div className="flex items-center">
             <a href="/" className="flex items-center gap-2">
               <span className="text-2xl font-bold text-white">CreatorX</span>
-              <span className="text-xs text-gray-400">by One Impression</span>
             </a>
           </div>
 

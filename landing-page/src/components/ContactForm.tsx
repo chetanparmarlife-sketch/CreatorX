@@ -4,8 +4,7 @@ export default function ContactForm() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="bg-gradient-to-br from-violet-400 to-purple-500 rounded-3xl p-8 lg:p-12">
-            <p className="text-violet-200 text-sm mb-2">CreatorX</p>
-            <p className="text-violet-200 text-xs mb-8">by One Impression</p>
+            <p className="text-violet-200 text-sm mb-8">CreatorX</p>
             <h3 className="text-3xl lg:text-4xl font-bold text-white mb-6">
               Join 1000+ brands already working with us.
             </h3>

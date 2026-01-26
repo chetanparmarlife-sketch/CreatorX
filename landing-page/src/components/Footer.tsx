@@ -4,8 +4,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div className="col-span-2 md:col-span-1">
-            <h3 className="text-2xl font-bold text-[#c8ff00] mb-2">CreatorX</h3>
-            <p className="text-xs text-gray-500 mb-4">by One Impression</p>
+            <h3 className="text-2xl font-bold text-[#c8ff00] mb-4">CreatorX</h3>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               CreatorX helps brands scale through authentic creator collaborations on our powerful UGC creator platform.
             </p>
@@ -96,7 +95,7 @@ export default function Footer() {
 
         <div className="border-t border-white/10 pt-8 text-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} Anycast Technology Pvt. Ltd. All rights reserved
+            &copy; {new Date().getFullYear()} CreatorX Martech Pvt Ltd. All rights reserved
           </p>
         </div>
       </div>
