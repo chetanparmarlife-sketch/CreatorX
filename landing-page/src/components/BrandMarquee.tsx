@@ -1,25 +1,19 @@
 const brands = [
-  "Nykaa", "Beardo", "Tata 1mg", "Kent", "Perfora",
-  "IndieWild", "The Man Company", "Kiro", "GrowFi", "Fizzy"
+  "GrowFi", "GLPL", "indē wild", "THE MAN COMPANY", "super.money",
+  "KIRO", "BEARDO", "NYKAA", "perfora", "TATA 1mg", "FIZZY"
 ];
 
 export default function BrandMarquee() {
   return (
-    <section className="py-12 bg-white border-y border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <p className="text-center text-sm font-medium text-gray-500 uppercase tracking-wider">
-          Trusted by 500+ leading brands
-        </p>
-      </div>
-      
+    <section className="py-8 bg-black">
       <div className="overflow-hidden">
         <div className="flex animate-marquee">
           {[...brands, ...brands, ...brands].map((brand, index) => (
             <div
               key={index}
-              className="flex-shrink-0 mx-8 px-8 py-4 bg-gray-50 rounded-xl"
+              className="flex-shrink-0 mx-6 sm:mx-10"
             >
-              <span className="text-lg font-semibold text-gray-400">{brand}</span>
+              <span className="text-lg sm:text-xl font-bold text-gray-400 whitespace-nowrap">{brand}</span>
             </div>
           ))}
         </div>

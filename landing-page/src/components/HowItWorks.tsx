@@ -1,114 +1,97 @@
 const steps = [
   {
-    number: "01",
-    title: "Share Content Requirements",
-    description: "Create a brief in just 2 minutes. Describe your brand, creator, and content requirements and see creator applications roll in.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-      </svg>
-    ),
+    title: "Share content requirement",
+    description: "Create a brief in just 2 minutes post order placement. Describe your brand, creator, and content requirements and see creator applications roll in through our seamless UGC creator platform.",
   },
   {
-    number: "02",
-    title: "Receive 2X Creator Options",
+    title: "Receive 2X creator options for your campaign",
     description: "Start receiving applications from relevant and genuinely interested creators once you share the campaign brief.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
   },
   {
-    number: "03",
-    title: "Send Products to Creators",
+    title: "Send product to selected creators",
     description: "Ship product or deliver service to creators for them to create high quality content as per your requirement.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-      </svg>
-    ),
   },
   {
-    number: "04",
-    title: "Review Content",
-    description: "Start receiving creator content within 3 days. Approve content if you like it or share feedback to receive revised content.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    title: "Review content received from creators",
+    description: "Start receiving creator content within 3 days of product/service delivery. Approve content if you like it or share feedback to receive revised content.",
   },
   {
-    number: "05",
-    title: "Track Performance",
-    description: "Track campaign status and measure real-time campaign performance with data directly from social platforms.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
+    title: "Track real-time performance",
+    description: "Track campaign status and measure real time campaign performance with data directly from Instagram.",
   },
 ];
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-20 bg-gradient-to-b from-gray-50 to-white">
+    <section id="how-it-works" className="py-20 bg-[#0f4c3a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <span className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">How It Works</span>
-          <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-gray-900">
-            Easiest & super fast way to run campaigns
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+            <span className="text-[#c8ff00]">Easiest & super fast</span>
+            <span className="text-white"> way to</span>
           </h2>
-          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-            Start and finish your campaign in just 5 simple steps
-          </p>
-        </div>
-
-        <div className="relative">
-          <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500 to-purple-500 transform -translate-x-1/2"></div>
-
-          <div className="space-y-12">
-            {steps.map((step, index) => (
-              <div
-                key={index}
-                className={`flex flex-col lg:flex-row items-center gap-8 ${
-                  index % 2 === 1 ? "lg:flex-row-reverse" : ""
-                }`}
-              >
-                <div className={`flex-1 ${index % 2 === 1 ? "lg:text-right" : ""}`}>
-                  <div className={`bg-white rounded-2xl p-8 shadow-lg border border-gray-100 ${index % 2 === 1 ? "lg:ml-auto" : ""} max-w-lg`}>
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
-                        {step.icon}
-                      </div>
-                      <span className="text-4xl font-bold text-indigo-100">{step.number}</span>
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h3>
-                    <p className="text-gray-600 leading-relaxed">{step.description}</p>
-                  </div>
-                </div>
-
-                <div className="hidden lg:flex w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 items-center justify-center text-white font-bold text-lg shadow-lg z-10">
-                  {index + 1}
-                </div>
-
-                <div className="flex-1 hidden lg:block"></div>
-              </div>
-            ))}
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-8">
+            start and finish your campaign
+          </h2>
+          
+          <div className="flex justify-center gap-4 mb-12">
+            <button className="px-6 py-3 bg-white text-black rounded-full font-medium">
+              Shipping Campaign
+            </button>
+            <button className="px-6 py-3 bg-white/10 text-white rounded-full font-medium border border-white/20">
+              Non-Shipping Campaign
+            </button>
           </div>
         </div>
 
-        <div className="mt-16 text-center">
-          <a
-            href="/brand-signup"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-full hover:shadow-xl hover:shadow-indigo-500/30 transition-all text-lg"
-          >
-            Start Your Campaign
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </a>
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="space-y-6">
+            {steps.map((step, index) => (
+              <div
+                key={index}
+                className={`${index === 0 ? 'bg-white/10 border border-white/20' : ''} rounded-2xl p-6 transition-all hover:bg-white/10`}
+              >
+                <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
+                {index === 0 && (
+                  <p className="text-white/70 text-sm">{step.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-3xl p-6 shadow-2xl">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+              <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            </div>
+            
+            <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4">
+              <span className="text-sm font-medium text-violet-600 border-b-2 border-violet-600 pb-2">1. About brand</span>
+              <span className="text-sm text-gray-400">2. Creator preference</span>
+              <span className="text-sm text-gray-400">3. Content guidelines</span>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-bold text-gray-900 mb-4">About brand</h4>
+                <p className="text-sm text-gray-600 mb-4">Tell us the brand name and tagline</p>
+                <input 
+                  type="text" 
+                  placeholder="Enter brand name" 
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-4">Category of your product (select one)</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-4 py-2 bg-violet-100 text-violet-700 rounded-full text-sm">Fashion wear</span>
+                  <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm">Innerwear</span>
+                  <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm">Beauty and cosmetics</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

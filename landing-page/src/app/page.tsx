@@ -1,24 +1,32 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import BrandMarquee from "@/components/BrandMarquee";
 import ValueProps from "@/components/ValueProps";
+import BrandMarquee from "@/components/BrandMarquee";
 import WhyCreatorX from "@/components/WhyCreatorX";
 import Platform from "@/components/Platform";
+import CreatorShowcase from "@/components/CreatorShowcase";
 import HowItWorks from "@/components/HowItWorks";
-import CTA from "@/components/CTA";
+import Comparison from "@/components/Comparison";
+import ContactForm from "@/components/ContactForm";
+import Press from "@/components/Press";
+import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-black">
       <Navbar />
       <Hero />
-      <BrandMarquee />
       <ValueProps />
+      <BrandMarquee />
       <WhyCreatorX />
       <Platform />
+      <CreatorShowcase />
       <HowItWorks />
-      <CTA />
+      <Comparison />
+      <ContactForm />
+      <Press />
+      <Newsletter />
       <Footer />
     </main>
   );

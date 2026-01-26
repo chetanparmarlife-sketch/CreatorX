@@ -1,91 +1,105 @@
 const features = [
   {
-    title: "Smart Matching",
-    description: "Match with creators having 5K-250K followers across 50+ categories using AI-powered recommendations.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    ),
-    gradient: "from-amber-400 to-orange-500",
+    title: "Smart matching",
+    description: "Match with creators having 5K-250K followers across 50+ categories",
+    cta: "Start your campaign",
+    bgColor: "bg-[#fef000]",
+    textColor: "text-black",
   },
   {
-    title: "Transparent Pricing",
-    description: "Pay only for what you need with clear, upfront pricing. Save hundreds of hours on negotiations.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    gradient: "from-green-400 to-emerald-500",
+    title: "Transparent pricing",
+    description: "Pay only for what you need. Save 100s of hours on negotiations",
+    cta: "Book a demo",
+    bgColor: "bg-[#a3ff00]",
+    textColor: "text-black",
   },
   {
-    title: "2X Creator Options",
-    description: "Receive double the creator applications for your campaigns. Get refunded for creators you don't use.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-    gradient: "from-blue-400 to-cyan-500",
+    title: "2X Creator options",
+    description: "Receive double the creator applications. Get refunded for the rest",
+    cta: "See for yourself",
+    bgColor: "bg-[#00f5d4]",
+    textColor: "text-black",
   },
   {
-    title: "Barter-Friendly",
-    description: "Get up to 25% discount when shipping products on creator cost. Work with top creators on flexible terms.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-      </svg>
-    ),
-    gradient: "from-purple-400 to-violet-500",
+    title: "Barter-friendly",
+    description: "Get up to 25%* discount when shipping products on creator cost. Work with top creators",
+    cta: "Book a demo",
+    bgColor: "bg-[#b8f4d4]",
+    textColor: "text-black",
   },
   {
-    title: "On-Time Delivery",
-    description: "Choose from twice the creators you need. Cancel if deadlines are not met with full protection.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    gradient: "from-rose-400 to-pink-500",
+    title: "On time delivery",
+    description: "Choose from twice the creators you need. Cancel if deadlines are not met",
+    cta: "Sign up now",
+    bgColor: "bg-[#00d4aa]",
+    textColor: "text-black",
   },
   {
-    title: "Flexible Cancellations",
-    description: "Industry's most flexible cancellation policy. 50-100% refund at any stage, no questions asked.",
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-    gradient: "from-indigo-400 to-blue-500",
+    title: "Flexible cancellations",
+    description: "Industry's most flexible cancellation policy. 50-100%* refund at any stage. No questions asked",
+    cta: "Start campaign now",
+    bgColor: "bg-[#7dd3fc]",
+    textColor: "text-black",
   },
 ];
 
 export default function WhyCreatorX() {
   return (
-    <section id="features" className="py-20 bg-gray-50">
+    <section id="features" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <span className="text-sm font-semibold text-indigo-600 uppercase tracking-wider">Why CreatorX?</span>
-          <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-gray-900">
-            Why 1,000+ brands choose CreatorX
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-4">
+            Why 1,000+ brands choose{" "}
+            <span className="text-[#c8ff00]">CreatorX</span>
           </h2>
-          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-            Everything you need to run successful influencer marketing campaigns
-          </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="space-y-8">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 card-hover"
+              className={`${feature.bgColor} rounded-3xl p-8 lg:p-12 flex flex-col lg:flex-row items-center gap-8`}
             >
-              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center text-white mb-6`}>
-                {feature.icon}
+              <div className="flex-1">
+                <span className="inline-block px-4 py-1.5 bg-black/10 rounded-full text-sm font-medium mb-4">
+                  Why CreatorX?
+                </span>
+                <h3 className={`text-3xl lg:text-4xl font-bold ${feature.textColor} mb-4`}>
+                  {feature.title}
+                </h3>
+                <ul className="space-y-2 mb-6">
+                  {feature.description.split('. ').map((point, i) => (
+                    <li key={i} className={`flex items-start gap-2 ${feature.textColor}`}>
+                      <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="/signup"
+                  className="inline-block px-6 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-800 transition-colors"
+                >
+                  {feature.cta}
+                </a>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-              <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+              <div className="flex-1 w-full max-w-md">
+                <div className="bg-white rounded-2xl shadow-xl p-6 transform rotate-1">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                    <div className="h-8 bg-gray-50 rounded mt-4"></div>
+                    <div className="h-8 bg-gray-50 rounded"></div>
+                    <div className="h-8 bg-gray-50 rounded"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
