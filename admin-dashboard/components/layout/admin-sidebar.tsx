@@ -236,13 +236,6 @@ export function AdminSidebar() {
               <LogOut className="w-4 h-4" />
               Sign out
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild className="gap-2">
-              <Link href="/dashboard">
-                <Shield className="w-4 h-4" />
-                Switch to Brand
-              </Link>
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

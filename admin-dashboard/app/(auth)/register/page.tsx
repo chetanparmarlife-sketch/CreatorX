@@ -85,7 +85,7 @@ export default function RegisterPage() {
         website: values.website,
       })
       setUser(user)
-      router.push('/campaigns')
+      router.push('/admin')
     } catch (err: any) {
       form.setError('root', {
         message: err.message || 'Registration failed. Please try again.',
