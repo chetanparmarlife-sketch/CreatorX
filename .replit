@@ -8,8 +8,8 @@ packages = ["unzip"]
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+build = ["bash", "-c", "cd landing-page && npm run build"]
+run = ["bash", "-c", "cd landing-page && npm start -- -p 5000 -H 0.0.0.0"]
 
 [[ports]]
 localPort = 3000
