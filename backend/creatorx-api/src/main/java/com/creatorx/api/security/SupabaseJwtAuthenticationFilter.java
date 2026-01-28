@@ -16,7 +16,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -25,7 +24,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 
 @Slf4j
 @Component
@@ -71,19 +69,19 @@ public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
                 
-                // Create authentication object
+                // Use UserAuthenticationToken so getName() returns user ID
+                // while getPrincipal() still returns the User entity
                 String role = user.getRole().name();
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                UserAuthenticationToken authentication = new UserAuthenticationToken(
                         user,
-                        null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+                        java.util.Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                 );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 
                 // Set authentication in security context
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 
-                log.debug("Authenticated user: {} with role: {}", user.getEmail(), role);
+                log.debug("Authenticated user: {} with role: {}", user.getEmail(), user.getRole());
                 
             } catch (Exception e) {
                 log.debug("Supabase JWT token validation failed: {}", e.getMessage());

@@ -192,8 +192,8 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
                     .header("Authorization", "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.email").value(brandUser.getEmail()))
-                    .andExpect(jsonPath("$.role").value("BRAND"));
+                    .andExpect(jsonPath("$.user.email").value(brandUser.getEmail()))
+                    .andExpect(jsonPath("$.user.role").value("BRAND"));
         }
 
         @Test
@@ -274,7 +274,7 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
                     .header("Authorization", "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.role").value("CREATOR"));
+                    .andExpect(jsonPath("$.user.role").value("CREATOR"));
         }
 
         @Test
@@ -566,8 +566,8 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(linkRequest)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.email").value("new-user@example.com"))
-                    .andExpect(jsonPath("$.role").value("CREATOR"));
+                    .andExpect(jsonPath("$.user.email").value("new-user@example.com"))
+                    .andExpect(jsonPath("$.user.role").value("CREATOR"));
         }
 
         @Test
@@ -583,7 +583,7 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(linkRequest)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.userId").value(creatorUser.getId()));
+                    .andExpect(jsonPath("$.user.id").value(creatorUser.getId()));
         }
 
         @Test

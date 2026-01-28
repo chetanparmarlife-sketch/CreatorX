@@ -5,9 +5,10 @@
 package com.creatorx.api.controller;
 
 import com.creatorx.api.dto.AuthResponse;
+import com.creatorx.api.dto.ForgotPasswordRequest;
 import com.creatorx.api.dto.LinkSupabaseUserRequest;
+import com.creatorx.api.dto.RefreshTokenRequest;
 import com.creatorx.api.dto.RegisterRequest;
-import com.creatorx.common.enums.UserRole;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -25,39 +28,35 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Authentication", description = "Authentication endpoints for Supabase integration")
 @RequiredArgsConstructor
 public class AuthController {
-    
+
     private final AuthService authService;
-    
+
     /**
-     * Register a new user
-     * Note: In production, registration happens on client via Supabase SDK
-     * This endpoint can be used for admin user creation or webhook callbacks
+     * Register a new user.
+     * In production, registration happens on client via Supabase SDK.
+     * This endpoint is used for admin user creation or webhook callbacks.
      */
     @PostMapping("/register")
     @Operation(summary = "Register user", description = "Create user profile in Spring Boot (Supabase registration happens on client)")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         User user = authService.registerUser(
                 request.getEmail(),
-                request.getPassword(), // Not used, Supabase handles passwords
+                request.getPassword(),
                 request.getRole(),
                 request.getName(),
                 request.getPhone()
         );
-        
-        AuthResponse response = AuthResponse.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .user(toAuthUserInfo(user))
                 .message("User registered. Please complete Supabase registration on client.")
-                .build();
-        
-        return ResponseEntity.ok(response);
+                .build());
     }
-    
+
     /**
-     * Link Supabase user to internal user
-     * Called after Supabase registration or via webhook
-     * For brands, also creates brand profile if companyName is provided
+     * Link Supabase user to internal user.
+     * Called after Supabase registration or via webhook.
+     * For brands, also creates brand profile if companyName is provided.
      */
     @PostMapping("/link-supabase-user")
     @Operation(summary = "Link Supabase user", description = "Link Supabase user ID to internal user profile")
@@ -71,59 +70,83 @@ public class AuthController {
                 request.getIndustry(),
                 request.getWebsite()
         );
-        
-        AuthResponse response = AuthResponse.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .supabaseUserId(user.getSupabaseId())
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .user(toAuthUserInfo(user))
                 .message("User linked successfully")
-                .build();
-        
-        return ResponseEntity.ok(response);
+                .build());
     }
-    
+
     /**
-     * Login with email and password
-     * Note: This is a fallback endpoint. Primary auth should use Supabase.
-     * Returns tokens if Supabase is not available (for development/testing).
+     * Login with email and password.
+     * This is a fallback endpoint. Primary auth uses Supabase SDK.
      */
     @PostMapping("/login")
     @Operation(summary = "Login", description = "Login with email and password. Note: Supabase auth is preferred.")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody com.creatorx.api.dto.LoginRequest request) {
-        // For now, this endpoint indicates Supabase is required
-        // In production, you could implement direct JWT generation here if needed
         throw new com.creatorx.common.exception.BusinessException(
             "Direct login not supported. Please use Supabase authentication. " +
             "If Supabase is not available, contact administrator."
         );
     }
-    
+
     /**
-     * Get current user profile
+     * Get current user profile.
      */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get current user", description = "Get authenticated user profile")
     public ResponseEntity<AuthResponse> getCurrentUser() {
-        org.springframework.security.core.Authentication authentication = 
-            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-        AuthResponse response = AuthResponse.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .supabaseUserId(user.getSupabaseId())
-                .emailVerified(user.getEmailVerified())
-                .phoneVerified(user.getPhoneVerified())
-                .build();
-        
-        return ResponseEntity.ok(response);
+        User user = getAuthenticatedUser();
+        return ResponseEntity.ok(AuthResponse.builder()
+                .user(toAuthUserInfo(user))
+                .build());
     }
-    
+
     /**
-     * Update email verification status
-     * Called via Supabase webhook when email is verified
+     * Refresh access token via Supabase.
+     */
+    @PostMapping("/refresh-token")
+    @Operation(summary = "Refresh token", description = "Refresh access token using Supabase refresh token")
+    public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthService.TokenPair tokens = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(AuthResponse.builder()
+                .accessToken(tokens.getAccessToken())
+                .refreshToken(tokens.getRefreshToken())
+                .message("Token refreshed successfully")
+                .build());
+    }
+
+    /**
+     * Logout (server-side session invalidation).
+     * Client should also call Supabase signOut.
+     */
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Logout", description = "Invalidate server-side session")
+    public ResponseEntity<AuthResponse> logout() {
+        User user = getAuthenticatedUser();
+        authService.logout(user.getSupabaseId());
+        return ResponseEntity.ok(AuthResponse.builder()
+                .message("Logged out successfully")
+                .build());
+    }
+
+    /**
+     * Request password reset email via Supabase.
+     */
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Forgot password", description = "Send password reset email via Supabase")
+    public ResponseEntity<AuthResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(AuthResponse.builder()
+                .message("Password reset email sent. Check your inbox.")
+                .build());
+    }
+
+    /**
+     * Update email verification status.
+     * Called via Supabase webhook when email is verified.
      */
     @PostMapping("/verify-email")
     @Operation(summary = "Verify email", description = "Update email verification status (called via webhook)")
@@ -131,9 +154,9 @@ public class AuthController {
         authService.updateEmailVerification(supabaseUserId, true);
         return ResponseEntity.ok().build();
     }
-    
+
     /**
-     * Update phone verification status
+     * Update phone verification status.
      */
     @PostMapping("/verify-phone")
     @Operation(summary = "Verify phone", description = "Update phone verification status")
@@ -141,5 +164,23 @@ public class AuthController {
         authService.updatePhoneVerification(supabaseUserId, true);
         return ResponseEntity.ok().build();
     }
-}
 
+    // --- Helpers ---
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return (User) authentication.getPrincipal();
+    }
+
+    private AuthResponse.AuthUserInfo toAuthUserInfo(User user) {
+        return AuthResponse.AuthUserInfo.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .supabaseUserId(user.getSupabaseId())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
+                .build();
+    }
+}

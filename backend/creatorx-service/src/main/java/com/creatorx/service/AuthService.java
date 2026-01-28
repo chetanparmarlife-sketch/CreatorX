@@ -19,6 +19,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -211,5 +218,90 @@ public class AuthService {
      */
     public User getUserProfile(String supabaseUserId) {
         return getUserBySupabaseId(supabaseUserId);
+    }
+
+    /**
+     * Refresh access token via Supabase GoTrue API
+     */
+    public TokenPair refreshToken(String refreshToken) {
+        try {
+            String url = supabaseUrl + "/auth/v1/token?grant_type=refresh_token";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("apikey", supabaseServiceRoleKey);
+
+            Map<String, String> body = new HashMap<>();
+            body.put("refresh_token", refreshToken);
+
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
+
+            if (response == null || !response.containsKey("access_token")) {
+                throw new BusinessException("Failed to refresh token: empty response from Supabase");
+            }
+
+            return new TokenPair(
+                    (String) response.get("access_token"),
+                    (String) response.get("refresh_token")
+            );
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Token refresh failed", e);
+            throw new BusinessException("Token refresh failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Server-side logout: update last login timestamp.
+     * Supabase token invalidation is handled client-side.
+     */
+    @Transactional
+    public void logout(String supabaseUserId) {
+        try {
+            User user = getUserBySupabaseId(supabaseUserId);
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+            log.info("User logged out: {}", user.getEmail());
+        } catch (Exception e) {
+            log.warn("Logout cleanup failed for Supabase ID {}: {}", supabaseUserId, e.getMessage());
+        }
+    }
+
+    /**
+     * Send password reset email via Supabase GoTrue API
+     */
+    public void forgotPassword(String email) {
+        try {
+            String url = supabaseUrl + "/auth/v1/recover";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("apikey", supabaseServiceRoleKey);
+
+            Map<String, String> body = new HashMap<>();
+            body.put("email", email);
+
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            restTemplate.postForObject(url, request, String.class);
+
+            log.info("Password reset email sent to: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to {}: {}", email, e.getMessage());
+            // Don't reveal whether email exists for security reasons
+        }
+    }
+
+    /**
+     * Token pair returned from Supabase refresh
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TokenPair {
+        private String accessToken;
+        private String refreshToken;
     }
 }
