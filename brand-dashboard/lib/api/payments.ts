@@ -1,35 +1,72 @@
 import { apiClient } from './client'
 
+/**
+ * Payload for adding a payment method
+ * Note: For PCI compliance, raw card details should be tokenized via Razorpay checkout first.
+ * This type represents what the backend expects after tokenization.
+ */
 export type PaymentMethodPayload = {
-  cardNumber: string
-  expiryDate: string
-  cvv: string
-  cardholderName: string
+  razorpayCustomerId?: string
+  razorpayTokenId?: string
+  cardLast4: string
+  cardNetwork?: string
+  cardType?: string
+  expiryMonth?: string
+  expiryYear?: string
+  cardholderName?: string
+}
+
+export type PaymentMethod = {
+  id: string
+  cardLast4: string
+  cardNetwork?: string
+  cardType?: string
+  expiryMonth?: string
+  expiryYear?: string
+  cardholderName?: string
+  isDefault?: boolean
+  createdAt?: string
 }
 
 /**
- * Payment service
- * Note: Payments module not yet implemented in backend.
- * These endpoints map to wallet endpoints for now.
- * In Phase 4, dedicated payment endpoints will be added.
+ * Payment service for brand wallet operations
  */
 export const paymentService = {
   async getWallet() {
     return apiClient.get('/wallet')
   },
-  // Note: Payment methods not yet implemented - use wallet/bank-accounts for now
-  async getPaymentMethods() {
-    // Map to wallet bank accounts (for creators)
-    return apiClient.get('/wallet/bank-accounts')
+
+  /**
+   * Get saved payment methods (cards)
+   */
+  async getPaymentMethods(): Promise<PaymentMethod[]> {
+    const response = await apiClient.get('/wallet/payment-methods')
+    return response.data
   },
-  async addPaymentMethod(payload: PaymentMethodPayload) {
-    // Payment methods not yet implemented
-    throw new Error('Payment methods not yet implemented. Use wallet/bank-accounts for withdrawals.')
+
+  /**
+   * Add a payment method
+   * Note: In production, cardLast4 and token should come from Razorpay checkout tokenization
+   */
+  async addPaymentMethod(payload: PaymentMethodPayload): Promise<PaymentMethod> {
+    const response = await apiClient.post('/wallet/payment-methods', payload)
+    return response.data
   },
-  async removePaymentMethod(id: string | number) {
-    // Payment methods not yet implemented
-    throw new Error('Payment methods not yet implemented.')
+
+  /**
+   * Remove a payment method
+   */
+  async removePaymentMethod(id: string | number): Promise<void> {
+    await apiClient.delete(`/wallet/payment-methods/${id}`)
   },
+
+  /**
+   * Set a payment method as default
+   */
+  async setDefaultPaymentMethod(id: string | number): Promise<void> {
+    await apiClient.put(`/wallet/payment-methods/${id}/default`)
+  },
+
   async getTransactions(params: {
     page: number
     size: number
@@ -37,13 +74,12 @@ export const paymentService = {
     from?: string
     to?: string
   }) {
-    // Map to wallet transactions
     return apiClient.get('/wallet/transactions', {
       params: {
         page: params.page,
         size: params.size,
-        // status, from, to filters not yet supported in wallet endpoint
       },
     })
   },
 }
+

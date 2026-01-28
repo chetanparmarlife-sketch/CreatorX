@@ -1,14 +1,17 @@
 package com.creatorx.api.controller;
 
+import com.creatorx.api.dto.AddPaymentMethodRequest;
 import com.creatorx.api.dto.BankAccountRequest;
 import com.creatorx.api.dto.PageResponse;
 import com.creatorx.api.dto.TransactionRequest;
 import com.creatorx.api.dto.WithdrawalRequestDTO;
 import com.creatorx.service.BankAccountService;
+import com.creatorx.service.PaymentMethodService;
 import com.creatorx.service.WalletService;
 import com.creatorx.service.WithdrawalService;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.BankAccountDTO;
+import com.creatorx.service.dto.PaymentMethodDTO;
 import com.creatorx.service.dto.TransactionDTO;
 import com.creatorx.service.dto.WalletDTO;
 import com.creatorx.service.dto.WithdrawalDTO;
@@ -31,11 +34,12 @@ import java.util.List;
 @RequestMapping("/api/v1/wallet")
 @RequiredArgsConstructor
 public class WalletController {
-    
+
     private final WalletService walletService;
     private final WithdrawalService withdrawalService;
     private final BankAccountService bankAccountService;
-    
+    private final PaymentMethodService paymentMethodService;
+
     /**
      * Get wallet balance
      */
@@ -46,7 +50,7 @@ public class WalletController {
         WalletDTO wallet = walletService.getWallet(currentUser.getId());
         return ResponseEntity.ok(wallet);
     }
-    
+
     /**
      * Get transactions (paginated)
      */
@@ -55,8 +59,7 @@ public class WalletController {
     public ResponseEntity<PageResponse<TransactionDTO>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User currentUser = getCurrentUser(authentication);
         // Validate page size (max 100)
         int validatedSize = Math.min(size, 100);
@@ -64,7 +67,7 @@ public class WalletController {
         Page<TransactionDTO> transactions = walletService.getTransactions(currentUser.getId(), pageable);
         return ResponseEntity.ok(PageResponse.from(transactions));
     }
-    
+
     /**
      * Request withdrawal
      */
@@ -72,17 +75,15 @@ public class WalletController {
     @PreAuthorize("hasRole('CREATOR')")
     public ResponseEntity<WithdrawalDTO> requestWithdrawal(
             @Valid @RequestBody WithdrawalRequestDTO request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User currentUser = getCurrentUser(authentication);
         WithdrawalDTO withdrawal = withdrawalService.requestWithdrawal(
                 currentUser.getId(),
                 request.getAmount(),
-                request.getBankAccountId()
-        );
+                request.getBankAccountId());
         return ResponseEntity.status(HttpStatus.CREATED).body(withdrawal);
     }
-    
+
     /**
      * Get withdrawals (paginated)
      */
@@ -91,8 +92,7 @@ public class WalletController {
     public ResponseEntity<PageResponse<WithdrawalDTO>> getWithdrawals(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User currentUser = getCurrentUser(authentication);
         // Validate page size (max 100)
         int validatedSize = Math.min(size, 100);
@@ -100,7 +100,7 @@ public class WalletController {
         Page<WithdrawalDTO> withdrawals = withdrawalService.getWithdrawals(currentUser.getId(), pageable);
         return ResponseEntity.ok(PageResponse.from(withdrawals));
     }
-    
+
     /**
      * Cancel withdrawal
      */
@@ -108,13 +108,12 @@ public class WalletController {
     @PreAuthorize("hasRole('CREATOR')")
     public ResponseEntity<Void> cancelWithdrawal(
             @PathVariable String id,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User currentUser = getCurrentUser(authentication);
         withdrawalService.cancelWithdrawal(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
-    
+
     /**
      * Get bank accounts
      */
@@ -125,7 +124,7 @@ public class WalletController {
         List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccounts(currentUser.getId());
         return ResponseEntity.ok(bankAccounts);
     }
-    
+
     /**
      * Add bank account
      */
@@ -133,8 +132,7 @@ public class WalletController {
     @PreAuthorize("hasRole('CREATOR')")
     public ResponseEntity<BankAccountDTO> addBankAccount(
             @Valid @RequestBody BankAccountRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User currentUser = getCurrentUser(authentication);
         BankAccountDTO bankAccount = bankAccountService.addBankAccount(
                 currentUser.getId(),
@@ -143,11 +141,10 @@ public class WalletController {
                 request.getIfscCode(),
                 request.getBankName(),
                 request.getBranchName(),
-                request.getUpiId()
-        );
+                request.getUpiId());
         return ResponseEntity.status(HttpStatus.CREATED).body(bankAccount);
     }
-    
+
     /**
      * Delete bank account
      */
@@ -155,13 +152,12 @@ public class WalletController {
     @PreAuthorize("hasRole('CREATOR')")
     public ResponseEntity<Void> deleteBankAccount(
             @PathVariable String id,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User currentUser = getCurrentUser(authentication);
         bankAccountService.deleteBankAccount(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
-    
+
     /**
      * Set default bank account
      */
@@ -169,13 +165,75 @@ public class WalletController {
     @PreAuthorize("hasRole('CREATOR')")
     public ResponseEntity<Void> setDefaultBankAccount(
             @PathVariable String id,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User currentUser = getCurrentUser(authentication);
         bankAccountService.setDefaultBankAccount(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
-    
+
+    // ============================================
+    // PAYMENT METHODS (for Brands)
+    // ============================================
+
+    /**
+     * Get payment methods (saved cards) for the current user
+     */
+    @GetMapping("/payment-methods")
+    @PreAuthorize("hasRole('BRAND')")
+    public ResponseEntity<List<PaymentMethodDTO>> getPaymentMethods(Authentication authentication) {
+        User currentUser = getCurrentUser(authentication);
+        List<PaymentMethodDTO> paymentMethods = paymentMethodService.getPaymentMethods(currentUser.getId());
+        return ResponseEntity.ok(paymentMethods);
+    }
+
+    /**
+     * Add a payment method (saved card)
+     */
+    @PostMapping("/payment-methods")
+    @PreAuthorize("hasRole('BRAND')")
+    public ResponseEntity<PaymentMethodDTO> addPaymentMethod(
+            @Valid @RequestBody AddPaymentMethodRequest request,
+            Authentication authentication) {
+        User currentUser = getCurrentUser(authentication);
+        PaymentMethodDTO paymentMethod = paymentMethodService.addPaymentMethod(
+                currentUser.getId(),
+                request.getRazorpayCustomerId(),
+                request.getRazorpayTokenId(),
+                request.getCardLast4(),
+                request.getCardNetwork(),
+                request.getCardType(),
+                request.getExpiryMonth(),
+                request.getExpiryYear(),
+                request.getCardholderName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentMethod);
+    }
+
+    /**
+     * Remove a payment method
+     */
+    @DeleteMapping("/payment-methods/{id}")
+    @PreAuthorize("hasRole('BRAND')")
+    public ResponseEntity<Void> removePaymentMethod(
+            @PathVariable String id,
+            Authentication authentication) {
+        User currentUser = getCurrentUser(authentication);
+        paymentMethodService.removePaymentMethod(currentUser.getId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Set default payment method
+     */
+    @PutMapping("/payment-methods/{id}/default")
+    @PreAuthorize("hasRole('BRAND')")
+    public ResponseEntity<Void> setDefaultPaymentMethod(
+            @PathVariable String id,
+            Authentication authentication) {
+        User currentUser = getCurrentUser(authentication);
+        paymentMethodService.setDefaultPaymentMethod(currentUser.getId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
     // Helper method to extract User from Authentication
     private User getCurrentUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -188,4 +246,3 @@ public class WalletController {
         throw new org.springframework.security.access.AccessDeniedException("Invalid authentication principal");
     }
 }
-
