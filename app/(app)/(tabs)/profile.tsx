@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spacing, borderRadius } from '@/src/theme';
 import { Avatar } from '@/src/components';
 import { useApp } from '@/src/context';
@@ -15,6 +16,8 @@ import { openExternalUrl } from '@/src/utils/openExternalUrl';
 import { SocialProvider } from '@/src/api/services/socialConnectService';
 import { profileService } from '@/src/api/services/profileService';
 import { featureFlags } from '@/src/config/featureFlags';
+
+const PREFERENCES_STORAGE_KEY = '@profile_preferences';
 
 const baseSocialAccounts = [
   {
@@ -63,7 +66,7 @@ export default function ProfileScreen() {
     disconnectSocialAccount,
     getSocialConnectUrl,
   } = useApp();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, signOut } = useAuth();
   const { colors, isDark } = useTheme();
 
   const backgroundColor = isDark ? '#000000' : colors.background;
@@ -99,8 +102,15 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const togglePreference = (key: string) => {
-    setPreferences(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+  const togglePreference = async (key: string) => {
+    const newPreferences = { ...preferences, [key]: !preferences[key as keyof typeof preferences] };
+    setPreferences(newPreferences);
+    // Persist to AsyncStorage
+    try {
+      await AsyncStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(newPreferences));
+    } catch (error) {
+      console.warn('[Profile] Failed to save preferences:', error);
+    }
   };
 
   const handleSave = async () => {
@@ -130,6 +140,12 @@ export default function ProfileScreen() {
     const hydrateProfile = async () => {
       setIsLoading(true);
       try {
+        // Load preferences from AsyncStorage
+        const storedPrefs = await AsyncStorage.getItem(PREFERENCES_STORAGE_KEY);
+        if (storedPrefs && isMounted) {
+          setPreferences(JSON.parse(storedPrefs));
+        }
+
         if (featureFlags.isEnabled('USE_API_PROFILE') && isAuthenticated) {
           // Fetch from backend API
           const profile = await profileService.getProfile();
@@ -307,7 +323,10 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => { } },
+      { text: 'Logout', style: 'destructive', onPress: async () => {
+        await signOut();
+        router.replace('/(auth)/login');
+      } },
     ]);
   };
 

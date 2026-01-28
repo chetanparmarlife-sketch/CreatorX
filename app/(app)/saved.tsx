@@ -289,30 +289,43 @@ export default function SavedScreen() {
         </ScrollView>
       </View>
 
-      <FlatList
-        data={savedCampaignsList}
-        renderItem={renderCampaign}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="bookmark"
-            title="No saved campaigns"
-            subtitle="Save campaigns you're interested in to access them quickly later"
-            actionLabel="Explore Campaigns"
-            onAction={() => router.push('/explore')}
-          />
-        }
-      />
+      {isLoading && campaigns.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: mutedText }]}>Loading saved campaigns...</Text>
+        </View>
+      ) : error && campaigns.length === 0 ? (
+        <ErrorView
+          title="Failed to load campaigns"
+          message={error}
+          onRetry={fetchSavedCampaigns}
+        />
+      ) : (
+        <FlatList
+          data={savedCampaignsList}
+          renderItem={renderCampaign}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="bookmark"
+              title="No saved campaigns"
+              subtitle="Save campaigns you're interested in to access them quickly later"
+              actionLabel="Explore Campaigns"
+              onAction={() => router.push('/explore')}
+            />
+          }
+        />
+      )}
 
       <CampaignDetailModal
         visible={!!selectedCampaign}
@@ -500,5 +513,15 @@ const styles = StyleSheet.create({
   closedButtonText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 14,
+    marginTop: spacing.md,
   },
 });

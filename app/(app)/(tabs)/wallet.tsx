@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import {
 } from '@/src/components';
 import { TransactionDTO, WithdrawalDTO } from '@/src/api/services/walletService';
 import { kycService, KYCStatusResponse } from '@/src/api/services/kycService';
+import { invoiceService, FormattedInvoice, InvoiceCountsDTO } from '@/src/api/services/invoiceService';
 import { useApp } from '@/src/context';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRefresh } from '@/src/hooks';
@@ -34,53 +35,6 @@ const invoiceFilters = [
   { id: 'overdue', label: 'Overdue' },
 ];
 
-const mockInvoices = [
-  {
-    id: 'INV-2024-001',
-    campaign: 'StyleCo - Summer Collection',
-    brand: 'StyleCo',
-    amount: '₹15,000',
-    date: 'Dec 2, 2024',
-    dueDate: 'Dec 15, 2024',
-    status: 'paid' as const,
-  },
-  {
-    id: 'INV-2024-002',
-    campaign: 'TechBrand - Product Review',
-    brand: 'TechBrand',
-    amount: '₹8,500',
-    date: 'Nov 28, 2024',
-    dueDate: 'Dec 12, 2024',
-    status: 'pending' as const,
-  },
-  {
-    id: 'INV-2024-003',
-    campaign: 'FoodieApp - Promo Campaign',
-    brand: 'FoodieApp',
-    amount: '₹8,000',
-    date: 'Nov 25, 2024',
-    dueDate: 'Dec 9, 2024',
-    status: 'paid' as const,
-  },
-  {
-    id: 'INV-2024-004',
-    campaign: 'GymPro - Fitness Challenge',
-    brand: 'GymPro',
-    amount: '₹12,000',
-    date: 'Nov 15, 2024',
-    dueDate: 'Nov 29, 2024',
-    status: 'paid' as const,
-  },
-  {
-    id: 'INV-2024-005',
-    campaign: 'BeautyBox - Skincare Launch',
-    brand: 'BeautyBox',
-    amount: '₹6,500',
-    date: 'Nov 10, 2024',
-    dueDate: 'Nov 24, 2024',
-    status: 'overdue' as const,
-  },
-];
 
 const kycSteps = [
   { id: 'personal', label: 'Personal Information', description: 'Basic details and contact info', icon: 'user' as const },
@@ -214,7 +168,7 @@ const InvoiceCard = memo(function InvoiceCard({
   onDownload,
   onView,
 }: {
-  invoice: typeof mockInvoices[0];
+  invoice: FormattedInvoice;
   colors: any;
   onDownload: () => void;
   onView: () => void;
@@ -396,6 +350,39 @@ export default function MoneyScreen() {
   });
   const [kycLoading, setKycLoading] = useState(false);
 
+  // Invoice state
+  const [invoices, setInvoices] = useState<FormattedInvoice[]>([]);
+  const [invoiceCounts, setInvoiceCounts] = useState<InvoiceCountsDTO>({ paid: 0, pending: 0, overdue: 0 });
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
+
+  // Fetch invoices from API
+  const fetchInvoices = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      setInvoicesLoading(true);
+      setInvoicesError(null);
+      const [invoicesResponse, countsResponse] = await Promise.all([
+        invoiceService.getFormattedInvoices(0, 50, invoiceFilter === 'all' ? undefined : invoiceFilter),
+        invoiceService.getInvoiceCounts(),
+      ]);
+      setInvoices(invoicesResponse.invoices);
+      setInvoiceCounts(countsResponse);
+    } catch (err) {
+      console.warn('[Wallet] Failed to fetch invoices:', err);
+      setInvoicesError('Failed to load invoices');
+    } finally {
+      setInvoicesLoading(false);
+    }
+  }, [isAuthenticated, invoiceFilter]);
+
+  // Fetch invoices when invoices tab is selected or filter changes
+  useEffect(() => {
+    if (selectedTab === 'invoices') {
+      fetchInvoices();
+    }
+  }, [selectedTab, invoiceFilter, fetchInvoices]);
+
   // Fetch KYC status from API
   const fetchKycStatus = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -473,21 +460,15 @@ export default function MoneyScreen() {
   }, [transactions, walletFilter]);
 
   const filteredInvoices = useMemo(() => {
-    if (invoiceFilter === 'all') return mockInvoices;
-    return mockInvoices.filter((inv) => inv.status === invoiceFilter);
-  }, [invoiceFilter]);
+    if (invoiceFilter === 'all') return invoices;
+    return invoices.filter((inv) => inv.status === invoiceFilter);
+  }, [invoiceFilter, invoices]);
 
   const counts = useMemo(() => ({
     pending: transactions.filter((t) => t.status === 'PENDING').length,
     credit: transactions.filter((t) => t.type === 'CREDIT').length,
     debit: transactions.filter((t) => t.type === 'DEBIT').length,
   }), [transactions]);
-
-  const invoiceCounts = useMemo(() => ({
-    paid: mockInvoices.filter((inv) => inv.status === 'paid').length,
-    pending: mockInvoices.filter((inv) => inv.status === 'pending').length,
-    overdue: mockInvoices.filter((inv) => inv.status === 'overdue').length,
-  }), []);
 
   const kycProgress = useMemo(() => {
     const total = kycSteps.length;
@@ -841,17 +822,118 @@ export default function MoneyScreen() {
     );
   };
 
-  const renderInvoicesContent = () => (
-    <View style={styles.comingSoonContainer}>
-      <View style={[styles.comingSoonIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-        <Feather name="file-text" size={48} color={colors.textMuted} />
-      </View>
-      <Text style={[styles.comingSoonTitle, { color: colors.text }]}>Invoices Coming Soon</Text>
-      <Text style={[styles.comingSoonSubtitle, { color: colors.textMuted }]}>
-        Auto-generated invoices for your campaigns will be available here
-      </Text>
-    </View>
-  );
+  const handleDownloadInvoice = useCallback(async (invoiceId: string) => {
+    try {
+      const blob = await invoiceService.downloadInvoicePdf(invoiceId);
+      // In React Native, we'd use a file system library to save/share the PDF
+      // For now, just log success
+      console.log('[Wallet] Invoice PDF downloaded:', invoiceId);
+    } catch (err) {
+      console.error('[Wallet] Failed to download invoice:', err);
+    }
+  }, []);
+
+  const handleViewInvoice = useCallback((invoiceId: string) => {
+    // Navigate to invoice detail view
+    router.push(`/invoice/${invoiceId}`);
+  }, [router]);
+
+  const renderInvoicesContent = () => {
+    if (invoicesLoading && invoices.length === 0) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textMuted }]}>Loading invoices...</Text>
+        </View>
+      );
+    }
+
+    if (invoicesError && invoices.length === 0) {
+      return (
+        <ErrorView
+          title="Failed to load invoices"
+          message={invoicesError}
+          onRetry={fetchInvoices}
+        />
+      );
+    }
+
+    if (invoices.length === 0) {
+      return (
+        <View style={styles.comingSoonContainer}>
+          <View style={[styles.comingSoonIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+            <Feather name="file-text" size={48} color={colors.textMuted} />
+          </View>
+          <Text style={[styles.comingSoonTitle, { color: colors.text }]}>No Invoices Yet</Text>
+          <Text style={[styles.comingSoonSubtitle, { color: colors.textMuted }]}>
+            Invoices for your completed campaigns will appear here
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={invoicesLoading}
+            onRefresh={fetchInvoices}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {/* Invoice Stats */}
+        <View style={styles.invoiceStatsRow}>
+          <View style={[styles.invoiceStatCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.invoiceStatValue, { color: colors.emerald }]}>{invoiceCounts.paid}</Text>
+            <Text style={[styles.invoiceStatLabel, { color: colors.textMuted }]}>Paid</Text>
+          </View>
+          <View style={[styles.invoiceStatCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.invoiceStatValue, { color: colors.amber }]}>{invoiceCounts.pending}</Text>
+            <Text style={[styles.invoiceStatLabel, { color: colors.textMuted }]}>Pending</Text>
+          </View>
+          <View style={[styles.invoiceStatCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.invoiceStatValue, { color: '#EF4444' }]}>{invoiceCounts.overdue}</Text>
+            <Text style={[styles.invoiceStatLabel, { color: colors.textMuted }]}>Overdue</Text>
+          </View>
+        </View>
+
+        {/* Invoice Filters */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScrollContent}
+          style={styles.filterScroll}
+        >
+          {invoiceFilters.map((filter) => (
+            <FilterChip
+              key={filter.id}
+              label={filter.label}
+              isActive={invoiceFilter === filter.id}
+              onPress={() => setInvoiceFilter(filter.id)}
+              colors={colorsWithDark}
+            />
+          ))}
+        </ScrollView>
+
+        {/* Invoice List */}
+        <View style={styles.invoicesList}>
+          {filteredInvoices.map((invoice) => (
+            <InvoiceCard
+              key={invoice.id}
+              invoice={invoice}
+              colors={colorsWithDark}
+              onDownload={() => handleDownloadInvoice(invoice.id)}
+              onView={() => handleViewInvoice(invoice.id)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    );
+  };
 
   const renderKYCContent = () => (
     <ScrollView
@@ -1648,5 +1730,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xl * 2,
+  },
+  loadingText: {
+    fontSize: 14,
+    marginTop: spacing.md,
+  },
+  invoiceStatsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  filterScroll: {
+    marginBottom: spacing.lg,
+  },
+  filterScrollContent: {
+    paddingRight: spacing.lg,
   },
 });
