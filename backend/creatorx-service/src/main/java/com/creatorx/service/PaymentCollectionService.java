@@ -44,6 +44,7 @@ public class PaymentCollectionService {
     private final CampaignRepository campaignRepository;
     private final Optional<RazorpayClient> razorpayClient;
     private final Optional<PaymentOrderMapper> paymentOrderMapper;
+    private final EscrowService escrowService;
 
     // Razorpay uses paise (100 paise = 1 INR)
     private static final int PAISE_PER_RUPEE = 100;
@@ -205,8 +206,8 @@ public class PaymentCollectionService {
         log.info("Payment captured: order={}, payment={}, amount={} INR",
                 razorpayOrderId, razorpayPaymentId, paymentOrder.getAmount());
 
-        // TODO: Credit escrow wallet when escrow service is implemented
-        // escrowService.creditBrandDeposit(paymentOrder);
+        // Credit escrow wallet for brand deposit
+        escrowService.creditBrandDeposit(paymentOrder);
     }
 
     /**

@@ -21,7 +21,8 @@ import java.util.List;
     @Index(name = "idx_users_phone", columnList = "phone"),
     @Index(name = "idx_users_role", columnList = "role"),
     @Index(name = "idx_users_status", columnList = "status"),
-    @Index(name = "idx_users_created_at", columnList = "created_at")
+    @Index(name = "idx_users_created_at", columnList = "created_at"),
+    @Index(name = "idx_users_referral_code", columnList = "referral_code")
 })
 @Data
 @SuperBuilder
@@ -61,7 +62,10 @@ public class User extends BaseEntity {
     
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
-    
+
+    @Column(name = "referral_code", length = 20, unique = true)
+    private String referralCode;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SocialLink> socialLinks = new ArrayList<>();
     

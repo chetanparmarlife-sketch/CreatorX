@@ -1,6 +1,7 @@
 package com.creatorx.service;
 
 import com.creatorx.common.enums.ReferralStatus;
+import com.creatorx.common.enums.TransactionType;
 import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.repository.ReferralRepository;
@@ -17,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Service for managing referral system.
@@ -29,6 +32,7 @@ public class ReferralService {
 
     private final ReferralRepository referralRepository;
     private final UserRepository userRepository;
+    private final WalletService walletService;
 
     private static final String REFERRAL_CODE_PREFIX = "CX";
     private static final BigDecimal DEFAULT_REFERRER_REWARD = new BigDecimal("100.00");
@@ -36,15 +40,20 @@ public class ReferralService {
 
     /**
      * Get or generate referral code for a user.
-     * The code is deterministically generated from the user ID.
+     * The code is stored on the user entity for efficient lookups.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public ReferralCodeDTO getReferralCode(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
-        // Generate deterministic referral code from user ID
-        String code = generateReferralCode(userId);
+        // Get existing code or generate and save a new one
+        String code = user.getReferralCode();
+        if (code == null || code.isEmpty()) {
+            code = generateReferralCode(userId);
+            user.setReferralCode(code);
+            userRepository.save(user);
+        }
 
         return ReferralCodeDTO.builder()
                 .code(code)
@@ -118,6 +127,7 @@ public class ReferralService {
     /**
      * Complete a referral (mark as successful).
      * Called when referee completes qualifying action (e.g., first campaign).
+     * Credits rewards to both referrer and referee wallets.
      */
     @Transactional
     public void completeReferral(String refereeUserId) {
@@ -134,18 +144,43 @@ public class ReferralService {
             return;
         }
 
+        String referrerId = referral.getReferrer().getId();
+
         referral.setStatus(ReferralStatus.COMPLETED);
         referral.setCompletedAt(java.time.LocalDateTime.now());
         referralRepository.save(referral);
 
-        log.info("Referral completed: referrer={}, referee={}",
-                referral.getReferrer().getId(), refereeUserId);
+        log.info("Referral completed: referrer={}, referee={}", referrerId, refereeUserId);
 
-        // TODO: Credit rewards to wallets when wallet service is ready
-        // walletService.creditReferralReward(referral.getReferrer().getId(),
-        // referral.getReferrerReward());
-        // walletService.creditReferralReward(refereeUserId,
-        // referral.getRefereeReward());
+        // Credit referrer bonus
+        Map<String, Object> referrerMetadata = new HashMap<>();
+        referrerMetadata.put("referralId", referral.getId());
+        referrerMetadata.put("refereeId", refereeUserId);
+        referrerMetadata.put("type", "referrer_bonus");
+        walletService.creditWalletWithType(
+                referrerId,
+                referral.getReferrerReward(),
+                "Referral bonus for inviting a new user",
+                null,
+                TransactionType.BONUS,
+                referrerMetadata
+        );
+        log.info("Credited referrer bonus: user={}, amount={}", referrerId, referral.getReferrerReward());
+
+        // Credit referee welcome bonus
+        Map<String, Object> refereeMetadata = new HashMap<>();
+        refereeMetadata.put("referralId", referral.getId());
+        refereeMetadata.put("referrerId", referrerId);
+        refereeMetadata.put("type", "referee_welcome_bonus");
+        walletService.creditWalletWithType(
+                refereeUserId,
+                referral.getRefereeReward(),
+                "Welcome bonus for joining via referral",
+                null,
+                TransactionType.BONUS,
+                refereeMetadata
+        );
+        log.info("Credited referee welcome bonus: user={}, amount={}", refereeUserId, referral.getRefereeReward());
     }
 
     /**
@@ -162,6 +197,7 @@ public class ReferralService {
 
     /**
      * Decode a referral code to get the user ID.
+     * Uses efficient database lookup via the referral_code index.
      */
     private String decodeReferralCode(String code) {
         if (code == null || !code.startsWith(REFERRAL_CODE_PREFIX)) {
@@ -169,14 +205,9 @@ public class ReferralService {
         }
 
         try {
-            String encoded = code.substring(REFERRAL_CODE_PREFIX.length());
-            // For the simple encoding, we need to look up users
-            // In a real system, you'd store the code or use a reversible encoding
-            // For now, we'll search for users whose generated code matches
-            return userRepository.findAll().stream()
-                    .filter(user -> generateReferralCode(user.getId()).equals(code))
+            // Efficient O(1) lookup using the indexed referral_code column
+            return userRepository.findByReferralCode(code)
                     .map(User::getId)
-                    .findFirst()
                     .orElse(null);
         } catch (Exception e) {
             log.warn("Failed to decode referral code: {}", code, e);

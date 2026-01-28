@@ -83,4 +83,18 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Stri
     @Query("SELECT po FROM PaymentOrder po WHERE po.status = 'CREATED' " +
            "AND po.expiresAt < :now")
     List<PaymentOrder> findExpiredOrders(@Param("now") LocalDateTime now);
+
+    /**
+     * Sum of captured payments by brand (for escrow balance)
+     */
+    @Query("SELECT COALESCE(SUM(po.amount), 0) FROM PaymentOrder po " +
+           "WHERE po.brand.id = :brandId AND po.status = 'CAPTURED'")
+    java.math.BigDecimal sumCapturedAmountByBrandId(@Param("brandId") String brandId);
+
+    /**
+     * Sum of captured payments by campaign (for escrow balance)
+     */
+    @Query("SELECT COALESCE(SUM(po.amount), 0) FROM PaymentOrder po " +
+           "WHERE po.campaign.id = :campaignId AND po.status = 'CAPTURED'")
+    java.math.BigDecimal sumCapturedAmountByCampaignId(@Param("campaignId") String campaignId);
 }

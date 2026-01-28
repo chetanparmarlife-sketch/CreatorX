@@ -53,6 +53,9 @@ dependencies {
     // Razorpay Java SDK for payouts
     implementation 'com.razorpay:razorpay-java:1.4.3'
 
+    // PDF generation for invoices
+    implementation 'com.itextpdf:itext7-core:7.2.5'
+
     // Test fixtures dependencies (for TestDataBuilder to access entities and enums)
     testFixturesApi project(':creatorx-repository')
     testFixturesApi project(':creatorx-common')

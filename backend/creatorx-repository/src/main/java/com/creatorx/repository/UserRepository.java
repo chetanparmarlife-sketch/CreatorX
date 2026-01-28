@@ -19,7 +19,8 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
     // CreatorProfileRepository.findByUsername() instead
     boolean existsByEmail(String email);
 
-    // Note: 'referralCode' is not a User field - Referral entity has referral codes
+    Optional<User> findByReferralCode(String referralCode);
+
     Optional<User> findFirstByRoleOrderByCreatedAtAsc(UserRole role);
 
     long countByRole(UserRole role);
