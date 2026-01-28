@@ -389,62 +389,6 @@ export default function MoreScreen() {
   const router = useRouter();
   const palette = getPalette(isDark);
 
-  const [selectedTab, setSelectedTab] = useState('events');
-  const [eventTimeFilter, setEventTimeFilter] = useState('upcoming');
-  const [selectedCity, setSelectedCity] = useState('all');
-  const [perkCategory, setPerkCategory] = useState('all');
-  const [perkSearch, setPerkSearch] = useState('');
-  const [newsFilter, setNewsFilter] = useState('all');
-  const [newsSearch, setNewsSearch] = useState('');
-
-  const filteredEvents = useMemo(() => {
-    return mockEvents.filter(event => {
-      if (eventTimeFilter === 'past') {
-        return event.isPast;
-      }
-      if (eventTimeFilter === 'saved') {
-        return event.isSaved;
-      }
-      const cityMatch = selectedCity === 'all' || event.city === selectedCity;
-      return !event.isPast && cityMatch;
-    });
-  }, [eventTimeFilter, selectedCity]);
-
-  const filteredPerks = useMemo(() => {
-    let perks = mockPerks;
-    if (perkCategory !== 'all') {
-      perks = perks.filter(perk => perk.category === perkCategory);
-    }
-    if (perkSearch.trim()) {
-      const query = perkSearch.toLowerCase();
-      perks = perks.filter(perk =>
-        perk.name.toLowerCase().includes(query) ||
-        perk.partner.toLowerCase().includes(query) ||
-        perk.description.toLowerCase().includes(query)
-      );
-    }
-    return perks;
-  }, [perkCategory, perkSearch]);
-
-  const filteredNews = useMemo(() => {
-    let news = mockNews;
-    if (newsFilter !== 'all') {
-      news = news.filter(n => n.sourceType === newsFilter);
-    }
-    if (newsSearch.trim()) {
-      const query = newsSearch.toLowerCase();
-      news = news.filter(n =>
-        n.title.toLowerCase().includes(query) ||
-        n.source.toLowerCase().includes(query) ||
-        n.summary.toLowerCase().includes(query)
-      );
-    }
-    return news;
-  }, [newsFilter, newsSearch]);
-
-  const isEventsTab = selectedTab === 'events';
-  const stickyHeaderIndices = isEventsTab ? [1] : [];
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: palette.background, borderColor: palette.border }]}>
@@ -454,191 +398,17 @@ export default function MoreScreen() {
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: palette.text }]}>Community Hub</Text>
         </View>
-        <TouchableOpacity style={styles.searchButton} activeOpacity={0.7}>
-          <Feather name="search" size={18} color={palette.textMuted} />
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.topTabs}>
-        {headerTabs.map(tab => (
-          <TopTabButton
-            key={tab.id}
-            label={tab.label}
-            isActive={selectedTab === tab.id}
-            onPress={() => setSelectedTab(tab.id)}
-            palette={palette}
-          />
-        ))}
+      <View style={styles.comingSoonContainer}>
+        <View style={[styles.comingSoonIcon, { backgroundColor: palette.surfaceAlt }]}>
+          <Feather name="users" size={48} color={palette.textMuted} />
+        </View>
+        <Text style={[styles.comingSoonTitle, { color: palette.text }]}>Community Coming Soon</Text>
+        <Text style={[styles.comingSoonSubtitle, { color: palette.textMuted }]}>
+          Events, perks, and creator news will be available here
+        </Text>
       </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        stickyHeaderIndices={stickyHeaderIndices}
-      >
-        {isEventsTab && (
-          <>
-            <View style={styles.citySection}>
-              <View style={styles.cityHeader}>
-                <Text style={[styles.cityTitle, { color: palette.textMuted }]}>EXPLORE BY CITY</Text>
-                <TouchableOpacity activeOpacity={0.7}>
-                  <Text style={[styles.cityLink, { color: palette.primary }]}>View Map</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cityScroll}>
-                {cities.map(city => (
-                  <CityCard
-                    key={city.id}
-                    city={city}
-                    isActive={selectedCity === city.id}
-                    onPress={() => setSelectedCity(city.id)}
-                    palette={palette}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={[styles.filtersSticky, { backgroundColor: palette.background, borderColor: palette.border }]}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-                {eventTimeFilters.map(filter => (
-                  <FilterPill
-                    key={filter.id}
-                    label={filter.label}
-                    isActive={eventTimeFilter === filter.id}
-                    onPress={() => setEventTimeFilter(filter.id)}
-                    palette={palette}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.section}>
-              {filteredEvents.length > 0 ? (
-                filteredEvents.map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    palette={palette}
-                    onViewDetails={() => router.push('/event-details')}
-                    onRegister={() => {}}
-                  />
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <Feather name="calendar" size={44} color={palette.textMuted} />
-                  <Text style={[styles.emptyStateText, { color: palette.textMuted }]}>No events found</Text>
-                </View>
-              )}
-            </View>
-          </>
-        )}
-
-        {selectedTab === 'perks' && (
-          <>
-            <View style={styles.searchContainer}>
-              <View style={[styles.searchBar, { backgroundColor: palette.surface }]}>
-                <Feather name="search" size={18} color={palette.textMuted} />
-                <TextInput
-                  style={[styles.searchInput, { color: palette.text }]}
-                  placeholder="Search perks, partners..."
-                  placeholderTextColor={palette.textMuted}
-                  value={perkSearch}
-                  onChangeText={setPerkSearch}
-                />
-                {perkSearch.length > 0 && (
-                  <TouchableOpacity onPress={() => setPerkSearch('')}>
-                    <Feather name="x" size={18} color={palette.textMuted} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-            <View style={styles.filtersInline}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-                {perkCategories.map(category => (
-                  <FilterPill
-                    key={category.id}
-                    label={category.label}
-                    isActive={perkCategory === category.id}
-                    onPress={() => setPerkCategory(category.id)}
-                    palette={palette}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-            <View style={styles.section}>
-              {filteredPerks.length > 0 ? (
-                filteredPerks.map(perk => (
-                  <PerkCard
-                    key={perk.id}
-                    perk={perk}
-                    palette={palette}
-                    onRedeem={() => {}}
-                    onLearnMore={() => {}}
-                  />
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <Feather name="gift" size={44} color={palette.textMuted} />
-                  <Text style={[styles.emptyStateText, { color: palette.textMuted }]}>No perks found</Text>
-                </View>
-              )}
-            </View>
-          </>
-        )}
-
-        {selectedTab === 'news' && (
-          <>
-            <View style={styles.searchContainer}>
-              <View style={[styles.searchBar, { backgroundColor: palette.surface }]}>
-                <Feather name="search" size={18} color={palette.textMuted} />
-                <TextInput
-                  style={[styles.searchInput, { color: palette.text }]}
-                  placeholder="Search news, updates..."
-                  placeholderTextColor={palette.textMuted}
-                  value={newsSearch}
-                  onChangeText={setNewsSearch}
-                />
-                {newsSearch.length > 0 && (
-                  <TouchableOpacity onPress={() => setNewsSearch('')}>
-                    <Feather name="x" size={18} color={palette.textMuted} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-            <View style={styles.filtersInline}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-                {newsFilters.map(filter => (
-                  <FilterPill
-                    key={filter.id}
-                    label={filter.label}
-                    isActive={newsFilter === filter.id}
-                    onPress={() => setNewsFilter(filter.id)}
-                    palette={palette}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-            <View style={styles.section}>
-              {filteredNews.length > 0 ? (
-                filteredNews.map(news => (
-                  <NewsCard
-                    key={news.id}
-                    news={news}
-                    palette={palette}
-                    onReadMore={() => {}}
-                  />
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <Feather name="file-text" size={44} color={palette.textMuted} />
-                  <Text style={[styles.emptyStateText, { color: palette.textMuted }]}>No news found</Text>
-                </View>
-              )}
-            </View>
-          </>
-        )}
-      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -646,29 +416,29 @@ export default function MoreScreen() {
 function getPalette(isDark: boolean) {
   return isDark
     ? {
-        background: '#000000',
-        surface: '#111111',
-        surfaceAlt: '#1E1E1E',
-        text: '#FFFFFF',
-        textMuted: '#A3A3A3',
-        textSubtle: '#737373',
-        primary: '#0047FF',
-        primarySoft: 'rgba(0, 71, 255, 0.2)',
-        border: 'rgba(255, 255, 255, 0.08)',
-        cardBorder: 'rgba(255, 255, 255, 0.1)',
-      }
+      background: '#000000',
+      surface: '#111111',
+      surfaceAlt: '#1E1E1E',
+      text: '#FFFFFF',
+      textMuted: '#A3A3A3',
+      textSubtle: '#737373',
+      primary: '#0047FF',
+      primarySoft: 'rgba(0, 71, 255, 0.2)',
+      border: 'rgba(255, 255, 255, 0.08)',
+      cardBorder: 'rgba(255, 255, 255, 0.1)',
+    }
     : {
-        background: '#F3F4F6',
-        surface: '#FFFFFF',
-        surfaceAlt: '#E5E7EB',
-        text: '#0F172A',
-        textMuted: '#64748B',
-        textSubtle: '#94A3B8',
-        primary: '#0047FF',
-        primarySoft: 'rgba(0, 71, 255, 0.15)',
-        border: 'rgba(15, 23, 42, 0.08)',
-        cardBorder: 'rgba(15, 23, 42, 0.08)',
-      };
+      background: '#F3F4F6',
+      surface: '#FFFFFF',
+      surfaceAlt: '#E5E7EB',
+      text: '#0F172A',
+      textMuted: '#64748B',
+      textSubtle: '#94A3B8',
+      primary: '#0047FF',
+      primarySoft: 'rgba(0, 71, 255, 0.15)',
+      border: 'rgba(15, 23, 42, 0.08)',
+      cardBorder: 'rgba(15, 23, 42, 0.08)',
+    };
 }
 
 function getBadgeTone(tone: string, palette: ReturnType<typeof getPalette>) {
@@ -1144,5 +914,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 10,
     fontWeight: '500',
+  },
+  comingSoonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  comingSoonIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  comingSoonTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  comingSoonSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

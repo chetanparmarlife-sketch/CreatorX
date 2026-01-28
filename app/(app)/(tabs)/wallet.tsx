@@ -14,6 +14,7 @@ import {
   TransactionItemSkeleton,
 } from '@/src/components';
 import { TransactionDTO, WithdrawalDTO } from '@/src/api/services/walletService';
+import { kycService, KYCStatusResponse } from '@/src/api/services/kycService';
 import { useApp } from '@/src/context';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRefresh } from '@/src/hooks';
@@ -105,7 +106,7 @@ const HeaderTabButton = memo(function HeaderTabButton({
     <TouchableOpacity
       style={[
         styles.headerTabButton,
-        isActive 
+        isActive
           ? [styles.headerTabButtonActive, { borderColor: colors.isDark ? 'rgba(255, 255, 255, 0.8)' : colors.primary }]
           : [styles.headerTabButtonInactive, { backgroundColor: colors.isDark ? '#2a2a2a' : colors.card, borderColor: colors.isDark ? '#2a2a2a' : colors.cardBorder }],
       ]}
@@ -115,7 +116,7 @@ const HeaderTabButton = memo(function HeaderTabButton({
     >
       <Text style={[
         styles.headerTabButtonText,
-        isActive 
+        isActive
           ? { color: colors.isDark ? '#FFFFFF' : colors.primary }
           : { color: colors.isDark ? 'rgba(255, 255, 255, 0.9)' : colors.textSecondary },
       ]}>
@@ -382,12 +383,67 @@ export default function MoneyScreen() {
     }
   }, [hasLoadedOnce, wallet, transactions.length, withdrawals.length, walletError, transactionsError, withdrawalsError]);
 
-  const [kycStatus, setKycStatus] = useState({
-    personal: 'completed' as const,
-    identity: 'current' as const,
-    address: 'pending' as const,
-    bank: 'pending' as const,
+  const [kycStatus, setKycStatus] = useState<{
+    personal: 'completed' | 'current' | 'pending' | 'rejected';
+    identity: 'completed' | 'current' | 'pending' | 'rejected';
+    address: 'completed' | 'current' | 'pending' | 'rejected';
+    bank: 'completed' | 'current' | 'pending' | 'rejected';
+  }>({
+    personal: 'pending',
+    identity: 'pending',
+    address: 'pending',
+    bank: 'pending',
   });
+  const [kycLoading, setKycLoading] = useState(false);
+
+  // Fetch KYC status from API
+  const fetchKycStatus = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      setKycLoading(true);
+      const response = await kycService.getKYCStatus();
+      // Map KYC documents to step statuses
+      const newStatus = {
+        personal: 'pending' as const,
+        identity: 'pending' as const,
+        address: 'pending' as const,
+        bank: 'pending' as const,
+      };
+
+      response.documents.forEach(doc => {
+        const statusMap: Record<string, 'completed' | 'current' | 'pending' | 'rejected'> = {
+          'APPROVED': 'completed',
+          'PENDING': 'current',
+          'REJECTED': 'rejected',
+        };
+        const mappedStatus = statusMap[doc.status] || 'pending';
+
+        if (doc.documentType === 'PAN_CARD' || doc.documentType === 'AADHAAR_CARD') {
+          newStatus.identity = mappedStatus;
+        } else if (doc.documentType === 'ADDRESS_PROOF') {
+          newStatus.address = mappedStatus;
+        } else if (doc.documentType === 'BANK_STATEMENT' || doc.documentType === 'CANCELLED_CHEQUE') {
+          newStatus.bank = mappedStatus;
+        }
+      });
+
+      // Personal is considered complete if user is authenticated
+      newStatus.personal = 'completed';
+
+      setKycStatus(newStatus);
+    } catch (err) {
+      console.warn('[Wallet] Failed to fetch KYC status:', err);
+    } finally {
+      setKycLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch KYC status on mount when KYC tab is selected
+  useEffect(() => {
+    if (selectedTab === 'kyc') {
+      fetchKycStatus();
+    }
+  }, [selectedTab, fetchKycStatus]);
 
   const handleRefresh = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -786,72 +842,20 @@ export default function MoneyScreen() {
   };
 
   const renderInvoicesContent = () => (
-    <ScrollView 
-      style={styles.scrollView} 
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-    >
-      <View style={styles.invoiceStats}>
-        <View style={[styles.invoiceStatCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Feather name="file-text" size={24} color={colors.primary} />
-          <Text style={[styles.invoiceStatValue, { color: colors.text }]}>{mockInvoices.length}</Text>
-          <Text style={[styles.invoiceStatLabel, { color: colors.textSecondary }]}>Total Invoices</Text>
-        </View>
-        <View style={[styles.invoiceStatCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Feather name="check-circle" size={24} color={colors.emerald} />
-          <Text style={[styles.invoiceStatValue, { color: colors.text }]}>{invoiceCounts.paid}</Text>
-          <Text style={[styles.invoiceStatLabel, { color: colors.textSecondary }]}>Paid</Text>
-        </View>
-        <View style={[styles.invoiceStatCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Feather name="clock" size={24} color={colors.amber} />
-          <Text style={[styles.invoiceStatValue, { color: colors.text }]}>{invoiceCounts.pending}</Text>
-          <Text style={[styles.invoiceStatLabel, { color: colors.textSecondary }]}>Pending</Text>
-        </View>
+    <View style={styles.comingSoonContainer}>
+      <View style={[styles.comingSoonIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+        <Feather name="file-text" size={48} color={colors.textMuted} />
       </View>
-
-      <View style={styles.filtersContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-          {invoiceFilters.map((filter) => (
-            <FilterChip
-              key={filter.id}
-              label={filter.label}
-              isActive={invoiceFilter === filter.id}
-              onPress={() => setInvoiceFilter(filter.id)}
-              colors={colorsWithDark}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={styles.resultsHeader}>
-        <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>{filteredInvoices.length} invoices</Text>
-      </View>
-
-      <View style={styles.invoicesList}>
-        {filteredInvoices.length > 0 ? (
-          filteredInvoices.map((invoice) => (
-            <InvoiceCard
-              key={invoice.id}
-              invoice={invoice}
-              colors={colorsWithDark}
-              onDownload={() => {}}
-              onView={() => {}}
-            />
-          ))
-        ) : (
-          <EmptyState
-            icon="file-text"
-            title="No invoices"
-            subtitle="Your invoices will appear here"
-          />
-        )}
-      </View>
-    </ScrollView>
+      <Text style={[styles.comingSoonTitle, { color: colors.text }]}>Invoices Coming Soon</Text>
+      <Text style={[styles.comingSoonSubtitle, { color: colors.textMuted }]}>
+        Auto-generated invoices for your campaigns will be available here
+      </Text>
+    </View>
   );
 
   const renderKYCContent = () => (
-    <ScrollView 
-      style={styles.scrollView} 
+    <ScrollView
+      style={styles.scrollView}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
@@ -926,7 +930,7 @@ export default function MoneyScreen() {
           <Feather name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.walletTitle, { color: colors.text }]}>Wallet</Text>
-        <TouchableOpacity style={styles.headerIconButton} onPress={() => {}} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.headerIconButton} onPress={() => { }} activeOpacity={0.7}>
           <Feather name="settings" size={22} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -1618,5 +1622,31 @@ const styles = StyleSheet.create({
   kycHelpBtnText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  comingSoonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl * 3,
+  },
+  comingSoonIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  comingSoonTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  comingSoonSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

@@ -1,13 +1,14 @@
-import { useState, useCallback, useMemo, memo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { useState, useCallback, useMemo, memo, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { spacing, borderRadius } from '@/src/theme';
-import { CampaignDetailModal, EmptyState, Avatar } from '@/src/components';
+import { CampaignDetailModal, EmptyState, Avatar, ErrorView } from '@/src/components';
 import { Campaign } from '@/src/types';
 import { useApp } from '@/src/context';
 import { useRefresh, useTheme } from '@/src/hooks';
+import { campaignService } from '@/src/api/services/campaignService';
 
 const platformFilters = [
   { id: 'all', label: 'All' },
@@ -15,62 +16,6 @@ const platformFilters = [
   { id: 'tiktok', label: 'TikTok' },
   { id: 'youtube', label: 'YouTube' },
   { id: 'high_payout', label: 'High Payout' },
-];
-
-const allCampaigns: Campaign[] = [
-  {
-    id: '1',
-    title: 'Summer Glow Campaign',
-    brand: 'Sephora',
-    budget: '$1,200',
-    deadline: 'Dec 15',
-    platform: 'tiktok',
-    category: 'Beauty',
-    applicants: 45,
-    status: 'ACTIVE',
-    userState: 'SAVED',
-    description: 'Create stunning content featuring our new summer skincare line.',
-  },
-  {
-    id: '2',
-    title: 'Tech Review 2024',
-    brand: 'Sony Electronics',
-    budget: '$2,500',
-    deadline: 'Dec 20',
-    platform: 'youtube',
-    category: 'Tech',
-    applicants: 23,
-    status: 'ACTIVE',
-    userState: 'SAVED',
-    description: 'In-depth review of our latest audio equipment.',
-  },
-  {
-    id: '3',
-    title: 'Fitness Challenge',
-    brand: 'Gymshark',
-    budget: '$800',
-    deadline: 'Dec 12',
-    platform: 'instagram',
-    category: 'Fitness',
-    applicants: 67,
-    status: 'ACTIVE',
-    userState: 'SAVED',
-    description: '30-day fitness challenge content series.',
-    hasProductExchange: true,
-  },
-  {
-    id: '4',
-    title: 'Creative Cloud Promo',
-    brand: 'Adobe',
-    budget: '$1,500',
-    deadline: 'Nov 25',
-    platform: 'tiktok',
-    category: 'Tech',
-    applicants: 34,
-    status: 'CLOSED',
-    userState: 'SAVED',
-    description: 'Showcase your creative workflow with our tools.',
-  },
 ];
 
 const getPlatformColors = (platform: string) => {
@@ -114,8 +59,8 @@ const SavedCampaignCard = memo(function SavedCampaignCard({ campaign, colors, is
     <TouchableOpacity
       style={[
         styles.campaignCard,
-        { 
-          backgroundColor: cardBackground, 
+        {
+          backgroundColor: cardBackground,
           borderColor: cardBorder,
           opacity: isClosed ? 0.7 : 1,
         }
@@ -135,7 +80,7 @@ const SavedCampaignCard = memo(function SavedCampaignCard({ campaign, colors, is
             <Text style={[styles.brandName, { color: colors.textSecondary }]}>{campaign.brand}</Text>
           </View>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.bookmarkButton}
           onPress={() => onUnsave(campaign.id)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -186,7 +131,7 @@ const SavedCampaignCard = memo(function SavedCampaignCard({ campaign, colors, is
             <Text style={[styles.closedButtonText, { color: colors.textMuted }]}>Closed</Text>
           </View>
         ) : (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.viewButton, { backgroundColor: isDark ? colors.primary : 'rgba(19, 55, 236, 0.1)' }]}
             onPress={() => onView(campaign.id)}
             activeOpacity={0.8}
@@ -203,33 +148,58 @@ const SavedCampaignCard = memo(function SavedCampaignCard({ campaign, colors, is
 export default function SavedScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const { savedCampaigns, saveCampaign, unsaveCampaign, isCampaignSaved, addNotification } = useApp();
+  const { saveCampaign, unsaveCampaign, isCampaignSaved, addNotification } = useApp();
 
   const backgroundColor = isDark ? '#101322' : colors.background;
   const surfaceColor = isDark ? '#1c1f2e' : colors.card;
   const borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.cardBorder;
   const mutedText = isDark ? '#94a3b8' : colors.textMuted;
+
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch saved campaigns from API
+  const fetchSavedCampaigns = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const savedCampaigns = await campaignService.getSavedCampaigns();
+      setCampaigns(savedCampaigns);
+    } catch (err: any) {
+      console.error('[SavedScreen] Failed to fetch saved campaigns:', err);
+      setError(err.message || 'Failed to load saved campaigns');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchSavedCampaigns();
+  }, [fetchSavedCampaigns]);
 
   const savedCampaignsList = useMemo(() => {
-    let campaigns = allCampaigns.filter(campaign => savedCampaigns.includes(campaign.id));
-    
+    let filtered = campaigns;
+
     if (selectedFilter === 'high_payout') {
-      campaigns = campaigns.filter(c => parseFloat(c.budget.replace(/[^0-9.]/g, '')) >= 1500);
+      filtered = filtered.filter(c => {
+        const budgetStr = c.budget || '';
+        const budgetNum = parseFloat(budgetStr.replace(/[^0-9.]/g, ''));
+        return !isNaN(budgetNum) && budgetNum >= 1500;
+      });
     } else if (selectedFilter !== 'all') {
-      campaigns = campaigns.filter(c => c.platform === selectedFilter);
+      filtered = filtered.filter(c => c.platform === selectedFilter);
     }
-    
-    return campaigns;
-  }, [savedCampaigns, selectedFilter]);
+
+    return filtered;
+  }, [campaigns, selectedFilter]);
 
   const handleRefresh = useCallback(async () => {
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-  }, []);
+    await fetchSavedCampaigns();
+  }, [fetchSavedCampaigns]);
 
   const { refreshing, handleRefresh: onRefresh } = useRefresh(handleRefresh);
 
@@ -246,15 +216,17 @@ export default function SavedScreen() {
   const handleSave = useCallback((id: string) => {
     if (isCampaignSaved(id)) {
       unsaveCampaign(id);
+      // Remove from local state too
+      setCampaigns(prev => prev.filter(c => c.id !== id));
     } else {
       saveCampaign(id);
     }
   }, [isCampaignSaved, saveCampaign, unsaveCampaign]);
 
   const handleViewCampaign = useCallback((id: string) => {
-    const campaign = allCampaigns.find((c) => c.id === id);
+    const campaign = campaigns.find((c) => c.id === id);
     if (campaign) setSelectedCampaign(campaign);
-  }, []);
+  }, [campaigns]);
 
   const renderCampaign = useCallback(
     ({ item }: { item: Campaign }) => (
@@ -274,14 +246,14 @@ export default function SavedScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: backgroundColor }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor: backgroundColor }]}>
-        <TouchableOpacity 
-          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0,0,0,0.05)' }]} 
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0,0,0,0.05)' }]}
           onPress={() => router.back()}
         >
           <Feather name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>Saved Campaigns</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.filterButton, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0,0,0,0.05)' }]}
         >
           <Feather name="sliders" size={20} color={colors.text} />
@@ -289,8 +261,8 @@ export default function SavedScreen() {
       </View>
 
       <View style={styles.filtersContainer}>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filtersScroll}
         >
