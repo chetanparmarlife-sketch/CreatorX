@@ -34,9 +34,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class WalletService {
-    
+
     private static final BigDecimal MIN_WITHDRAWAL_AMOUNT = new BigDecimal("100.00");
-    
+
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
@@ -44,7 +44,7 @@ public class WalletService {
     private final TransactionMapper transactionMapper;
     private final CampaignMapper campaignMapper;
     private final PlatformSettingsResolver platformSettingsResolver;
-    
+
     /**
      * Get wallet for user
      */
@@ -52,24 +52,29 @@ public class WalletService {
     public WalletDTO getWallet(String userId) {
         Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
-        
+
+        BigDecimal availableBalance = wallet.getBalance();
+        BigDecimal pendingBalance = wallet.getPendingBalance();
+        BigDecimal totalBalance = availableBalance.add(pendingBalance);
+
         return WalletDTO.builder()
                 .userId(wallet.getUserId())
-                .availableBalance(wallet.getBalance())
-                .pendingBalance(wallet.getPendingBalance())
+                .balance(totalBalance)
+                .availableBalance(availableBalance)
+                .pendingBalance(pendingBalance)
                 .totalEarnings(wallet.getTotalEarned())
                 .totalWithdrawn(wallet.getTotalWithdrawn())
                 .currency(wallet.getCurrency().name())
                 .build();
     }
-    
+
     /**
      * Get transactions for user (paginated)
      */
     @Transactional(readOnly = true)
     public Page<TransactionDTO> getTransactions(String userId, Pageable pageable) {
         Page<Transaction> transactions = transactionRepository.findByUserId(userId, pageable);
-        
+
         return transactions.map(transaction -> {
             TransactionDTO dto = transactionMapper.toDTO(transaction);
             if (transaction.getCampaign() != null) {
@@ -79,32 +84,32 @@ public class WalletService {
             return dto;
         });
     }
-    
+
     /**
      * Create transaction (internal use)
      */
     @Transactional
-    public TransactionDTO createTransaction(String userId, TransactionType type, BigDecimal amount, 
-                                           String description, String campaignId) {
+    public TransactionDTO createTransaction(String userId, TransactionType type, BigDecimal amount,
+            String description, String campaignId) {
         return createTransaction(userId, type, amount, description, campaignId, null);
     }
 
     @Transactional
     public TransactionDTO createTransaction(String userId, TransactionType type, BigDecimal amount,
-                                            String description, String campaignId, Map<String, Object> metadata) {
+            String description, String campaignId, Map<String, Object> metadata) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-        
+
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Transaction amount must be greater than 0");
         }
-        
+
         Campaign campaign = null;
         if (campaignId != null) {
             campaign = campaignRepository.findById(campaignId)
                     .orElse(null); // Campaign might not exist, that's okay
         }
-        
+
         Transaction transaction = Transaction.builder()
                 .user(user)
                 .type(type)
@@ -114,21 +119,21 @@ public class WalletService {
                 .campaign(campaign)
                 .metadata(metadata != null ? metadata : new HashMap<>())
                 .build();
-        
+
         transaction = transactionRepository.save(transaction);
-        
-        log.info("Transaction created: {} for user: {} type: {} amount: {}", 
+
+        log.info("Transaction created: {} for user: {} type: {} amount: {}",
                 transaction.getId(), userId, type, amount);
-        
+
         TransactionDTO dto = transactionMapper.toDTO(transaction);
         if (campaign != null) {
             dto.setCampaign(campaignMapper.toDTO(campaign));
             dto.setCampaignId(campaign.getId());
         }
-        
+
         return dto;
     }
-    
+
     /**
      * Credit wallet (add to available balance)
      * Uses pessimistic locking for atomic updates
@@ -141,8 +146,7 @@ public class WalletService {
 
         BigDecimal commissionPercent = platformSettingsResolver.getDecimal(
                 PlatformSettingKeys.FEES_PLATFORM_COMMISSION_PERCENT,
-                BigDecimal.ZERO
-        );
+                BigDecimal.ZERO);
         BigDecimal feeAmount = amount.multiply(commissionPercent)
                 .divide(new BigDecimal("100"))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
@@ -150,7 +154,7 @@ public class WalletService {
         if (netAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Net credit amount must be greater than 0");
         }
-        
+
         // Lock wallet for update
         Wallet wallet = walletRepository.findByUserIdWithLock(userId)
                 .orElseGet(() -> {
@@ -165,22 +169,22 @@ public class WalletService {
                             .totalWithdrawn(BigDecimal.ZERO)
                             .build();
                 });
-        
+
         // Update balance atomically
         wallet.setBalance(wallet.getBalance().add(netAmount));
         wallet.setTotalEarned(wallet.getTotalEarned().add(netAmount));
         walletRepository.save(wallet);
-        
+
         // Create transaction record
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("grossAmount", amount);
         metadata.put("platformFeePercent", commissionPercent);
         metadata.put("platformFeeAmount", feeAmount);
         createTransaction(userId, TransactionType.EARNING, netAmount, reason, campaignId, metadata);
-        
+
         log.info("Wallet credited: user={}, amount={}, fee={}, reason={}", userId, netAmount, feeAmount, reason);
     }
-    
+
     /**
      * Debit wallet (subtract from available balance)
      * Uses pessimistic locking for atomic updates
@@ -190,23 +194,23 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Debit amount must be greater than 0");
         }
-        
+
         // Lock wallet for update
         Wallet wallet = walletRepository.findByUserIdWithLock(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
-        
+
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new BusinessException("Insufficient balance. Available: " + wallet.getBalance());
         }
-        
+
         // Update balance atomically
         wallet.setBalance(wallet.getBalance().subtract(amount));
         wallet.setTotalWithdrawn(wallet.getTotalWithdrawn().add(amount));
         walletRepository.save(wallet);
-        
+
         // Create transaction record
         createTransaction(userId, TransactionType.WITHDRAWAL, amount, reason, null);
-        
+
         log.info("Wallet debited: user={}, amount={}, reason={}", userId, amount, reason);
     }
 
@@ -220,8 +224,7 @@ public class WalletService {
             String reason,
             String campaignId,
             TransactionType transactionType,
-            Map<String, Object> metadata
-    ) {
+            Map<String, Object> metadata) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Credit amount must be greater than 0");
         }
@@ -257,8 +260,7 @@ public class WalletService {
             String reason,
             String campaignId,
             TransactionType transactionType,
-            Map<String, Object> metadata
-    ) {
+            Map<String, Object> metadata) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Debit amount must be greater than 0");
         }
@@ -277,7 +279,7 @@ public class WalletService {
 
         log.info("Wallet debited: user={}, amount={}, type={}, reason={}", userId, amount, transactionType, reason);
     }
-    
+
     /**
      * Get available balance (can be withdrawn)
      */
@@ -287,7 +289,7 @@ public class WalletService {
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
         return wallet.getBalance();
     }
-    
+
     /**
      * Get pending balance (locked until deliverable approved)
      */
@@ -297,7 +299,7 @@ public class WalletService {
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
         return wallet.getPendingBalance();
     }
-    
+
     /**
      * Move pending balance to available balance (when deliverable is approved)
      */
@@ -306,24 +308,24 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Amount must be greater than 0");
         }
-        
+
         // Lock wallet for update
         Wallet wallet = walletRepository.findByUserIdWithLock(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
-        
+
         if (wallet.getPendingBalance().compareTo(amount) < 0) {
             throw new BusinessException("Insufficient pending balance. Available: " + wallet.getPendingBalance());
         }
-        
+
         // Move from pending to available
         int updated = walletRepository.movePendingToBalance(userId, amount);
         if (updated == 0) {
             throw new BusinessException("Failed to move pending balance. Insufficient pending balance.");
         }
-        
+
         log.info("Moved pending to available: user={}, amount={}", userId, amount);
     }
-    
+
     /**
      * Add to pending balance (when deliverable is submitted)
      */
@@ -332,7 +334,7 @@ public class WalletService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Amount must be greater than 0");
         }
-        
+
         // Lock wallet for update
         Wallet wallet = walletRepository.findByUserIdWithLock(userId)
                 .orElseGet(() -> {
@@ -346,10 +348,10 @@ public class WalletService {
                             .totalWithdrawn(BigDecimal.ZERO)
                             .build();
                 });
-        
+
         wallet.setPendingBalance(wallet.getPendingBalance().add(amount));
         walletRepository.save(wallet);
-        
+
         log.info("Added to pending balance: user={}, amount={}", userId, amount);
     }
 }

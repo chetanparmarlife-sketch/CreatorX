@@ -13,10 +13,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class WalletDTO {
     private String userId;
+    private BigDecimal balance; // = availableBalance + pendingBalance
     private BigDecimal availableBalance;
     private BigDecimal pendingBalance;
     private BigDecimal totalEarnings;
     private BigDecimal totalWithdrawn;
     private String currency; // INR
 }
-

@@ -35,12 +35,14 @@ import java.util.List;
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 public class KYCController {
-    
+
     private final KYCService kycService;
     private final AdminPermissionService adminPermissionService;
-    
+
     /**
-     * Submit KYC document
+     * Submit KYC document.
+     * Accepts either 'file' (mobile) or 'frontImage' (web) field for the document
+     * image.
      */
     @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
@@ -48,34 +50,36 @@ public class KYCController {
     public ResponseEntity<KYCDocumentDTO> submitKYC(
             @RequestPart("documentType") String documentTypeStr,
             @RequestPart(value = "documentNumber", required = false) String documentNumber,
-            @RequestPart("frontImage") MultipartFile frontImage,
+            @RequestPart(value = "frontImage", required = false) MultipartFile frontImage,
+            @RequestPart(value = "file", required = false) MultipartFile file,
             @RequestPart(value = "backImage", required = false) MultipartFile backImage,
-            Authentication authentication
-    ) {
-        // Validate front image is not empty
-        if (frontImage == null || frontImage.isEmpty()) {
+            Authentication authentication) {
+        // Use 'file' if provided (mobile), otherwise use 'frontImage' (web)
+        MultipartFile documentFile = (file != null && !file.isEmpty()) ? file : frontImage;
+
+        // Validate document file is not empty
+        if (documentFile == null || documentFile.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
         String userId = authentication.getName();
-        
+
         DocumentType documentType;
         try {
             documentType = DocumentType.valueOf(documentTypeStr.toUpperCase());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
-        
+
         KYCDocumentDTO document = kycService.submitKYC(
                 userId,
                 documentType,
                 documentNumber,
-                frontImage,
-                backImage
-        );
-        
+                documentFile,
+                backImage);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(document);
     }
-    
+
     /**
      * Get KYC status
      */
@@ -87,7 +91,7 @@ public class KYCController {
         KYCStatusDTO status = kycService.getKYCStatus(userId);
         return ResponseEntity.ok(status);
     }
-    
+
     /**
      * Get all KYC documents
      */
@@ -101,6 +105,39 @@ public class KYCController {
     }
 
     /**
+     * Get a specific KYC document by ID
+     */
+    @GetMapping("/documents/{documentId}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get KYC document", description = "Get a specific KYC document by ID")
+    public ResponseEntity<KYCDocumentDTO> getDocument(
+            @PathVariable String documentId,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        KYCDocumentDTO document = kycService.getDocument(userId, documentId);
+        return ResponseEntity.ok(document);
+    }
+
+    /**
+     * Resubmit a rejected KYC document
+     */
+    @PostMapping(value = "/documents/{documentId}/resubmit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Resubmit KYC document", description = "Resubmit a rejected KYC document with a new file")
+    public ResponseEntity<KYCDocumentDTO> resubmitDocument(
+            @PathVariable String documentId,
+            @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "documentNumber", required = false) String documentNumber,
+            Authentication authentication) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        String userId = authentication.getName();
+        KYCDocumentDTO document = kycService.resubmitDocument(userId, documentId, file, documentNumber);
+        return ResponseEntity.status(HttpStatus.CREATED).body(document);
+    }
+
+    /**
      * Get pending KYC documents (Admin only)
      */
     @GetMapping("/pending")
@@ -111,8 +148,7 @@ public class KYCController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "DESC") String sortDir,
-            @RequestParam(defaultValue = "createdAt") String sortBy
-    ) {
+            @RequestParam(defaultValue = "createdAt") String sortBy) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
         Sort.Direction direction = "ASC".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
@@ -127,13 +163,13 @@ public class KYCController {
     @Operation(summary = "Bulk review KYC documents", description = "Approve or reject multiple KYC documents")
     public ResponseEntity<Void> bulkReview(
             @RequestBody com.creatorx.api.dto.KycBulkReviewRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
-        kycService.bulkReview(authentication.getName(), request.getDocumentIds(), request.getStatus(), request.getReason());
+        kycService.bulkReview(authentication.getName(), request.getDocumentIds(), request.getStatus(),
+                request.getReason());
         return ResponseEntity.noContent().build();
     }
-    
+
     /**
      * Approve KYC document (Admin only)
      */
@@ -142,14 +178,13 @@ public class KYCController {
     @Operation(summary = "Approve KYC document", description = "Approve a KYC document (Admin only)")
     public ResponseEntity<Void> approveKYC(
             @PathVariable String documentId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
         String adminId = authentication.getName();
         kycService.approveKYC(adminId, documentId);
         return ResponseEntity.noContent().build();
     }
-    
+
     /**
      * Reject KYC document (Admin only)
      */
@@ -159,8 +194,7 @@ public class KYCController {
     public ResponseEntity<Void> rejectKYC(
             @PathVariable String documentId,
             @RequestParam String reason,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_KYC_REVIEW);
         String adminId = authentication.getName();
         kycService.rejectKYC(adminId, documentId, reason);

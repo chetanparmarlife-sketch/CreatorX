@@ -21,10 +21,10 @@ export type WalletDTO = {
 
 export type TransactionDTO = {
   id: string;
-  type: 'CREDIT' | 'DEBIT';
+  type: 'EARNING' | 'WITHDRAWAL' | 'REFUND' | 'BONUS' | 'PENALTY';
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REVERSED';
   amount: number;
-  currency: string;
+  currency?: string;
   description?: string;
   createdAt: string;
   campaignId?: string;

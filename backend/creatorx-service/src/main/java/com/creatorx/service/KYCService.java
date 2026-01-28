@@ -33,40 +33,40 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class KYCService {
-    
+
     private final KYCDocumentRepository kycDocumentRepository;
     private final UserRepository userRepository;
     private final SupabaseStorageService storageService;
     private final NotificationService notificationService;
     private final AdminAuditService adminAuditService;
-    
+
     /**
      * Submit KYC document
      */
     @Transactional
     public KYCDocumentDTO submitKYC(String userId, DocumentType documentType, String documentNumber,
-                                    MultipartFile frontImage, MultipartFile backImage) {
+            MultipartFile frontImage, MultipartFile backImage) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-        
+
         // Validate document number if provided
         if (documentNumber != null && !documentNumber.isEmpty()) {
             validateDocumentNumber(documentType, documentNumber);
         }
-        
+
         // Check if there's already a pending document of this type
         kycDocumentRepository.findPendingByUserIdAndDocumentType(userId, documentType)
                 .ifPresent(existing -> {
-                    throw new BusinessException("You already have a pending " + documentType + " document. Please wait for review.");
+                    throw new BusinessException(
+                            "You already have a pending " + documentType + " document. Please wait for review.");
                 });
-        
+
         // Upload front image
         FileUploadResponse frontUpload = storageService.uploadKYCDocument(
                 userId,
                 documentType.name(),
-                frontImage
-        );
-        
+                frontImage);
+
         // Upload back image if provided (for AADHAAR)
         String backImageUrl = null;
         if (backImage != null && !backImage.isEmpty()) {
@@ -76,11 +76,10 @@ public class KYCService {
             FileUploadResponse backUpload = storageService.uploadKYCDocument(
                     userId,
                     documentType.name() + "_back",
-                    backImage
-            );
+                    backImage);
             backImageUrl = backUpload.getFileUrl();
         }
-        
+
         // Create KYC document
         KYCDocument kycDocument = KYCDocument.builder()
                 .user(user)
@@ -90,28 +89,28 @@ public class KYCService {
                 .backImageUrl(backImageUrl)
                 .status(DocumentStatus.PENDING)
                 .build();
-        
+
         kycDocument = kycDocumentRepository.save(kycDocument);
-        
+
         log.info("KYC document submitted: {} for user: {} type: {}", kycDocument.getId(), userId, documentType);
-        
+
         // Notify admins (new KYC pending)
         notifyAdminsNewKYC(kycDocument);
-        
+
         return toDTO(kycDocument);
     }
-    
+
     /**
      * Get KYC status for user
      */
     @Transactional(readOnly = true)
     public KYCStatusDTO getKYCStatus(String userId) {
         List<KYCDocument> documents = kycDocumentRepository.findByUserId(userId);
-        
+
         boolean isVerified = kycDocumentRepository.countApprovedByUserId(userId) > 0;
-        
+
         String overallStatus = calculateOverallStatus(documents, isVerified);
-        
+
         return KYCStatusDTO.builder()
                 .isVerified(isVerified)
                 .overallStatus(overallStatus)
@@ -120,7 +119,7 @@ public class KYCService {
                         .collect(Collectors.toList()))
                 .build();
     }
-    
+
     /**
      * Get all KYC documents for user
      */
@@ -130,6 +129,72 @@ public class KYCService {
         return documents.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Get a specific KYC document by ID
+     */
+    @Transactional(readOnly = true)
+    public KYCDocumentDTO getDocument(String userId, String documentId) {
+        KYCDocument document = kycDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("KYC Document", documentId));
+
+        // Verify ownership
+        if (!document.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("You do not have access to this document");
+        }
+
+        return toDTO(document);
+    }
+
+    /**
+     * Resubmit a rejected KYC document with a new file
+     */
+    @Transactional
+    public KYCDocumentDTO resubmitDocument(String userId, String documentId,
+            MultipartFile file, String documentNumber) {
+        KYCDocument existingDoc = kycDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("KYC Document", documentId));
+
+        // Verify ownership
+        if (!existingDoc.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("You do not have access to this document");
+        }
+
+        // Only rejected documents can be resubmitted
+        if (existingDoc.getStatus() != DocumentStatus.REJECTED) {
+            throw new BusinessException(
+                    "Only rejected documents can be resubmitted. Current status: " + existingDoc.getStatus());
+        }
+
+        // Validate document number if provided
+        if (documentNumber != null && !documentNumber.isEmpty()) {
+            validateDocumentNumber(existingDoc.getDocumentType(), documentNumber);
+        }
+
+        // Upload new file
+        FileUploadResponse upload = storageService.uploadKYCDocument(
+                userId,
+                existingDoc.getDocumentType().name(),
+                file);
+
+        // Update the existing document
+        existingDoc.setDocumentUrl(upload.getFileUrl());
+        existingDoc.setStatus(DocumentStatus.PENDING);
+        existingDoc.setRejectionReason(null);
+        existingDoc.setVerifiedBy(null);
+        existingDoc.setVerifiedAt(null);
+        if (documentNumber != null && !documentNumber.isEmpty()) {
+            existingDoc.setDocumentNumber(documentNumber);
+        }
+
+        existingDoc = kycDocumentRepository.save(existingDoc);
+
+        log.info("KYC document resubmitted: {} for user: {}", documentId, userId);
+
+        notifyAdminsNewKYC(existingDoc);
+
+        return toDTO(existingDoc);
     }
 
     /**
@@ -157,7 +222,7 @@ public class KYCService {
             }
         }
     }
-    
+
     /**
      * Approve KYC document (Admin only)
      */
@@ -165,31 +230,31 @@ public class KYCService {
     public void approveKYC(String adminId, String documentId) {
         KYCDocument document = kycDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("KYC Document", documentId));
-        
+
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin", adminId));
-        
+
         // Check if user is admin
         if (!admin.getRole().name().equals("ADMIN")) {
             throw new UnauthorizedException("Only admins can approve KYC documents");
         }
-        
+
         if (document.getStatus() != DocumentStatus.PENDING) {
             throw new BusinessException("Only pending documents can be approved");
         }
-        
+
         document.setStatus(DocumentStatus.APPROVED);
         document.setVerifiedBy(admin);
         document.setVerifiedAt(LocalDateTime.now());
         document.setRejectionReason(null);
-        
+
         kycDocumentRepository.save(document);
-        
+
         log.info("KYC document approved: {} by admin: {}", documentId, adminId);
-        
+
         // Notify creator
         notifyCreatorKYCApproved(document);
-        
+
         // Update user profile if needed (mark as verified)
         updateUserVerificationStatus(document.getUser());
 
@@ -200,10 +265,9 @@ public class KYCService {
                 document.getId(),
                 Map.of("documentType", document.getDocumentType().name()),
                 null,
-                null
-        );
+                null);
     }
-    
+
     /**
      * Reject KYC document (Admin only)
      */
@@ -211,32 +275,32 @@ public class KYCService {
     public void rejectKYC(String adminId, String documentId, String reason) {
         KYCDocument document = kycDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("KYC Document", documentId));
-        
+
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin", adminId));
-        
+
         // Check if user is admin
         if (!admin.getRole().name().equals("ADMIN")) {
             throw new UnauthorizedException("Only admins can reject KYC documents");
         }
-        
+
         if (document.getStatus() != DocumentStatus.PENDING) {
             throw new BusinessException("Only pending documents can be rejected");
         }
-        
+
         if (reason == null || reason.trim().isEmpty()) {
             throw new BusinessException("Rejection reason is required");
         }
-        
+
         document.setStatus(DocumentStatus.REJECTED);
         document.setVerifiedBy(admin);
         document.setVerifiedAt(LocalDateTime.now());
         document.setRejectionReason(reason);
-        
+
         kycDocumentRepository.save(document);
-        
+
         log.info("KYC document rejected: {} by admin: {} reason: {}", documentId, adminId, reason);
-        
+
         // Notify creator
         notifyCreatorKYCRejected(document, reason);
 
@@ -247,10 +311,9 @@ public class KYCService {
                 document.getId(),
                 Map.of("documentType", document.getDocumentType().name(), "reason", reason),
                 null,
-                null
-        );
+                null);
     }
-    
+
     /**
      * Check if user is KYC verified
      */
@@ -258,9 +321,9 @@ public class KYCService {
     public boolean isKYCVerified(String userId) {
         return kycDocumentRepository.countApprovedByUserId(userId) > 0;
     }
-    
+
     // Helper methods
-    
+
     private KYCDocumentDTO toDTO(KYCDocument document) {
         return KYCDocumentDTO.builder()
                 .id(document.getId())
@@ -277,27 +340,27 @@ public class KYCService {
                 .verifiedAt(document.getVerifiedAt())
                 .build();
     }
-    
+
     private String calculateOverallStatus(List<KYCDocument> documents, boolean isVerified) {
         if (documents.isEmpty()) {
             return "NOT_SUBMITTED";
         }
-        
+
         if (isVerified) {
             return "APPROVED";
         }
-        
+
         boolean hasPending = documents.stream()
                 .anyMatch(doc -> doc.getStatus() == DocumentStatus.PENDING);
-        
+
         if (hasPending) {
             return "PENDING";
         }
-        
+
         // All rejected or no approved
         return "REJECTED";
     }
-    
+
     private void validateDocumentNumber(DocumentType documentType, String documentNumber) {
         switch (documentType) {
             case AADHAAR:
@@ -307,7 +370,8 @@ public class KYCService {
                 break;
             case PAN:
                 if (!documentNumber.matches("^[A-Z]{5}\\d{4}[A-Z]{1}$")) {
-                    throw new BusinessException("PAN number must be in format: ABCDE1234F (5 letters, 4 digits, 1 letter)");
+                    throw new BusinessException(
+                            "PAN number must be in format: ABCDE1234F (5 letters, 4 digits, 1 letter)");
                 }
                 break;
             case GST:
@@ -327,46 +391,44 @@ public class KYCService {
                 break;
         }
     }
-    
+
     private void notifyAdminsNewKYC(KYCDocument document) {
         // TODO: Get all admin users and notify them
         // For now, log it
         log.info("New KYC document pending review: {} for user: {}", document.getId(), document.getUser().getId());
     }
-    
+
     private void notifyCreatorKYCApproved(KYCDocument document) {
         Map<String, Object> data = new HashMap<>();
         data.put("documentId", document.getId());
         data.put("documentType", document.getDocumentType().name());
-        
+
         notificationService.createNotification(
                 document.getUser().getId(),
                 NotificationType.SYSTEM,
                 "KYC Document Approved",
                 "Your " + document.getDocumentType() + " document has been approved. You can now apply to campaigns.",
-                data
-        );
+                data);
     }
-    
+
     private void notifyCreatorKYCRejected(KYCDocument document, String reason) {
         Map<String, Object> data = new HashMap<>();
         data.put("documentId", document.getId());
         data.put("documentType", document.getDocumentType().name());
         data.put("reason", reason);
-        
+
         notificationService.createNotification(
                 document.getUser().getId(),
                 NotificationType.SYSTEM,
                 "KYC Document Rejected",
                 "Your " + document.getDocumentType() + " document has been rejected. Reason: " + reason,
-                data
-        );
+                data);
     }
-    
+
     private void updateUserVerificationStatus(User user) {
         // Check if user has at least one approved KYC document
         boolean isVerified = kycDocumentRepository.countApprovedByUserId(user.getId()) > 0;
-        
+
         // Update user profile if needed
         if (user.getUserProfile() != null) {
             // Assuming UserProfile has a verified field

@@ -1,5 +1,6 @@
 package com.creatorx.api.controller;
 
+import com.creatorx.api.dto.AvatarResponse;
 import com.creatorx.api.dto.PortfolioItemRequest;
 import com.creatorx.api.dto.UpdateBrandProfileRequest;
 import com.creatorx.api.dto.UpdateCreatorProfileRequest;
@@ -34,9 +35,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 public class ProfileController {
-    
+
     private final ProfileService profileService;
-    
+
     /**
      * Get user profile
      * For brands, returns brand profile. For creators, returns user profile.
@@ -58,7 +59,7 @@ public class ProfileController {
             return ResponseEntity.ok(profile);
         }
     }
-    
+
     /**
      * Update user profile
      */
@@ -67,48 +68,44 @@ public class ProfileController {
     @Operation(summary = "Update profile", description = "Update current user's profile")
     public ResponseEntity<UserProfileDTO> updateProfile(
             @Valid @RequestBody UpdateProfileRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         UserProfileDTO profile = profileService.updateProfile(
                 userId,
                 request.getFullName(),
                 request.getPhone(),
-                request.getBio()
-        );
+                request.getBio());
         return ResponseEntity.ok(profile);
     }
-    
+
     /**
      * Upload avatar
      */
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Upload avatar", description = "Upload user profile avatar")
-    public ResponseEntity<String> uploadAvatar(
+    public ResponseEntity<AvatarResponse> uploadAvatar(
             @RequestParam("file") MultipartFile file,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         String avatarUrl = profileService.uploadAvatar(userId, file);
-        return ResponseEntity.ok(avatarUrl);
+        return ResponseEntity.ok(AvatarResponse.builder().avatarUrl(avatarUrl).build());
     }
-    
+
     /**
      * Upload logo (alias for avatar, for brand compatibility)
      */
     @PostMapping(value = "/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Upload logo", description = "Upload brand logo (alias for avatar)")
-    public ResponseEntity<String> uploadLogo(
+    public ResponseEntity<AvatarResponse> uploadLogo(
             @RequestParam("file") MultipartFile file,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         String avatarUrl = profileService.uploadAvatar(userId, file);
-        return ResponseEntity.ok(avatarUrl);
+        return ResponseEntity.ok(AvatarResponse.builder().avatarUrl(avatarUrl).build());
     }
-    
+
     /**
      * Get creator profile
      */
@@ -120,7 +117,7 @@ public class ProfileController {
         CreatorProfileDTO profile = profileService.getCreatorProfile(userId);
         return ResponseEntity.ok(profile);
     }
-    
+
     /**
      * Update creator profile
      */
@@ -129,8 +126,7 @@ public class ProfileController {
     @Operation(summary = "Update creator profile", description = "Update creator profile (Creator only)")
     public ResponseEntity<CreatorProfileDTO> updateCreatorProfile(
             @Valid @RequestBody UpdateCreatorProfileRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         CreatorProfileDTO profile = profileService.updateCreatorProfile(
                 userId,
@@ -138,11 +134,10 @@ public class ProfileController {
                 request.getCategory(),
                 request.getInstagramUrl(),
                 request.getYoutubeUrl(),
-                request.getTwitterUrl()
-        );
+                request.getTwitterUrl());
         return ResponseEntity.ok(profile);
     }
-    
+
     /**
      * Get portfolio items
      */
@@ -154,9 +149,10 @@ public class ProfileController {
         List<PortfolioItem> portfolio = profileService.getPortfolio(userId);
         return ResponseEntity.ok(portfolio);
     }
-    
+
     /**
-     * Add portfolio item
+     * Add portfolio item.
+     * Accepts either 'media' (web) or 'file' (mobile) field for the content.
      */
     @PostMapping(value = "/portfolio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('CREATOR')")
@@ -164,14 +160,19 @@ public class ProfileController {
     public ResponseEntity<PortfolioItem> addPortfolioItem(
             @RequestPart("title") String title,
             @RequestPart(value = "description", required = false) String description,
-            @RequestPart("media") MultipartFile media,
-            Authentication authentication
-    ) {
+            @RequestPart(value = "media", required = false) MultipartFile media,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            Authentication authentication) {
+        // Use 'file' if provided (mobile), otherwise use 'media' (web)
+        MultipartFile mediaFile = (file != null && !file.isEmpty()) ? file : media;
+        if (mediaFile == null || mediaFile.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
         String userId = ((User) authentication.getPrincipal()).getId();
-        PortfolioItem item = profileService.addPortfolioItem(userId, title, description, media);
+        PortfolioItem item = profileService.addPortfolioItem(userId, title, description, mediaFile);
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
-    
+
     /**
      * Delete portfolio item
      */
@@ -180,13 +181,12 @@ public class ProfileController {
     @Operation(summary = "Delete portfolio item", description = "Delete portfolio item (Creator only)")
     public ResponseEntity<Void> deletePortfolioItem(
             @PathVariable String itemId,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         profileService.deletePortfolioItem(userId, itemId);
         return ResponseEntity.noContent().build();
     }
-    
+
     /**
      * Get brand profile
      */
@@ -198,7 +198,7 @@ public class ProfileController {
         BrandProfileDTO profile = profileService.getBrandProfile(userId);
         return ResponseEntity.ok(profile);
     }
-    
+
     /**
      * Update brand profile
      */
@@ -207,8 +207,7 @@ public class ProfileController {
     @Operation(summary = "Update brand profile", description = "Update brand profile (Brand only)")
     public ResponseEntity<BrandProfileDTO> updateBrandProfile(
             @Valid @RequestBody UpdateBrandProfileRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String userId = ((User) authentication.getPrincipal()).getId();
         BrandProfileDTO profile = profileService.updateBrandProfile(
                 userId,
@@ -216,9 +215,7 @@ public class ProfileController {
                 request.getGstNumber(),
                 request.getIndustry(),
                 request.getWebsite(),
-                request.getCompanyDescription()
-        );
+                request.getCompanyDescription());
         return ResponseEntity.ok(profile);
     }
 }
-
