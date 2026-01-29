@@ -39,16 +39,19 @@ class NotificationServiceTest {
     
     @Mock
     private NotificationRepository notificationRepository;
-    
+
     @Mock
     private UserRepository userRepository;
-    
+
     @Mock
     private FCMTokenRepository fcmTokenRepository;
-    
+
     @Mock
     private FCMService fcmService;
-    
+
+    @Mock
+    private WebSocketSessionRegistry sessionRegistry;
+
     @InjectMocks
     private NotificationService notificationService;
     
@@ -295,7 +298,8 @@ class NotificationServiceTest {
                 notificationRepository,
                 userRepository,
                 fcmTokenRepository,
-                null // FCM service not available
+                null, // FCM service not available
+                sessionRegistry
         );
         
         FCMToken token = FCMToken.builder()

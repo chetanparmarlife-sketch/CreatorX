@@ -626,4 +626,47 @@ public final class EmailTemplates {
 
         return wrap("Campaign Complete", content);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 7. TEAM INVITATION EMAILS
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    public static String teamInvitation(String inviteeName, String brandName, String role, String inviteLink) {
+        String roleDescription = switch (role.toUpperCase()) {
+            case "ADMIN" -> "Full access to manage campaigns, team members, and settings";
+            case "MANAGER" -> "Manage campaigns, review applications, and approve deliverables";
+            case "VIEWER" -> "View-only access to campaigns and analytics";
+            default -> "Access to brand dashboard features";
+        };
+
+        String content = String.format(
+                """
+                        <h2 style="margin: 0 0 16px 0; color: #111827; font-size: 24px; font-weight: 700;">You're Invited! 🤝</h2>
+                        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                            Hi%s,
+                        </p>
+                        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                            You've been invited to join <strong>%s</strong>'s team on CreatorX!
+                        </p>
+                        <div style="background-color: #f0f9ff; border-left: 4px solid #1337ec; padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0;">
+                            <p style="margin: 0 0 8px 0; color: #1e40af; font-size: 14px; font-weight: 600;">Your Role: %s</p>
+                            <p style="margin: 0; color: #1e40af; font-size: 14px;">%s</p>
+                        </div>
+                        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                            Click the button below to accept the invitation and join the team.
+                        </p>
+                        <div style="text-align: center; margin: 32px 0;">
+                            <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #1337ec 0%%, #7c3aed 100%%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                Accept Invitation
+                            </a>
+                        </div>
+                        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                            This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+                        </p>
+                        """,
+                inviteeName != null && !inviteeName.isEmpty() ? " " + inviteeName : "",
+                brandName, role, roleDescription, inviteLink);
+
+        return wrap("Team Invitation", content);
+    }
 }

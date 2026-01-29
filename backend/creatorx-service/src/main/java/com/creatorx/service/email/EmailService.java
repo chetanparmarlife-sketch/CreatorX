@@ -237,4 +237,18 @@ public interface EmailService {
         String html = EmailTemplates.campaignCompleted(brandName, campaignTitle, creatorsCount, totalSpent);
         sendHtmlEmail(to, subject, html);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 7. TEAM INVITATION EMAILS
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Send team member invitation email
+     */
+    default void sendTeamInvitationEmail(String to, String inviteeName, String brandName, String role, String inviteToken) {
+        String subject = "You're invited to join " + brandName + " on CreatorX";
+        String inviteLink = "https://creatorx.app/team/accept?token=" + inviteToken;
+        String html = EmailTemplates.teamInvitation(inviteeName, brandName, role, inviteLink);
+        sendHtmlEmail(to, subject, html);
+    }
 }

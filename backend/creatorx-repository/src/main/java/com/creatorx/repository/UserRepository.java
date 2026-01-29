@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -22,6 +23,11 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
     Optional<User> findByReferralCode(String referralCode);
 
     Optional<User> findFirstByRoleOrderByCreatedAtAsc(UserRole role);
+
+    /**
+     * Find all users with a specific role (e.g., ADMIN for notifications)
+     */
+    List<User> findByRole(UserRole role);
 
     long countByRole(UserRole role);
 

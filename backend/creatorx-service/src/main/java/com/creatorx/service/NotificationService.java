@@ -24,21 +24,24 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class NotificationService {
-    
+
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final FCMTokenRepository fcmTokenRepository;
     private final FCMService fcmService;
-    
-    // Custom constructor to make FCMService optional
+    private final WebSocketSessionRegistry sessionRegistry;
+
+    // Custom constructor to make FCMService and WebSocketSessionRegistry optional
     public NotificationService(NotificationRepository notificationRepository,
                               UserRepository userRepository,
                               FCMTokenRepository fcmTokenRepository,
-                              FCMService fcmService) {
+                              FCMService fcmService,
+                              WebSocketSessionRegistry sessionRegistry) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.fcmTokenRepository = fcmTokenRepository;
         this.fcmService = fcmService;
+        this.sessionRegistry = sessionRegistry;
     }
     
     /**
@@ -222,18 +225,25 @@ public class NotificationService {
     }
     
     /**
-     * Send push notification if user is not online (check WebSocket connection status)
-     * For now, always send push. In production, check if user is connected via WebSocket.
+     * Send push notification if user is not online via WebSocket.
+     * When a user has an active WebSocket connection, they receive real-time
+     * notifications through that channel, so we skip push notifications to
+     * avoid duplicate alerts.
      */
     private void sendPushNotificationIfNeeded(String userId, String title, String body, Map<String, Object> data) {
+        // Check if user is online via WebSocket
+        if (sessionRegistry != null && sessionRegistry.isUserOnline(userId)) {
+            log.debug("User {} is online via WebSocket, skipping push notification", userId);
+            return;
+        }
+
         // Convert data to String map for FCM
         Map<String, String> fcmData = new HashMap<>();
         if (data != null) {
             data.forEach((key, value) -> fcmData.put(key, value != null ? value.toString() : ""));
         }
-        
-        // TODO: Check if user is online via WebSocket connection
-        // For now, send push notification
+
+        // User is offline, send push notification
         sendPushNotification(userId, title, body, fcmData);
     }
 }

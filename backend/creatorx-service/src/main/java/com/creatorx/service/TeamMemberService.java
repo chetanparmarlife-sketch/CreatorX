@@ -9,6 +9,7 @@ import com.creatorx.repository.entity.TeamMemberInvitation;
 import com.creatorx.repository.entity.TeamMember;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.TeamMemberDTO;
+import com.creatorx.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,21 +23,21 @@ import java.util.List;
 
 /**
  * Service for team member management
- * 
- * Note: This is a simplified implementation. In production, you would need:
- * - TeamMember entity with brand_id, user_id, role, status, invited_at, etc.
- * - Email service for sending invitations
- * - Proper invitation token management
+ *
+ * Features:
+ * - Team member invitation with email notifications
+ * - Role-based access (ADMIN, MANAGER, VIEWER)
+ * - Invitation token management with expiry
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TeamMemberService {
-    
+
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TeamMemberInvitationRepository invitationRepository;
-    // private final EmailService emailService;
+    private final EmailService emailService;
     
     /**
      * Invite team member
@@ -63,6 +64,7 @@ public class TeamMemberService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", brandId));
 
         if (user != null) {
+            // User already exists - add them directly as team member
             TeamMember member = TeamMember.builder()
                     .brand(brand)
                     .user(user)
@@ -73,7 +75,11 @@ public class TeamMemberService {
                     .invitedBy(brand)
                     .build();
             teamMemberRepository.save(member);
+
+            // Send notification email to existing user (they were added directly)
+            sendInvitationEmail(email, user.getEmail(), brand.getEmail(), role, null);
         } else {
+            // User doesn't exist - create invitation with token
             String token = generateToken();
             TeamMemberInvitation invitation = invitationRepository
                     .findByBrandIdAndEmailAndStatus(brandId, email, "INVITED")
@@ -85,10 +91,27 @@ public class TeamMemberService {
             invitation.setInvitedBy(brand);
             invitation.setAcceptedAt(null);
             invitationRepository.save(invitation);
-        }
 
-        // TODO: Send invitation email
-        // emailService.sendTeamMemberInvitation(email, brandId, role);
+            // Send invitation email with token to new user
+            sendInvitationEmail(email, null, brand.getEmail(), role, token);
+        }
+    }
+
+    /**
+     * Send team invitation email
+     */
+    private void sendInvitationEmail(String toEmail, String inviteeName, String brandName, String role, String token) {
+        try {
+            if (emailService.isEnabled()) {
+                emailService.sendTeamInvitationEmail(toEmail, inviteeName, brandName, role, token != null ? token : "direct-add");
+                log.info("Team invitation email sent to: {} for brand: {} role: {}", toEmail, brandName, role);
+            } else {
+                log.debug("Email service disabled, skipping invitation email to: {}", toEmail);
+            }
+        } catch (Exception e) {
+            // Don't fail the invitation if email fails
+            log.warn("Failed to send team invitation email to {}: {}", toEmail, e.getMessage());
+        }
     }
     
     /**

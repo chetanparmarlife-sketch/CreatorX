@@ -393,9 +393,37 @@ public class KYCService {
     }
 
     private void notifyAdminsNewKYC(KYCDocument document) {
-        // TODO: Get all admin users and notify them
-        // For now, log it
         log.info("New KYC document pending review: {} for user: {}", document.getId(), document.getUser().getId());
+
+        // Notify all admin users about the new KYC submission
+        try {
+            List<User> admins = userRepository.findByRole(com.creatorx.common.enums.UserRole.ADMIN);
+
+            if (admins.isEmpty()) {
+                log.warn("No admin users found to notify about KYC submission: {}", document.getId());
+                return;
+            }
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("documentId", document.getId());
+            data.put("documentType", document.getDocumentType().name());
+            data.put("userId", document.getUser().getId());
+            data.put("userEmail", document.getUser().getEmail());
+
+            for (User admin : admins) {
+                notificationService.createNotification(
+                        admin.getId(),
+                        NotificationType.SYSTEM,
+                        "New KYC Document Pending Review",
+                        "A new " + document.getDocumentType() + " document from " + document.getUser().getEmail() + " requires review.",
+                        data);
+            }
+
+            log.info("Notified {} admin(s) about new KYC submission: {}", admins.size(), document.getId());
+        } catch (Exception e) {
+            // Don't fail the KYC submission if notification fails
+            log.warn("Failed to notify admins about KYC submission {}: {}", document.getId(), e.getMessage());
+        }
     }
 
     private void notifyCreatorKYCApproved(KYCDocument document) {
