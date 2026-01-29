@@ -10,8 +10,8 @@ import com.creatorx.repository.entity.Referral;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.ReferralCodeDTO;
 import com.creatorx.service.dto.ReferralStatsDTO;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +27,6 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ReferralService {
 
     private final ReferralRepository referralRepository;
@@ -35,8 +34,22 @@ public class ReferralService {
     private final WalletService walletService;
 
     private static final String REFERRAL_CODE_PREFIX = "CX";
-    private static final BigDecimal DEFAULT_REFERRER_REWARD = new BigDecimal("100.00");
-    private static final BigDecimal DEFAULT_REFEREE_REWARD = new BigDecimal("50.00");
+
+    private final BigDecimal referrerReward;
+    private final BigDecimal refereeReward;
+
+    public ReferralService(
+            ReferralRepository referralRepository,
+            UserRepository userRepository,
+            WalletService walletService,
+            @Value("${creatorx.referral.referrer-reward:100.00}") BigDecimal referrerReward,
+            @Value("${creatorx.referral.referee-reward:50.00}") BigDecimal refereeReward) {
+        this.referralRepository = referralRepository;
+        this.userRepository = userRepository;
+        this.walletService = walletService;
+        this.referrerReward = referrerReward;
+        this.refereeReward = refereeReward;
+    }
 
     /**
      * Get or generate referral code for a user.
@@ -91,14 +104,14 @@ public class ReferralService {
         User referrer = userRepository.findById(referrerId)
                 .orElseThrow(() -> new BusinessException("Invalid referral code"));
 
-        // Create referral record
+        // Create referral record with configured reward amounts
         Referral referral = Referral.builder()
                 .referrer(referrer)
                 .referee(referee)
                 .status(ReferralStatus.PENDING)
-                .referrerReward(DEFAULT_REFERRER_REWARD)
-                .refereeReward(DEFAULT_REFEREE_REWARD)
-                .rewardAmount(DEFAULT_REFERRER_REWARD.add(DEFAULT_REFEREE_REWARD))
+                .referrerReward(referrerReward)
+                .refereeReward(refereeReward)
+                .rewardAmount(referrerReward.add(refereeReward))
                 .build();
 
         referralRepository.save(referral);

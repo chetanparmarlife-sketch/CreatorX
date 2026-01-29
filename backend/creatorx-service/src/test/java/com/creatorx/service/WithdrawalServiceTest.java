@@ -133,7 +133,10 @@ class WithdrawalServiceTest {
                 adminAuditService,
                 platformSettingsResolver,
                 kycService,
-                Optional.of(razorpayService)
+                Optional.of(razorpayService),
+                new java.math.BigDecimal("100.00"),    // minWithdrawalAmount
+                new java.math.BigDecimal("50000.00"),  // maxWithdrawalPerTransaction
+                new java.math.BigDecimal("200000.00")  // maxWithdrawalPerMonth
         );
 
         lenient().when(kycService.isKYCVerified(creator.getId())).thenReturn(true);

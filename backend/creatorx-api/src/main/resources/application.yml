@@ -178,6 +178,15 @@ creatorx:
     cron: ${RECONCILIATION_CRON:0 0 2 * * *}  # 2 AM daily
     retry-cron: ${RECONCILIATION_RETRY_CRON:0 0 6 * * *}  # 6 AM daily
     alert-threshold: ${RECONCILIATION_ALERT_THRESHOLD:0.01}
+  # Referral System Configuration
+  referral:
+    referrer-reward: ${REFERRAL_REFERRER_REWARD:100.00}  # Amount credited to referrer (INR)
+    referee-reward: ${REFERRAL_REFEREE_REWARD:50.00}     # Amount credited to referee (INR)
+  # Withdrawal Limits Configuration
+  withdrawal:
+    min-amount: ${WITHDRAWAL_MIN_AMOUNT:100.00}              # Minimum withdrawal amount (INR)
+    max-per-transaction: ${WITHDRAWAL_MAX_PER_TX:50000.00}   # Max per single withdrawal (INR)
+    max-per-month: ${WITHDRAWAL_MAX_PER_MONTH:200000.00}     # Max total per month per creator (INR)
   # Rate Limiting Configuration
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

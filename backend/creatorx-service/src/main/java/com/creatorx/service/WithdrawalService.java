@@ -38,15 +38,8 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class WithdrawalService {
 
-    private static final BigDecimal MIN_WITHDRAWAL_AMOUNT = new BigDecimal("100.00");
-
-    // Phase 4.1: Payout limits for controlled beta
-    private static final BigDecimal MAX_WITHDRAWAL_PER_TRANSACTION = new BigDecimal("50000.00"); // ₹50,000 per withdrawal
-    private static final BigDecimal MAX_WITHDRAWAL_PER_MONTH = new BigDecimal("200000.00"); // ₹2,00,000 per month per creator
-    
     private final WithdrawalRequestRepository withdrawalRequestRepository;
     private final BankAccountRepository bankAccountRepository;
     private final UserRepository userRepository;
@@ -57,6 +50,40 @@ public class WithdrawalService {
     private final PlatformSettingsResolver platformSettingsResolver;
     private final KYCService kycService;
     private final Optional<RazorpayService> razorpayService;
+
+    // Configurable withdrawal limits
+    private final BigDecimal minWithdrawalAmount;
+    private final BigDecimal maxWithdrawalPerTransaction;
+    private final BigDecimal maxWithdrawalPerMonth;
+
+    public WithdrawalService(
+            WithdrawalRequestRepository withdrawalRequestRepository,
+            BankAccountRepository bankAccountRepository,
+            UserRepository userRepository,
+            TransactionRepository transactionRepository,
+            WalletService walletService,
+            BankAccountMapper bankAccountMapper,
+            AdminAuditService adminAuditService,
+            PlatformSettingsResolver platformSettingsResolver,
+            KYCService kycService,
+            Optional<RazorpayService> razorpayService,
+            @org.springframework.beans.factory.annotation.Value("${creatorx.withdrawal.min-amount:100.00}") BigDecimal minWithdrawalAmount,
+            @org.springframework.beans.factory.annotation.Value("${creatorx.withdrawal.max-per-transaction:50000.00}") BigDecimal maxWithdrawalPerTransaction,
+            @org.springframework.beans.factory.annotation.Value("${creatorx.withdrawal.max-per-month:200000.00}") BigDecimal maxWithdrawalPerMonth) {
+        this.withdrawalRequestRepository = withdrawalRequestRepository;
+        this.bankAccountRepository = bankAccountRepository;
+        this.userRepository = userRepository;
+        this.transactionRepository = transactionRepository;
+        this.walletService = walletService;
+        this.bankAccountMapper = bankAccountMapper;
+        this.adminAuditService = adminAuditService;
+        this.platformSettingsResolver = platformSettingsResolver;
+        this.kycService = kycService;
+        this.razorpayService = razorpayService;
+        this.minWithdrawalAmount = minWithdrawalAmount;
+        this.maxWithdrawalPerTransaction = maxWithdrawalPerTransaction;
+        this.maxWithdrawalPerMonth = maxWithdrawalPerMonth;
+    }
     
     /**
      * Request withdrawal
@@ -66,23 +93,23 @@ public class WithdrawalService {
         if (!platformSettingsResolver.isPayoutWindowOpen(LocalDateTime.now())) {
             throw new BusinessException("Withdrawals are not available during the current payout window");
         }
-        // Validate amount - minimum
-        if (amount.compareTo(MIN_WITHDRAWAL_AMOUNT) < 0) {
-            throw new BusinessException("Minimum withdrawal amount is ₹" + MIN_WITHDRAWAL_AMOUNT);
+        // Validate amount - minimum (configurable via creatorx.withdrawal.min-amount)
+        if (amount.compareTo(minWithdrawalAmount) < 0) {
+            throw new BusinessException("Minimum withdrawal amount is ₹" + minWithdrawalAmount);
         }
 
-        // Phase 4.1: Validate amount - maximum per transaction
-        if (amount.compareTo(MAX_WITHDRAWAL_PER_TRANSACTION) > 0) {
-            throw new BusinessException("Maximum withdrawal amount per transaction is ₹" + MAX_WITHDRAWAL_PER_TRANSACTION);
+        // Validate amount - maximum per transaction (configurable via creatorx.withdrawal.max-per-transaction)
+        if (amount.compareTo(maxWithdrawalPerTransaction) > 0) {
+            throw new BusinessException("Maximum withdrawal amount per transaction is ₹" + maxWithdrawalPerTransaction);
         }
 
-        // Phase 4.1: Validate monthly withdrawal limit
+        // Validate monthly withdrawal limit (configurable via creatorx.withdrawal.max-per-month)
         BigDecimal monthlyTotal = getMonthlyWithdrawalTotal(userId);
         BigDecimal projectedTotal = monthlyTotal.add(amount);
-        if (projectedTotal.compareTo(MAX_WITHDRAWAL_PER_MONTH) > 0) {
-            BigDecimal remaining = MAX_WITHDRAWAL_PER_MONTH.subtract(monthlyTotal);
+        if (projectedTotal.compareTo(maxWithdrawalPerMonth) > 0) {
+            BigDecimal remaining = maxWithdrawalPerMonth.subtract(monthlyTotal);
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new BusinessException("Monthly withdrawal limit of ₹" + MAX_WITHDRAWAL_PER_MONTH + " reached");
+                throw new BusinessException("Monthly withdrawal limit of ₹" + maxWithdrawalPerMonth + " reached");
             }
             throw new BusinessException("This withdrawal would exceed monthly limit. Maximum remaining: ₹" + remaining);
         }
