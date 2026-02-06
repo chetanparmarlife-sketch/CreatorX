@@ -3,18 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRefresh, useTheme } from '@/src/hooks';
 import { useApp } from '@/src/context';
 import { useAuth } from '@/src/context/AuthContext';
 import { API_BASE_URL_READY } from '@/src/config/env';
 import { SocialProvider } from '@/src/api/services/socialConnectService';
+import { mediaKitService, MediaKit } from '@/src/api/services/mediaKitService';
 import { spacing, borderRadius } from '@/src/theme';
-
-const STORAGE_KEYS = {
-  CREATOR_PROFILE: '@creator_profile',
-  COMMERCIAL_PROFILE: '@creator_commercial_profile',
-};
 
 export default function MediaKitScreen() {
   const router = useRouter();
@@ -25,34 +20,43 @@ export default function MediaKitScreen() {
     socialAccountsError,
     fetchSocialAccounts,
   } = useApp();
-  const [profile, setProfile] = useState<any>(null);
-  const [pricing, setPricing] = useState<any>(null);
+  const [mediaKit, setMediaKit] = useState<MediaKit | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Load media kit from API
   useEffect(() => {
     let isMounted = true;
 
-    const load = async () => {
-      const [creatorRaw, commercialRaw] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.CREATOR_PROFILE),
-        AsyncStorage.getItem(STORAGE_KEYS.COMMERCIAL_PROFILE),
-      ]);
-
-      if (!isMounted) return;
-
-      if (creatorRaw) {
-        setProfile(JSON.parse(creatorRaw));
+    const loadMediaKit = async () => {
+      if (!isAuthenticated || !API_BASE_URL_READY) {
+        setLoading(false);
+        return;
       }
-      if (commercialRaw) {
-        setPricing(JSON.parse(commercialRaw));
+
+      try {
+        const data = await mediaKitService.getMyMediaKit();
+        if (isMounted) {
+          setMediaKit(data);
+          setError(null);
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err?.message || 'Failed to load media kit');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    load();
+    loadMediaKit();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const { refreshing, handleRefresh } = useRefresh(async () => {
     if (!isAuthenticated || !API_BASE_URL_READY) return;
@@ -148,15 +152,15 @@ export default function MediaKitScreen() {
           <Text style={[styles.sectionTitle, { color: mutedText }]}>CREATOR PROFILE</Text>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
             {[
-              { label: 'Full Name', value: profile?.fullName || '-' },
-              { label: 'Phone', value: profile?.phoneNumber || '-' },
-              { label: 'City', value: profile?.city || '-' },
-              { label: 'Bio', value: profile?.bio || '-', multiline: true },
-              { label: 'Email', value: profile?.email || '-' },
-              { label: 'Primary Platform', value: profile?.primaryPlatform || '-' },
-              { label: 'Social Handle', value: profile?.socialHandle || '-' },
-              { label: 'Follower Count', value: profile?.followerCount ? String(profile.followerCount) : '-' },
-              { label: 'Categories', value: profile?.category || '-', multiline: true },
+              { label: 'Full Name', value: mediaKit?.displayName || '-' },
+              { label: 'Contact Email', value: mediaKit?.contactEmail || '-' },
+              { label: 'City', value: mediaKit?.city || '-' },
+              { label: 'Bio', value: mediaKit?.bio || '-', multiline: true },
+              { label: 'Tagline', value: mediaKit?.tagline || '-' },
+              { label: 'Primary Category', value: mediaKit?.primaryCategory || '-' },
+              { label: 'Categories', value: mediaKit?.categories?.join(', ') || '-' },
+              { label: 'Total Followers', value: mediaKit?.totalFollowers ? String(mediaKit.totalFollowers) : '-' },
+              { label: 'Avg Engagement', value: mediaKit?.avgEngagementRate ? `${mediaKit.avgEngagementRate}%` : '-' },
             ].map((row, index, arr) => (
               <InfoRow
                 key={row.label}
@@ -183,7 +187,7 @@ export default function MediaKitScreen() {
                   key={account.id || account.platform}
                   style={[
                     styles.socialRow,
-                    index < socials.length - 1 && { borderBottomWidth: 1, borderBottomColor },
+                    index < socials.length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor },
                   ]}
                 >
                   <Text style={[styles.socialName, { color: colors.text }]}>{account.name || account.platform}</Text>
@@ -200,12 +204,12 @@ export default function MediaKitScreen() {
           <Text style={[styles.sectionTitle, { color: mutedText }]}>PRICING</Text>
           <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
             {[
-              { label: 'Instagram Reel (30-60s)', value: pricing?.reelRate || '-' },
-              { label: 'Instagram Story (3 frames)', value: pricing?.storyRate || '-' },
-              { label: 'Instagram Post (static)', value: pricing?.postRate || '-' },
-              { label: 'YouTube Video', value: pricing?.youtubeRate || '-' },
-              { label: 'Shorts / Reels Cross-post', value: pricing?.shortRate || '-' },
-              { label: 'Live Session (30 min)', value: pricing?.liveRate || '-' },
+              { label: 'Instagram Reel (30-60s)', value: mediaKit?.reelRate ? `₹${mediaKit.reelRate}` : '-' },
+              { label: 'Instagram Story (3 frames)', value: mediaKit?.storyRate ? `₹${mediaKit.storyRate}` : '-' },
+              { label: 'Instagram Post (static)', value: mediaKit?.postRate ? `₹${mediaKit.postRate}` : '-' },
+              { label: 'YouTube Video', value: mediaKit?.youtubeRate ? `₹${mediaKit.youtubeRate}` : '-' },
+              { label: 'Shorts / Reels Cross-post', value: mediaKit?.shortRate ? `₹${mediaKit.shortRate}` : '-' },
+              { label: 'Live Session (30 min)', value: mediaKit?.liveRate ? `₹${mediaKit.liveRate}` : '-' },
             ].map((row, index, arr) => (
               <InfoRow
                 key={row.label}
