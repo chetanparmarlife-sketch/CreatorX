@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useTheme } from '@/src/hooks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL_READY } from '@/src/config/env';
+import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 
 const DEFAULT_APP_ROUTE = '/(app)/(tabs)/explore';
 const STORAGE_KEYS = {
@@ -98,13 +99,15 @@ function AuthGuard() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppProvider>
-        <AuthProvider>
-          <AuthGuard />
-        </AuthProvider>
-      </AppProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AppProvider>
+          <AuthProvider>
+            <AuthGuard />
+          </AuthProvider>
+        </AppProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 

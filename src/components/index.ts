@@ -22,3 +22,5 @@ export * from './RatingModal';
 export * from './ErrorView';
 export * from './OfflineNotice';
 export { SkeletonLoader } from './SkeletonLoader';
+export { ErrorBoundary } from './ErrorBoundary';
+

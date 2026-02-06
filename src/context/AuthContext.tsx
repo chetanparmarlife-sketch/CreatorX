@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signOut();
       setSession(null);
       setUser(null);
+      setBackendUserId(null); // Clear backend user ID
       await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
       await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
       await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [resetAppState]);
 
   const enforceCreatorOnly = useCallback(async (supabaseUser: SupabaseUser | null) => {
     if (!supabaseUser) return true;

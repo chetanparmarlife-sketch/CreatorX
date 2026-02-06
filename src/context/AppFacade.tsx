@@ -67,10 +67,39 @@ export function useApp() {
         ]);
     }, [notification, wallet, campaign, messaging]);
 
-    // ResetAppState - clears all context state
+    // ResetAppState - clears all context state from storage
     const resetAppState = useCallback(async () => {
-        console.log('[AppFacade] resetAppState called');
-        // Individual contexts handle their own cleanup on unmount
+        console.log('[AppFacade] resetAppState called - clearing cached state');
+        try {
+            // Import AsyncStorage and cacheUtils for cleanup
+            const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+            const { cacheUtils } = await import('@/src/api/utils/cache');
+
+            // Clear all cached app state from AsyncStorage
+            const keysToRemove = [
+                '@user_profile',
+                '@wallet',
+                '@campaigns',
+                '@saved_campaigns',
+                '@notifications',
+                '@creator_social_accounts',
+                '@active_campaigns',
+                '@applications',
+                '@chats',
+                '@conversations',
+                '@transactions',
+                '@withdrawals',
+            ];
+
+            await AsyncStorage.multiRemove(keysToRemove);
+
+            // Clear in-memory API cache
+            await cacheUtils.clear();
+
+            console.log('[AppFacade] App state cleared successfully');
+        } catch (error) {
+            console.error('[AppFacade] Error clearing app state:', error);
+        }
     }, []);
 
     // Combine all context values into the legacy shape
