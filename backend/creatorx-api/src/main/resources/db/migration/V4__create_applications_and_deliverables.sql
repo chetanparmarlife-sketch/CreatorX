@@ -67,14 +67,8 @@ CREATE TABLE deliverable_reviews (
     feedback TEXT,
     revision_notes TEXT,
     reviewed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT chk_reviewer_is_brand CHECK (
-        EXISTS (
-            SELECT 1 FROM users u 
-            WHERE u.id = reviewer_id AND u.role = 'BRAND'
-        )
-    )
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    -- Note: reviewer role validation (must be BRAND) is enforced at application layer
 );
 
 COMMENT ON TABLE deliverable_reviews IS 'Brand reviews and feedback on deliverable submissions';
