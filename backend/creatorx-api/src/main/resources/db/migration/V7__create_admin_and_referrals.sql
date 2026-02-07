@@ -10,11 +10,8 @@ CREATE TABLE admin_actions (
     details_json JSONB DEFAULT '{}'::jsonb,
     ip_address INET,
     user_agent TEXT,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT chk_admin_role CHECK (
-        EXISTS (SELECT 1 FROM users WHERE id = admin_id AND role = 'ADMIN')
-    )
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    -- Note: Admin role validation is enforced at application layer
 );
 
 COMMENT ON TABLE admin_actions IS 'Audit log of all admin actions for compliance and debugging';
@@ -42,11 +39,8 @@ CREATE TABLE disputes (
     CONSTRAINT chk_resolution_status CHECK (
         (status = 'RESOLVED' AND resolution IS NOT NULL AND resolved_by IS NOT NULL AND resolved_at IS NOT NULL) OR
         (status != 'RESOLVED')
-    ),
-    CONSTRAINT chk_resolver_is_admin CHECK (
-        resolved_by IS NULL OR
-        EXISTS (SELECT 1 FROM users WHERE id = resolved_by AND role = 'ADMIN')
     )
+    -- Note: Resolver admin role validation is enforced at application layer
 );
 
 COMMENT ON TABLE disputes IS 'Disputes between creators and brands requiring admin intervention';

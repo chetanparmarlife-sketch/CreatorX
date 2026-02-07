@@ -14,11 +14,8 @@ CREATE TABLE conversations (
     
     CONSTRAINT chk_unique_conversation UNIQUE (campaign_id, creator_id, brand_id),
     CONSTRAINT chk_unread_counts CHECK (creator_unread_count >= 0 AND brand_unread_count >= 0),
-    CONSTRAINT chk_creator_brand_different CHECK (creator_id != brand_id),
-    CONSTRAINT chk_users_roles CHECK (
-        EXISTS (SELECT 1 FROM users WHERE id = creator_id AND role = 'CREATOR') AND
-        EXISTS (SELECT 1 FROM users WHERE id = brand_id AND role = 'BRAND')
-    )
+    CONSTRAINT chk_creator_brand_different CHECK (creator_id != brand_id)
+    -- Note: User role validation (creator/brand) is enforced at application layer
 );
 
 COMMENT ON TABLE conversations IS 'Chat conversations between creators and brands';
@@ -36,13 +33,7 @@ CREATE TABLE messages (
     read_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    CONSTRAINT chk_sender_in_conversation CHECK (
-        EXISTS (
-            SELECT 1 FROM conversations c 
-            WHERE c.id = conversation_id 
-            AND (c.creator_id = sender_id OR c.brand_id = sender_id)
-        )
-    ),
+    -- Note: Sender validation (must be in conversation) is enforced at application layer
     CONSTRAINT chk_read_timestamp CHECK (
         (read = TRUE AND read_at IS NOT NULL) OR
         (read = FALSE)
