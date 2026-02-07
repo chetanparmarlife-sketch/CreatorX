@@ -24,9 +24,8 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_unread_recent ON notifications
 CREATE INDEX IF NOT EXISTS idx_conversations_active_unread ON conversations(creator_id, brand_id, last_message_at DESC) 
     WHERE creator_unread_count > 0 OR brand_unread_count > 0;
 
--- Campaign deliverables by due date
-CREATE INDEX IF NOT EXISTS idx_campaign_deliverables_due_date_status ON campaign_deliverables(due_date, campaign_id) 
-    WHERE due_date >= CURRENT_DATE;
+-- Campaign deliverables by due date (regular index, filtered at query time)
+CREATE INDEX IF NOT EXISTS idx_campaign_deliverables_due_date_status ON campaign_deliverables(due_date, campaign_id);
 
 -- Pending withdrawal requests
 CREATE INDEX IF NOT EXISTS idx_withdrawal_requests_pending ON withdrawal_requests(status, requested_at) 
