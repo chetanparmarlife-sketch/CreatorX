@@ -3,15 +3,15 @@ FROM gradle:8.5-jdk17 AS build
 
 WORKDIR /app
 
-# Copy Gradle files
-COPY build.gradle settings.gradle gradle.properties ./
-COPY gradle ./gradle
+# Copy Gradle files from backend directory
+COPY backend/build.gradle backend/settings.gradle backend/gradle.properties ./
+COPY backend/gradle ./gradle
 
 # Copy all module source files
-COPY creatorx-api ./creatorx-api
-COPY creatorx-service ./creatorx-service
-COPY creatorx-repository ./creatorx-repository
-COPY creatorx-common ./creatorx-common
+COPY backend/creatorx-api ./creatorx-api
+COPY backend/creatorx-service ./creatorx-service
+COPY backend/creatorx-repository ./creatorx-repository
+COPY backend/creatorx-common ./creatorx-common
 
 # Build the application
 RUN gradle clean build -x test --no-daemon
@@ -37,7 +37,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
-
-
-
-
