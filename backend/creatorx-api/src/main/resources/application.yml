@@ -36,6 +36,7 @@ spring:
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     baseline-on-migrate: true
+    out-of-order: true
     locations: classpath:db/migration
     schemas: public
   
