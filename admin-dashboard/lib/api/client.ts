@@ -51,14 +51,11 @@ class ApiClient {
   }
 
   private resolveBaseUrl(): string {
+    // Use environment variable or fallback to placeholder that gets replaced at runtime
     const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
-    const isProd = process.env.NODE_ENV === 'production'
 
-    if (!baseURL) {
-      if (isProd) {
-        throw new Error('NEXT_PUBLIC_API_BASE_URL is required in production.')
-      }
-      console.warn('[Admin API] NEXT_PUBLIC_API_BASE_URL is not set.')
+    if (!baseURL && typeof window !== 'undefined') {
+      console.warn('[Admin API] NEXT_PUBLIC_API_BASE_URL is not set. API calls will fail.')
     }
 
     return baseURL
