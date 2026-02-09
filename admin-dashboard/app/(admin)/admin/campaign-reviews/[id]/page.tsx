@@ -123,7 +123,7 @@ export default function AdminCampaignReviewDetailPage() {
         <aside className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Brand</h2>
-            <p className="text-sm text-slate-700">{campaign.brand?.name || campaign.brand?.email || '—'}</p>
+            <p className="text-sm text-slate-700">{campaign.brand?.companyName || campaign.brand?.email || '—'}</p>
             <p className="text-xs text-slate-500">{campaign.brand?.email || ''}</p>
           </section>
 
