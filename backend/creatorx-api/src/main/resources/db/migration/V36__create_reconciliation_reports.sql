@@ -3,7 +3,7 @@
 -- Phase: Phase 4.2 - Reconciliation Engine
 
 CREATE TABLE IF NOT EXISTS reconciliation_reports (
-    id VARCHAR(36) PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Report period
     report_date DATE NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS reconciliation_reports (
 
     -- Mismatches found
     mismatch_count INTEGER DEFAULT 0,
-    mismatches JSONB, -- Array of mismatch details
+    mismatches JSONB DEFAULT '[]'::jsonb, -- Array of mismatch details
 
     -- Status
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
@@ -39,17 +39,17 @@ CREATE TABLE IF NOT EXISTS reconciliation_reports (
     -- Alert flags
     has_discrepancy BOOLEAN DEFAULT FALSE,
     alert_sent BOOLEAN DEFAULT FALSE,
-    alert_sent_at TIMESTAMP,
+    alert_sent_at TIMESTAMP WITH TIME ZONE,
 
     -- Execution details
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
     duration_ms INTEGER,
     error_message TEXT,
 
     -- Timestamps
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
     -- Unique constraint per day per type
     CONSTRAINT uq_reconciliation_date_type UNIQUE (report_date, report_type)

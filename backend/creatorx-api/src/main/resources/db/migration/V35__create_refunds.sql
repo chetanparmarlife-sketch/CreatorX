@@ -3,15 +3,15 @@
 -- Phase: Phase 4.2 - Razorpay Refund Integration
 
 CREATE TABLE IF NOT EXISTS refunds (
-    id VARCHAR(36) PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Razorpay identifiers
     razorpay_refund_id VARCHAR(100) UNIQUE,
     razorpay_payment_id VARCHAR(100) NOT NULL,
 
-    -- Relationships
-    payment_order_id VARCHAR(36) REFERENCES payment_orders(id),
-    initiated_by VARCHAR(36) REFERENCES users(id), -- Admin who initiated
+    -- Relationships (UUID to match payment_orders.id and users.id)
+    payment_order_id UUID REFERENCES payment_orders(id) ON DELETE SET NULL,
+    initiated_by UUID REFERENCES users(id) ON DELETE SET NULL, -- Admin who initiated
 
     -- Amount details
     amount DECIMAL(15, 2) NOT NULL,
@@ -33,12 +33,12 @@ CREATE TABLE IF NOT EXISTS refunds (
     failure_reason TEXT,
 
     -- Timestamps
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    processed_at TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP WITH TIME ZONE,
 
     -- Webhook tracking
-    webhook_received_at TIMESTAMP
+    webhook_received_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Indexes

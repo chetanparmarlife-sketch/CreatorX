@@ -3,17 +3,17 @@
 -- Phase: Phase 4.2 - Brand Payment Collection
 
 CREATE TABLE IF NOT EXISTS payment_orders (
-    id VARCHAR(36) PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Razorpay identifiers
     razorpay_order_id VARCHAR(100) UNIQUE,
     razorpay_payment_id VARCHAR(100),
 
-    -- Relationships
-    brand_id VARCHAR(36) NOT NULL REFERENCES users(id),
-    campaign_id VARCHAR(36) REFERENCES campaigns(id),
+    -- Relationships (UUID to match users.id and campaigns.id)
+    brand_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
 
-    -- Amount details (stored in smallest unit - paise)
+    -- Amount details
     amount DECIMAL(15, 2) NOT NULL,
     currency VARCHAR(3) DEFAULT 'INR',
 
@@ -32,19 +32,19 @@ CREATE TABLE IF NOT EXISTS payment_orders (
     error_code VARCHAR(50),
 
     -- Timestamps
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    authorized_at TIMESTAMP,
-    captured_at TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    authorized_at TIMESTAMP WITH TIME ZONE,
+    captured_at TIMESTAMP WITH TIME ZONE,
 
     -- Webhook tracking
-    webhook_received_at TIMESTAMP,
+    webhook_received_at TIMESTAMP WITH TIME ZONE,
 
     -- Idempotency
     idempotency_key VARCHAR(100),
 
     -- Notes/metadata
-    notes JSONB
+    notes JSONB DEFAULT '{}'::jsonb
 );
 
 -- Indexes for common queries
