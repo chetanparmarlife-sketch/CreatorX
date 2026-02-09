@@ -11,10 +11,12 @@ export default function AdminKycPage() {
   const [bulkReason, setBulkReason] = useState('')
   const [search, setSearch] = useState('')
 
-  const { data = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['admin-kyc-pending'],
-    queryFn: adminKycService.listPending,
+    queryFn: () => adminKycService.listPending(),
   })
+
+  const items = data?.items ?? []
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => adminKycService.approve(id),
@@ -47,14 +49,14 @@ export default function AdminKycPage() {
   )
 
   const filteredData = useMemo(() => {
-    if (!search) return data
+    if (!search) return items
     const value = search.toLowerCase()
-    return data.filter((doc) =>
+    return items.filter((doc) =>
       [doc.userEmail, doc.userId, doc.documentType, doc.documentNumber]
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(value))
     )
-  }, [data, search])
+  }, [items, search])
 
   return (
     <div className="space-y-6">
@@ -67,7 +69,7 @@ export default function AdminKycPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm text-slate-500">Pending documents</p>
-            <p className="text-xl font-semibold text-slate-900">{data.length}</p>
+            <p className="text-xl font-semibold text-slate-900">{items.length}</p>
           </div>
           <div className="flex flex-col gap-2 md:flex-row md:items-center">
             <input
@@ -106,10 +108,10 @@ export default function AdminKycPage() {
                 <th className="py-2 pr-4">
                   <input
                     type="checkbox"
-                    checked={selectedCount === data.length && data.length > 0}
+                    checked={selectedCount === items.length && items.length > 0}
                     onChange={(event) => {
                       const next: Record<string, boolean> = {}
-                      data.forEach((item) => {
+                      items.forEach((item) => {
                         next[item.id] = event.target.checked
                       })
                       setSelected(next)
