@@ -155,11 +155,8 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-primary hover:text-primary/80 font-medium">
-            Sign up here
-          </Link>
+        <p className="mt-6 text-center text-xs text-slate-500">
+          Admin access only. Contact your administrator for access.
         </p>
       </div>
     </div>

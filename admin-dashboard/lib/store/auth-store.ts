@@ -7,20 +7,19 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { AuthResponse } from '@/lib/types'
-import { getCurrentUser, logout as apiLogout } from '@/lib/api/auth'
+import { getCurrentUser, logout as apiLogout, User, LoginResponse } from '@/lib/api/auth'
 
 interface AuthState {
-  user: AuthResponse | null
+  user: User | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
 
   // Actions
-  setUser: (user: AuthResponse | null) => void
+  setUser: (user: User | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
-  login: (user: AuthResponse) => void
+  login: (response: LoginResponse) => void
   logout: () => Promise<void>
   checkAuth: () => Promise<void>
 }
@@ -33,7 +32,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
 
-      setUser: (user: AuthResponse | null) => {
+      setUser: (user: User | null) => {
         set({
           user,
           isAuthenticated: !!user,
@@ -49,9 +48,9 @@ export const useAuthStore = create<AuthState>()(
         set({ error })
       },
 
-      login: (user: AuthResponse) => {
+      login: (response: LoginResponse) => {
         set({
-          user,
+          user: response.user,
           isAuthenticated: true,
           error: null,
         })
@@ -104,4 +103,3 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 )
-

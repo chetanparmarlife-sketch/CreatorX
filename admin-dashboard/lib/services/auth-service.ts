@@ -1,5 +1,7 @@
-import { login, register } from '@/lib/api/auth'
-import type { AuthResponse } from '@/lib/types'
+'use client'
+
+import { login } from '@/lib/api/auth'
+import type { LoginResponse } from '@/lib/api/auth'
 
 const STORAGE_KEYS = {
   accessToken: 'creatorx_access_token',
@@ -7,6 +9,7 @@ const STORAGE_KEYS = {
 } as const
 
 type TokenPayload = {
+  token?: string
   accessToken?: string
   refreshToken?: string
   tokens?: {
@@ -20,18 +23,10 @@ type LoginPayload = {
   password: string
 }
 
-type RegisterPayload = {
-  email: string
-  password: string
-  companyName: string
-  industry: string
-  website?: string
-}
-
 const storeTokens = (payload: TokenPayload) => {
   if (typeof window === 'undefined') return
 
-  const accessToken = payload.accessToken ?? payload.tokens?.accessToken
+  const accessToken = payload.token ?? payload.accessToken ?? payload.tokens?.accessToken
   const refreshToken = payload.refreshToken ?? payload.tokens?.refreshToken
 
   if (accessToken) {
@@ -44,19 +39,8 @@ const storeTokens = (payload: TokenPayload) => {
 }
 
 export const authService = {
-  login: async ({ email, password }: LoginPayload): Promise<AuthResponse> => {
+  login: async ({ email, password }: LoginPayload): Promise<LoginResponse> => {
     const response = await login(email, password)
-    storeTokens(response as TokenPayload)
-    return response
-  },
-  register: async ({
-    email,
-    password,
-    companyName,
-    industry,
-    website,
-  }: RegisterPayload): Promise<AuthResponse> => {
-    const response = await register(email, password, companyName, undefined, companyName, industry, website)
     storeTokens(response as TokenPayload)
     return response
   },
