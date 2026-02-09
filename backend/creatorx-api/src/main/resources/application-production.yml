@@ -2,23 +2,15 @@
 spring:
   jpa:
     show-sql: false
+    open-in-view: false
   flyway:
     enabled: true
 
-  # Redis Configuration for Railway (usually uses Upstash with TLS)
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      ssl:
-        enabled: ${REDIS_SSL_ENABLED:true}
-      timeout: 2000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
+  # Disable Redis auto-configuration if not needed
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
 
 logging:
   level:
@@ -29,3 +21,11 @@ server:
   error:
     include-stacktrace: never
     include-exception: false
+
+# Disable health checks for services not configured
+management:
+  health:
+    redis:
+      enabled: false
+    defaults:
+      enabled: true
