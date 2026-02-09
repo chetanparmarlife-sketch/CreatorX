@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'creatorx-auth-storage',
-      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : undefined)),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state: AuthState) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
