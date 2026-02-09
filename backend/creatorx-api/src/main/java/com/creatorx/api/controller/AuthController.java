@@ -84,23 +84,32 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Login", description = "Login with email and password. Works for admin/test users with password set.")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody com.creatorx.api.dto.LoginRequest request) {
-        AuthService.LoginResult result = authService.loginWithPassword(
-                request.getEmail(),
-                request.getPassword());
+        try {
+            log.info("Login attempt for email: {}", request.getEmail());
 
-        // For backwards compatibility with admin dashboard expecting "token" and "expiresIn"
-        AuthResponse response = AuthResponse.builder()
-                .accessToken(result.getAccessToken())
-                .refreshToken(result.getRefreshToken())
-                .user(toAuthUserInfo(result.getUser()))
-                .message("Login successful")
-                .build();
+            AuthService.LoginResult result = authService.loginWithPassword(
+                    request.getEmail(),
+                    request.getPassword());
 
-        // Also add "token" field for admin dashboard (24 hour expiry)
-        response.setToken(result.getAccessToken());
-        response.setExpiresIn(86400); // 24 hours in seconds
+            log.info("Login successful for email: {}, role: {}", request.getEmail(), result.getUser().getRole());
 
-        return ResponseEntity.ok(response);
+            // For backwards compatibility with admin dashboard expecting "token" and "expiresIn"
+            AuthResponse response = AuthResponse.builder()
+                    .accessToken(result.getAccessToken())
+                    .refreshToken(result.getRefreshToken())
+                    .user(toAuthUserInfo(result.getUser()))
+                    .message("Login successful")
+                    .build();
+
+            // Also add "token" field for admin dashboard (24 hour expiry)
+            response.setToken(result.getAccessToken());
+            response.setExpiresIn(86400); // 24 hours in seconds
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Login failed for email: {} - Error: {}", request.getEmail(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**

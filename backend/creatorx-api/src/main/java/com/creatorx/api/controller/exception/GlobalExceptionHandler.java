@@ -87,19 +87,25 @@ public class GlobalExceptionHandler {
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
-    
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception e) {
-        log.error("Unexpected error", e);
-        
+        log.error("Unexpected error: {} - {}", e.getClass().getName(), e.getMessage(), e);
+
+        // In production, don't expose internal error details to clients
+        String errorMessage = "An unexpected error occurred";
+
+        // Log full stack trace for debugging
+        log.error("Full stack trace:", e);
+
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
-                .message("An unexpected error occurred")
+                .message(errorMessage)
                 .path("/api/v1/**")
                 .build();
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
