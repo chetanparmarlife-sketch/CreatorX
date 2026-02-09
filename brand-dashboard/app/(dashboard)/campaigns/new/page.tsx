@@ -424,10 +424,9 @@ export default function NewCampaignPage() {
                 <div
                   className={`
                     flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-medium transition-colors
-                    ${
-                      currentStep > step.id
-                        ? 'border-purple-600 bg-purple-600 text-white'
-                        : currentStep === step.id
+                    ${currentStep > step.id
+                      ? 'border-purple-600 bg-purple-600 text-white'
+                      : currentStep === step.id
                         ? 'border-purple-600 bg-white text-purple-600'
                         : 'border-slate-300 bg-white text-slate-400'
                     }
@@ -437,16 +436,14 @@ export default function NewCampaignPage() {
                 </div>
                 {index < STEPS.length - 1 && (
                   <div
-                    className={`h-0.5 flex-1 mx-2 ${
-                      currentStep > step.id ? 'bg-purple-600' : 'bg-slate-300'
-                    }`}
+                    className={`h-0.5 flex-1 mx-2 ${currentStep > step.id ? 'bg-purple-600' : 'bg-slate-300'
+                      }`}
                   />
                 )}
               </div>
               <p
-                className={`mt-2 text-xs text-center ${
-                  currentStep >= step.id ? 'text-slate-900' : 'text-slate-400'
-                }`}
+                className={`mt-2 text-xs text-center ${currentStep >= step.id ? 'text-slate-900' : 'text-slate-400'
+                  }`}
               >
                 {step.title}
               </p>
@@ -708,7 +705,7 @@ export default function NewCampaignPage() {
                   {fields.length === 0 ? (
                     <div className="rounded-lg border border-dashed p-8 text-center">
                       <p className="text-sm text-slate-500">
-                        No deliverables added yet. Click "Add Deliverable" to get started.
+                        No deliverables added yet. Click &quot;Add Deliverable&quot; to get started.
                       </p>
                     </div>
                   ) : (
