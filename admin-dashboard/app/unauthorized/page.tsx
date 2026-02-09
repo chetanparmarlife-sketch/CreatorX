@@ -10,10 +10,11 @@
 
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function UnauthorizedPage() {
+function UnauthorizedContent() {
     const searchParams = useSearchParams()
     const role = searchParams.get('role')
 
@@ -85,5 +86,17 @@ export default function UnauthorizedPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function UnauthorizedPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="text-white">Loading...</div>
+            </div>
+        }>
+            <UnauthorizedContent />
+        </Suspense>
     )
 }
