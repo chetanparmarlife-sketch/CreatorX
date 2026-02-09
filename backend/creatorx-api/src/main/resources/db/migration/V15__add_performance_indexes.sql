@@ -37,9 +37,9 @@ ON messages(conversation_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read 
 ON notifications(user_id, read, created_at DESC);
 
--- Index for saved campaigns queries
+-- Index for saved campaigns queries (column is 'created_at' not 'saved_at')
 CREATE INDEX IF NOT EXISTS idx_saved_campaigns_creator 
-ON saved_campaigns(creator_id, saved_at DESC);
+ON saved_campaigns(creator_id, created_at DESC);
 
 -- Composite index for campaign full-text search performance
 CREATE INDEX IF NOT EXISTS idx_campaigns_fts 
