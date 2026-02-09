@@ -65,7 +65,7 @@ export default function AdminFinancePage() {
 
   const { data: reportData, isLoading: isReportLoading } = useQuery({
     queryKey: ['admin-finance-report', appliedFilters.groupBy, reportParams],
-    queryFn: () => {
+    queryFn: async (): Promise<unknown[]> => {
       if (appliedFilters.groupBy === 'USER') {
         return adminFinanceService.getUserReport(reportParams)
       }
@@ -330,59 +330,60 @@ export default function AdminFinancePage() {
                 pagedItems.map((row, index) => {
                   const anomaly = getAnomalyLabel(row)
                   return (
-                  <tr key={index} className="border-t border-slate-100">
-                    {appliedFilters.groupBy === 'PERIOD' ? (
-                      <>
-                        <td className="py-3 pr-4">
-                          {row.periodStart ? new Date(row.periodStart).toLocaleString() : '—'}
-                        </td>
-                        <td className="py-3 pr-4">
-                          {row.periodEnd ? new Date(row.periodEnd).toLocaleString() : '—'}
-                        </td>
-                      </>
-                    ) : null}
-                    {appliedFilters.groupBy === 'USER' ? (
-                      <>
-                        <td className="py-3 pr-4">{row.userId}</td>
-                        <td className="py-3 pr-4">{row.userEmail || '—'}</td>
-                      </>
-                    ) : null}
-                    {appliedFilters.groupBy === 'CAMPAIGN' ? (
-                      <>
-                        <td className="py-3 pr-4">{row.campaignId}</td>
-                        <td className="py-3 pr-4">{row.campaignTitle || '—'}</td>
-                      </>
-                    ) : null}
-                    <td className="py-3 pr-4">{formatValue(row.transactionCount)}</td>
-                    <td className="py-3 pr-4">{formatValue(row.totalAmount)}</td>
-                    <td className="py-3 pr-4">
-                      {anomaly ? (
-                        <StatusChip tone="needs_action" size="compact">
-                          {anomaly}
-                        </StatusChip>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4">
-                      {appliedFilters.includeFlags && anomaly ? (
-                        <StatusChip tone="needs_action" size="compact">
-                          Review
-                        </StatusChip>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4">
-                      <button
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                        onClick={() => setSelectedRow(row)}
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                )})
+                    <tr key={index} className="border-t border-slate-100">
+                      {appliedFilters.groupBy === 'PERIOD' ? (
+                        <>
+                          <td className="py-3 pr-4">
+                            {row.periodStart ? new Date(row.periodStart).toLocaleString() : '—'}
+                          </td>
+                          <td className="py-3 pr-4">
+                            {row.periodEnd ? new Date(row.periodEnd).toLocaleString() : '—'}
+                          </td>
+                        </>
+                      ) : null}
+                      {appliedFilters.groupBy === 'USER' ? (
+                        <>
+                          <td className="py-3 pr-4">{row.userId}</td>
+                          <td className="py-3 pr-4">{row.userEmail || '—'}</td>
+                        </>
+                      ) : null}
+                      {appliedFilters.groupBy === 'CAMPAIGN' ? (
+                        <>
+                          <td className="py-3 pr-4">{row.campaignId}</td>
+                          <td className="py-3 pr-4">{row.campaignTitle || '—'}</td>
+                        </>
+                      ) : null}
+                      <td className="py-3 pr-4">{formatValue(row.transactionCount)}</td>
+                      <td className="py-3 pr-4">{formatValue(row.totalAmount)}</td>
+                      <td className="py-3 pr-4">
+                        {anomaly ? (
+                          <StatusChip tone="needs_action" size="compact">
+                            {anomaly}
+                          </StatusChip>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {appliedFilters.includeFlags && anomaly ? (
+                          <StatusChip tone="needs_action" size="compact">
+                            Review
+                          </StatusChip>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <button
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                          onClick={() => setSelectedRow(row)}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan={8} className="py-6 text-center text-slate-500">
