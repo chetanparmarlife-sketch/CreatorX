@@ -52,10 +52,11 @@ class ApiClient {
 
   private resolveBaseUrl(): string {
     // Use environment variable or fallback to placeholder that gets replaced at runtime
-    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
+    // Support both NEXT_PUBLIC_API_URL and NEXT_PUBLIC_API_BASE_URL for compatibility
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ''
 
     if (!baseURL && typeof window !== 'undefined') {
-      console.warn('[Admin API] NEXT_PUBLIC_API_BASE_URL is not set. API calls will fail.')
+      console.warn('[Admin API] NEXT_PUBLIC_API_URL is not set. API calls will fail.')
     }
 
     return baseURL
