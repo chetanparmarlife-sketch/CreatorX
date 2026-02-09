@@ -26,8 +26,12 @@ COPY backend/creatorx-api/src backend/creatorx-api/src
 WORKDIR /workspace/app/backend
 RUN ./gradlew clean build -x test --no-daemon
 
-# Extract the built JAR
-RUN mkdir -p target && cp creatorx-api/build/libs/creatorx-api-*.jar target/app.jar
+# Debug: List the JAR files to verify they exist
+RUN ls -la creatorx-api/build/libs/
+
+# Extract the built JAR (use the non-plain JAR file)
+RUN mkdir -p target && \
+    cp creatorx-api/build/libs/creatorx-api-1.0.0.jar target/app.jar
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
