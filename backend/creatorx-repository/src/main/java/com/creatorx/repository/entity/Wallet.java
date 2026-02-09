@@ -9,7 +9,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 
@@ -25,7 +27,8 @@ import java.math.BigDecimal;
 @ToString(exclude = "user")
 public class Wallet {
     @Id
-    @Column(name = "user_id")
+    @Column(name = "user_id", columnDefinition = "uuid")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String userId;
     
     @OneToOne(fetch = FetchType.LAZY)

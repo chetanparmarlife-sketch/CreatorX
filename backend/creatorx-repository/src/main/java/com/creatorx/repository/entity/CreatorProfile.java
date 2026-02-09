@@ -30,7 +30,8 @@ import java.util.List;
 @ToString(exclude = "user")
 public class CreatorProfile {
     @Id
-    @Column(name = "user_id")
+    @Column(name = "user_id", columnDefinition = "uuid")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String userId;
     
     @OneToOne(fetch = FetchType.LAZY)
