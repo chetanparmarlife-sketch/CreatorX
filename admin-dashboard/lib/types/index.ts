@@ -166,6 +166,17 @@ export interface BrandProfile {
   logoUrl?: string
 }
 
+export interface CreatorProfile {
+  userId: string
+  username?: string
+  category?: string
+  instagramUrl?: string
+  youtubeUrl?: string
+  twitterUrl?: string
+  followerCount?: number
+  averageEngagement?: number
+}
+
 // Campaign Types
 export interface Campaign {
   id: string
