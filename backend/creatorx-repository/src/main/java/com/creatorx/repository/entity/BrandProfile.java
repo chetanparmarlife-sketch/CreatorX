@@ -1,5 +1,6 @@
 package com.creatorx.repository.entity;
 
+import com.creatorx.repository.converter.UuidToStringConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -27,6 +28,7 @@ import java.time.LocalDateTime;
 public class BrandProfile {
     @Id
     @Column(name = "user_id", columnDefinition = "uuid")
+    @Convert(converter = UuidToStringConverter.class)
     private String userId;
 
     @OneToOne(fetch = FetchType.LAZY)

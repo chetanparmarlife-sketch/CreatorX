@@ -1,4 +1,5 @@
 package com.creatorx.repository.entity;
+import com.creatorx.repository.converter.UuidToStringConverter;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,6 +20,7 @@ public abstract class BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uuid")
+    @Convert(converter = UuidToStringConverter.class)
     private String id;
 
     @CreationTimestamp

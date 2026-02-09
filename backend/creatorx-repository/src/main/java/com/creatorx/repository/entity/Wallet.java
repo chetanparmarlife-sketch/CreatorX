@@ -1,4 +1,5 @@
 package com.creatorx.repository.entity;
+import com.creatorx.repository.converter.UuidToStringConverter;
 
 import com.creatorx.common.enums.CurrencyType;
 import jakarta.persistence.*;
@@ -26,6 +27,7 @@ import java.math.BigDecimal;
 public class Wallet {
     @Id
     @Column(name = "user_id", columnDefinition = "uuid")
+    @Convert(converter = UuidToStringConverter.class)
     private String userId;
     
     @OneToOne(fetch = FetchType.LAZY)
