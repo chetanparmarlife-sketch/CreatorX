@@ -12,7 +12,7 @@ export default function AdminBrandVerificationPage() {
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-brand-verifications'],
-    queryFn: adminBrandVerificationService.listPending,
+    queryFn: () => adminBrandVerificationService.listPending(),
   })
 
   const reviewMutation = useMutation({
