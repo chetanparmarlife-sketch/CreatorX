@@ -33,11 +33,8 @@ export const profileService = {
     const formData = new FormData()
     formData.append('file', file)
     // Backend has /profile/logo alias that maps to /profile/avatar
-    return apiClient.post('/profile/logo', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+    // Axios automatically sets the correct Content-Type with boundary for FormData
+    return apiClient.post('/profile/logo', formData)
   },
   async getTeamMembers() {
     return apiClient.get<TeamMember[]>('/team-members')

@@ -304,11 +304,8 @@ class ApiClient {
    * Upload file with multipart form data
    */
   public async upload<T>(url: string, formData: FormData): Promise<T> {
-    const response = await this.client.post<T>(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+    // Axios automatically sets the correct Content-Type with boundary for FormData
+    const response = await this.client.post<T>(url, formData)
     return response.data
   }
 }
