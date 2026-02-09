@@ -1,5 +1,4 @@
 package com.creatorx.repository.entity;
-import com.creatorx.repository.converter.UuidToStringConverter;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -41,8 +40,7 @@ public class MediaKit {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "user_id", columnDefinition = "uuid", insertable = false, updatable = false)
-    @Convert(converter = UuidToStringConverter.class)
+    @Column(name = "user_id", columnDefinition = "varchar(36)", insertable = false, updatable = false)
     private String userId;
 
     // Basic Info

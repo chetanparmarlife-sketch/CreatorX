@@ -1,5 +1,4 @@
 package com.creatorx.repository.entity;
-import com.creatorx.repository.converter.UuidToStringConverter;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -31,8 +30,7 @@ import java.util.List;
 @ToString(exclude = "user")
 public class CreatorProfile {
     @Id
-    @Column(name = "user_id", columnDefinition = "uuid")
-    @Convert(converter = UuidToStringConverter.class)
+    @Column(name = "user_id", columnDefinition = "varchar(36)")
     private String userId;
     
     @OneToOne(fetch = FetchType.LAZY)
