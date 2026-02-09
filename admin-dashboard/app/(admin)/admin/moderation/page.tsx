@@ -33,7 +33,7 @@ export default function AdminModerationRulesPage() {
 
   const { data: testResult, isLoading: testLoading } = useQuery({
     queryKey: ['admin-moderation-test', testingRule, sampleSize],
-    queryFn: () => adminModerationService.testRule(testingRule, sampleSize),
+    queryFn: () => adminModerationService.testRule(testingRule!, sampleSize),
     enabled: !!testingRule,
   })
 
