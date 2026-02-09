@@ -15,6 +15,7 @@ import com.creatorx.repository.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -35,17 +36,18 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    
+
     private final UserRepository userRepository;
     private final BrandProfileRepository brandProfileRepository;
     private final RestTemplate restTemplate;
-    
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+
     @Value("${supabase.url}")
     private String supabaseUrl;
-    
+
     @Value("${supabase.service.role.key:}")
     private String supabaseServiceRoleKey; // For admin operations
-    
+
     /**
      * Register a new user in Supabase and create profile in Spring Boot
      */
@@ -55,14 +57,16 @@ public class AuthService {
         if (userRepository.existsByEmail(email)) {
             throw new BusinessException("User with email " + email + " already exists");
         }
-        
-        // Register user in Supabase (this should be done from client, but we can create the user here)
-        // Note: In production, registration should happen on client side via Supabase SDK
+
+        // Register user in Supabase (this should be done from client, but we can create
+        // the user here)
+        // Note: In production, registration should happen on client side via Supabase
+        // SDK
         // This method assumes Supabase user is already created and we're just syncing
-        
+
         // For now, we'll create the user in our DB
         // In real implementation, Supabase webhook or client callback will trigger this
-        
+
         User user = User.builder()
                 .email(email)
                 .phone(phone)
@@ -71,34 +75,98 @@ public class AuthService {
                 .emailVerified(false)
                 .phoneVerified(false)
                 .build();
-        
+
         // Generate a temporary Supabase ID (in production, this comes from Supabase)
         // This will be updated when Supabase webhook confirms user creation
         String tempSupabaseId = "temp_" + UUID.randomUUID().toString();
         user.setSupabaseId(tempSupabaseId);
-        
+
         // Set password hash (in production, password is handled by Supabase)
         // We store a placeholder here
         user.setPasswordHash("supabase_managed");
-        
+
         User savedUser = userRepository.save(user);
-        
+
         log.info("Registered user: {} with role: {}", email, role);
         return savedUser;
     }
-    
+
+    /**
+     * Authenticate user with email and password (direct login).
+     * This is used for admin users or when Supabase is not available.
+     */
+    @Transactional
+    public LoginResult loginWithPassword(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Invalid email or password"));
+
+        // Check if user is active
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException("Account is not active. Status: " + user.getStatus());
+        }
+
+        // Verify password
+        String storedHash = user.getPasswordHash();
+        if (storedHash == null || storedHash.equals("supabase_managed")) {
+            throw new BusinessException(
+                    "Direct login not supported for this account. Please use Supabase authentication.");
+        }
+
+        if (!passwordEncoder.matches(password, storedHash)) {
+            throw new BusinessException("Invalid email or password");
+        }
+
+        // Update last login
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        log.info("User logged in directly: {} with role: {}", email, user.getRole());
+
+        // Generate a simple token (in production, use proper JWT)
+        String token = generateSimpleToken(user);
+
+        return new LoginResult(user, token, null);
+    }
+
+    /**
+     * Generate a simple token for direct login
+     * In production, this should be replaced with proper JWT generation
+     */
+    private String generateSimpleToken(User user) {
+        // Create a simple base64 encoded token for now
+        // Format: userId:role:timestamp:random
+        String payload = String.format("%s:%s:%d:%s",
+                user.getId().toString(),
+                user.getRole().name(),
+                System.currentTimeMillis(),
+                UUID.randomUUID().toString().substring(0, 8));
+        return java.util.Base64.getEncoder().encodeToString(payload.getBytes());
+    }
+
+    /**
+     * Result of login operation
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LoginResult {
+        private User user;
+        private String accessToken;
+        private String refreshToken;
+    }
+
     /**
      * Link Supabase user to internal user after Supabase registration
      * Called via webhook or after client-side registration
      * For brands, creates brand profile with company information
      */
     @Transactional
-    public User linkSupabaseUser(String supabaseUserId, String email, String name, UserRole role, 
-                                 String companyName, String industry, String website) {
+    public User linkSupabaseUser(String supabaseUserId, String email, String name, UserRole role,
+            String companyName, String industry, String website) {
         // Check if user already exists by email
         User user = userRepository.findByEmail(email)
                 .orElse(null);
-        
+
         if (user == null) {
             // Create new user
             user = User.builder()
@@ -116,13 +184,13 @@ public class AuthService {
             user.setSupabaseId(supabaseUserId);
             user = userRepository.save(user);
         }
-        
+
         // Create role-specific profile if it doesn't exist
         createRoleProfile(user, name, companyName, industry, website);
-        
+
         return user;
     }
-    
+
     /**
      * Create role-specific profile (Brand or Creator)
      */
@@ -132,13 +200,15 @@ public class AuthService {
             if (!brandProfileRepository.existsById(user.getId())) {
                 BrandProfile brandProfile = BrandProfile.builder()
                         .user(user)
-                        .companyName(companyName != null ? companyName : (name != null ? name : user.getEmail().split("@")[0]))
+                        .companyName(companyName != null ? companyName
+                                : (name != null ? name : user.getEmail().split("@")[0]))
                         .industry(industry)
                         .website(website)
                         .verified(false)
                         .build();
                 brandProfileRepository.save(brandProfile);
-                log.info("Created brand profile for user: {} with company: {}", user.getId(), brandProfile.getCompanyName());
+                log.info("Created brand profile for user: {} with company: {}", user.getId(),
+                        brandProfile.getCompanyName());
             } else {
                 // Update existing profile if company info provided
                 BrandProfile existingProfile = brandProfileRepository.findById(user.getId()).orElse(null);
@@ -167,7 +237,7 @@ public class AuthService {
             // We don't create it here as it requires additional fields (username, category)
         }
     }
-    
+
     /**
      * Get user by Supabase ID
      */
@@ -175,7 +245,7 @@ public class AuthService {
         return userRepository.findBySupabaseId(supabaseUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "supabaseId: " + supabaseUserId));
     }
-    
+
     /**
      * Update user email verification status
      */
@@ -185,7 +255,7 @@ public class AuthService {
         user.setEmailVerified(verified);
         userRepository.save(user);
     }
-    
+
     /**
      * Update user phone verification status
      */
@@ -195,7 +265,7 @@ public class AuthService {
         user.setPhoneVerified(verified);
         userRepository.save(user);
     }
-    
+
     /**
      * Update last login timestamp
      */
@@ -205,14 +275,14 @@ public class AuthService {
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
     }
-    
+
     /**
      * Check if user exists by email
      */
     public boolean userExists(String email) {
         return userRepository.existsByEmail(email);
     }
-    
+
     /**
      * Get user profile for authenticated user
      */
@@ -244,8 +314,7 @@ public class AuthService {
 
             return new TokenPair(
                     (String) response.get("access_token"),
-                    (String) response.get("refresh_token")
-            );
+                    (String) response.get("refresh_token"));
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {

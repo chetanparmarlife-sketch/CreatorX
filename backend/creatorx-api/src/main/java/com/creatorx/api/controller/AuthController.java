@@ -44,8 +44,7 @@ public class AuthController {
                 request.getPassword(),
                 request.getRole(),
                 request.getName(),
-                request.getPhone()
-        );
+                request.getPhone());
 
         return ResponseEntity.ok(AuthResponse.builder()
                 .user(toAuthUserInfo(user))
@@ -68,8 +67,7 @@ public class AuthController {
                 request.getRole(),
                 request.getCompanyName(),
                 request.getIndustry(),
-                request.getWebsite()
-        );
+                request.getWebsite());
 
         return ResponseEntity.ok(AuthResponse.builder()
                 .user(toAuthUserInfo(user))
@@ -79,15 +77,23 @@ public class AuthController {
 
     /**
      * Login with email and password.
-     * This is a fallback endpoint. Primary auth uses Supabase SDK.
+     * Supports direct login for users with password_hash set (e.g., admin, test
+     * users).
+     * For Supabase-managed accounts, redirect to Supabase auth.
      */
     @PostMapping("/login")
-    @Operation(summary = "Login", description = "Login with email and password. Note: Supabase auth is preferred.")
+    @Operation(summary = "Login", description = "Login with email and password. Works for admin/test users with password set.")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody com.creatorx.api.dto.LoginRequest request) {
-        throw new com.creatorx.common.exception.BusinessException(
-            "Direct login not supported. Please use Supabase authentication. " +
-            "If Supabase is not available, contact administrator."
-        );
+        AuthService.LoginResult result = authService.loginWithPassword(
+                request.getEmail(),
+                request.getPassword());
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .accessToken(result.getAccessToken())
+                .refreshToken(result.getRefreshToken())
+                .user(toAuthUserInfo(result.getUser()))
+                .message("Login successful")
+                .build());
     }
 
     /**
