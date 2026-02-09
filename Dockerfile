@@ -16,18 +16,17 @@ COPY backend/creatorx-repository/build.gradle backend/creatorx-repository/build.
 COPY backend/creatorx-service/build.gradle backend/creatorx-service/build.gradle
 COPY backend/creatorx-api/build.gradle backend/creatorx-api/build.gradle
 
-# Copy source code
-COPY backend/creatorx-common/src backend/creatorx-common/src
-COPY backend/creatorx-repository/src backend/creatorx-repository/src
-COPY backend/creatorx-service/src backend/creatorx-service/src
-COPY backend/creatorx-api/src backend/creatorx-api/src
+# Copy ALL backend source code (avoid caching issues)
+COPY backend backend
 
 # Build the application
 WORKDIR /workspace/app/backend
 RUN ./gradlew clean build -x test --no-daemon
 
-# Debug: List the JAR files to verify they exist
-RUN ls -la creatorx-api/build/libs/
+# Debug: List the JAR files AND verify BrandProfile has UUID fix
+RUN ls -la creatorx-api/build/libs/ && \
+    echo "=== Checking BrandProfile for UUID annotations ===" && \
+    grep -A 2 "user_id" creatorx-repository/src/main/java/com/creatorx/repository/entity/BrandProfile.java | head -5
 
 # Extract the built JAR (use the non-plain JAR file)
 RUN mkdir -p target && \
