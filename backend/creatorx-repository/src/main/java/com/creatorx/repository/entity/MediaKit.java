@@ -40,7 +40,8 @@ public class MediaKit {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "user_id", insertable = false, updatable = false)
+    @Column(name = "user_id", columnDefinition = "uuid", insertable = false, updatable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String userId;
 
     // Basic Info
