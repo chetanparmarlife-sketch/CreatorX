@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 /**
  * Auth response matching frontend expectations:
  * { accessToken, refreshToken, user: { id, email, role, ... }, message }
+ * Also includes token and expiresIn for backwards compatibility with admin dashboard
  */
 @Data
 @Builder
@@ -17,6 +18,8 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
     private String accessToken;
     private String refreshToken;
+    private String token; // For backwards compatibility with admin dashboard
+    private Integer expiresIn; // Token expiry in seconds (for admin dashboard)
     private AuthUserInfo user;
     private String message;
 

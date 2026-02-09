@@ -88,12 +88,19 @@ public class AuthController {
                 request.getEmail(),
                 request.getPassword());
 
-        return ResponseEntity.ok(AuthResponse.builder()
+        // For backwards compatibility with admin dashboard expecting "token" and "expiresIn"
+        AuthResponse response = AuthResponse.builder()
                 .accessToken(result.getAccessToken())
                 .refreshToken(result.getRefreshToken())
                 .user(toAuthUserInfo(result.getUser()))
                 .message("Login successful")
-                .build());
+                .build();
+
+        // Also add "token" field for admin dashboard (24 hour expiry)
+        response.setToken(result.getAccessToken());
+        response.setExpiresIn(86400); // 24 hours in seconds
+
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -116,11 +123,19 @@ public class AuthController {
     @Operation(summary = "Refresh token", description = "Refresh access token using Supabase refresh token")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         AuthService.TokenPair tokens = authService.refreshToken(request.getRefreshToken());
-        return ResponseEntity.ok(AuthResponse.builder()
+
+        // Build response with backwards compatibility
+        AuthResponse response = AuthResponse.builder()
                 .accessToken(tokens.getAccessToken())
                 .refreshToken(tokens.getRefreshToken())
                 .message("Token refreshed successfully")
-                .build());
+                .build();
+
+        // Also add "token" and "expiresIn" for admin dashboard
+        response.setToken(tokens.getAccessToken());
+        response.setExpiresIn(86400); // 24 hours in seconds
+
+        return ResponseEntity.ok(response);
     }
 
     /**
