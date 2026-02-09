@@ -1,9 +1,8 @@
 [build]
-builder = "nixpacks"
-buildCommand = "cd backend && ./gradlew clean build -x test"
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "cd backend && java -Xms256m -Xmx512m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -jar creatorx-api/build/libs/creatorx-api-1.0.0.jar"
 healthcheckPath = "/actuator/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
