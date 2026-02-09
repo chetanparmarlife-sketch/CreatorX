@@ -8,8 +8,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL;
 
 -- Populate existing users with their referral codes
--- The code is generated as: 'CX' + first 8 chars of Base64(user_id)
--- Note: PostgreSQL's encode() returns lowercase, so we uppercase it
+-- The code is generated as: 'CX' + first 8 chars of uppercase UUID
+-- PostgreSQL requires UUID to be cast to TEXT first, then we take first 8 chars (without hyphens)
 UPDATE users
-SET referral_code = 'CX' || UPPER(SUBSTRING(encode(id::bytea, 'base64'), 1, 8))
+SET referral_code = 'CX' || UPPER(REPLACE(SUBSTRING(id::text, 1, 8), '-', ''))
 WHERE referral_code IS NULL;
