@@ -89,13 +89,6 @@ export default function DeliverablesPage() {
     },
   })
 
-  const { data: historyData, isLoading: historyLoading } = useQuery({
-    queryKey: ['deliverable-history', currentDeliverable?.id],
-    queryFn: () =>
-      deliverableService.getDeliverableHistory(currentDeliverable?.id as string),
-    enabled: historyOpen && !!currentDeliverable?.id,
-  })
-
   const deliverables = (data as DeliverableSubmission[]) ?? []
 
   const creatorOptions = useMemo(() => {
@@ -126,6 +119,13 @@ export default function DeliverablesPage() {
 
   const currentDeliverable =
     selectedIndex === null ? null : filteredDeliverables[selectedIndex]
+
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ['deliverable-history', currentDeliverable?.id],
+    queryFn: () =>
+      deliverableService.getDeliverableHistory(currentDeliverable?.id as string),
+    enabled: historyOpen && !!currentDeliverable?.id,
+  })
 
   const handleOpenReview = (index: number) => {
     setSelectedIndex(index)
@@ -316,9 +316,8 @@ export default function DeliverablesPage() {
                         <img
                           src={currentDeliverable.fileUrl}
                           alt={currentDeliverable.title}
-                          className={`max-h-[420px] w-full object-contain transition-transform duration-300 ${
-                            zoomed ? 'scale-110' : 'scale-100'
-                          }`}
+                          className={`max-h-[420px] w-full object-contain transition-transform duration-300 ${zoomed ? 'scale-110' : 'scale-100'
+                            }`}
                         />
                       </button>
                     )}
