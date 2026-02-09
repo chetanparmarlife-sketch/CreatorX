@@ -110,7 +110,7 @@ export default function AdminDisputesPage() {
   })
 
   const bulkAssign = async () => {
-    const adminId = user?.userId
+    const adminId = user?.id
     if (!adminId) return
     const ids = Object.keys(selected).filter((key) => selected[key])
     await Promise.all(ids.map((id) => adminDisputeService.assign(id, adminId, nextAction || undefined)))
@@ -308,7 +308,7 @@ export default function AdminDisputesPage() {
                     onClick={() =>
                       assignMutation.mutate({
                         disputeId: previewDispute.id,
-                        adminId: user?.userId,
+                        adminId: user?.id,
                         nextAction: nextAction || undefined,
                       })
                     }
