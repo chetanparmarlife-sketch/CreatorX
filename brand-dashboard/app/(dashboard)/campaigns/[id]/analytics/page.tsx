@@ -171,9 +171,6 @@ export default function CampaignAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-semibold text-slate-900">{card.value}</div>
-                  {card.helper && (
-                    <p className="mt-1 text-xs text-emerald-600">{card.helper}</p>
-                  )}
                 </CardContent>
               </Card>
             ))}
