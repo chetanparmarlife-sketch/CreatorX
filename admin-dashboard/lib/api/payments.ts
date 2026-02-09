@@ -36,7 +36,7 @@ export const paymentService = {
     status?: string
     from?: string
     to?: string
-  }) {
+  }): Promise<{ items?: any[]; total?: number } | any[]> {
     // Map to wallet transactions
     return apiClient.get('/wallet/transactions', {
       params: {
