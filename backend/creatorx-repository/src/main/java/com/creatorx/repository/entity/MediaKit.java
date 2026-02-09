@@ -7,9 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -41,7 +39,6 @@ public class MediaKit {
     private User user;
 
     @Column(name = "user_id", columnDefinition = "uuid", insertable = false, updatable = false)
-    @JdbcTypeCode(SqlTypes.OTHER)
     private String userId;
 
     // Basic Info

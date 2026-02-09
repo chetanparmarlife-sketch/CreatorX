@@ -9,9 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -29,7 +27,6 @@ import java.time.LocalDateTime;
 public class BrandProfile {
     @Id
     @Column(name = "user_id", columnDefinition = "uuid")
-    @JdbcTypeCode(SqlTypes.OTHER)
     private String userId;
 
     @OneToOne(fetch = FetchType.LAZY)

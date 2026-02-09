@@ -3,14 +3,6 @@ spring:
   jpa:
     show-sql: false
     open-in-view: false
-    properties:
-      hibernate:
-        jdbc:
-          lob:
-            non_contextual_creation: true
-        # Force Hibernate to use PostgreSQL UUID type handling
-        type:
-          preferred_uuid_jdbc_type: VARCHAR
   flyway:
     enabled: true
 
