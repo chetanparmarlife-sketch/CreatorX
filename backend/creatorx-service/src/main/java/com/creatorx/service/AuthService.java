@@ -40,7 +40,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final BrandProfileRepository brandProfileRepository;
     private final RestTemplate restTemplate;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
     @Value("${supabase.url}")
     private String supabaseUrl;
