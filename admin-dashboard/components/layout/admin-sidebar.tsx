@@ -58,94 +58,94 @@ const buildNavSections = (summary?: {
   gdprSlaBreaches?: number
   kycSlaBreaches?: number
   disputeSlaBreaches?: number
-}) => [
-  {
-    items: [{ label: 'Overview', icon: Shield, href: '/admin' }],
-  },
-  {
-    title: 'WORK QUEUE',
-    items: [
-      {
-        label: 'KYC Review',
-        icon: FileCheck,
-        href: '/admin/kyc',
-        count: summary?.pendingKyc,
-        slaBadge: summary ? `${summary.kycSlaBreaches ?? 0} SLA` : undefined,
-        slaTone: getSlaTone(summary?.kycSlaBreaches),
-      },
-      {
-        label: 'Campaign Flags',
-        icon: Flag,
-        href: '/admin/campaigns',
-        count: summary?.openCampaignFlags,
-      },
-      {
-        label: 'Disputes',
-        icon: Scale,
-        href: '/admin/disputes',
-        count: summary?.openDisputes,
-        slaBadge: summary ? `${summary.disputeSlaBreaches ?? 0} SLA` : undefined,
-        slaTone: getSlaTone(summary?.disputeSlaBreaches),
-      },
-      {
-        label: 'GDPR Requests',
-        icon: ClipboardList,
-        href: '/admin/compliance',
-        count: summary?.pendingGdprRequests,
-        slaBadge: summary ? `${summary.gdprSlaBreaches ?? 0} SLA` : undefined,
-        slaTone: getSlaTone(summary?.gdprSlaBreaches),
-      },
-    ],
-  },
-  {
-    title: 'USER MANAGEMENT',
-    items: [
-      { label: 'Users', icon: Users, href: '/admin/users' },
-      { label: 'Brand Verification', icon: Building2, href: '/admin/brands' },
-      { label: 'Appeals', icon: AlertTriangle, href: '/admin/appeals' },
-    ],
-  },
-  {
-    title: 'MODERATION',
-    items: [
-      { label: 'Campaign Reviews', icon: ClipboardList, href: '/admin/campaign-reviews' },
-      { label: 'Moderation Rules', icon: ClipboardList, href: '/admin/moderation' },
-    ],
-  },
-  {
-    title: 'CAMPAIGNS',
-    items: [
-      { label: 'Campaign Management', icon: ClipboardList, href: '/admin/campaign-management' },
-      { label: 'Applications', icon: ClipboardList, href: '/admin/applications' },
-      { label: 'Deliverables', icon: ClipboardList, href: '/admin/deliverables' },
-      { label: 'Messages', icon: ClipboardList, href: '/admin/messages' },
-    ],
-  },
-  {
-    title: 'COMPLIANCE',
-    items: [
-      { label: 'Reports', icon: ClipboardList, href: '/admin/compliance/reports' },
-    ],
-  },
-  {
-    title: 'FINANCE',
-    items: [{ label: 'Reconciliation', icon: BadgeDollarSign, href: '/admin/finance' }],
-  },
-  {
-    title: 'MONITORING',
-    items: [
-      { label: 'Audit Log', icon: Activity, href: '/admin/audit' },
-      { label: 'Health', icon: Activity, href: '/admin/health' },
-    ],
-  },
-  {
-    title: 'SYSTEM',
-    items: [
-      { label: 'Settings', icon: Settings, href: '/admin/settings' },
-      { label: 'Permissions', icon: KeyRound, href: '/admin/permissions' },
-    ],
-  },
-]
+}): NavSection[] => [
+    {
+      items: [{ label: 'Overview', icon: Shield, href: '/admin' }],
+    },
+    {
+      title: 'WORK QUEUE',
+      items: [
+        {
+          label: 'KYC Review',
+          icon: FileCheck,
+          href: '/admin/kyc',
+          count: summary?.pendingKyc,
+          slaBadge: summary ? `${summary.kycSlaBreaches ?? 0} SLA` : undefined,
+          slaTone: getSlaTone(summary?.kycSlaBreaches),
+        },
+        {
+          label: 'Campaign Flags',
+          icon: Flag,
+          href: '/admin/campaigns',
+          count: summary?.openCampaignFlags,
+        },
+        {
+          label: 'Disputes',
+          icon: Scale,
+          href: '/admin/disputes',
+          count: summary?.openDisputes,
+          slaBadge: summary ? `${summary.disputeSlaBreaches ?? 0} SLA` : undefined,
+          slaTone: getSlaTone(summary?.disputeSlaBreaches),
+        },
+        {
+          label: 'GDPR Requests',
+          icon: ClipboardList,
+          href: '/admin/compliance',
+          count: summary?.pendingGdprRequests,
+          slaBadge: summary ? `${summary.gdprSlaBreaches ?? 0} SLA` : undefined,
+          slaTone: getSlaTone(summary?.gdprSlaBreaches),
+        },
+      ],
+    },
+    {
+      title: 'USER MANAGEMENT',
+      items: [
+        { label: 'Users', icon: Users, href: '/admin/users' },
+        { label: 'Brand Verification', icon: Building2, href: '/admin/brands' },
+        { label: 'Appeals', icon: AlertTriangle, href: '/admin/appeals' },
+      ],
+    },
+    {
+      title: 'MODERATION',
+      items: [
+        { label: 'Campaign Reviews', icon: ClipboardList, href: '/admin/campaign-reviews' },
+        { label: 'Moderation Rules', icon: ClipboardList, href: '/admin/moderation' },
+      ],
+    },
+    {
+      title: 'CAMPAIGNS',
+      items: [
+        { label: 'Campaign Management', icon: ClipboardList, href: '/admin/campaign-management' },
+        { label: 'Applications', icon: ClipboardList, href: '/admin/applications' },
+        { label: 'Deliverables', icon: ClipboardList, href: '/admin/deliverables' },
+        { label: 'Messages', icon: ClipboardList, href: '/admin/messages' },
+      ],
+    },
+    {
+      title: 'COMPLIANCE',
+      items: [
+        { label: 'Reports', icon: ClipboardList, href: '/admin/compliance/reports' },
+      ],
+    },
+    {
+      title: 'FINANCE',
+      items: [{ label: 'Reconciliation', icon: BadgeDollarSign, href: '/admin/finance' }],
+    },
+    {
+      title: 'MONITORING',
+      items: [
+        { label: 'Audit Log', icon: Activity, href: '/admin/audit' },
+        { label: 'Health', icon: Activity, href: '/admin/health' },
+      ],
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { label: 'Settings', icon: Settings, href: '/admin/settings' },
+        { label: 'Permissions', icon: KeyRound, href: '/admin/permissions' },
+      ],
+    },
+  ]
 
 export function AdminSidebar() {
   const pathname = usePathname()
