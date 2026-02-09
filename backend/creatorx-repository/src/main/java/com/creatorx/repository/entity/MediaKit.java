@@ -41,7 +41,7 @@ public class MediaKit {
     private User user;
 
     @Column(name = "user_id", columnDefinition = "uuid", insertable = false, updatable = false)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @JdbcTypeCode(SqlTypes.OTHER)
     private String userId;
 
     // Basic Info

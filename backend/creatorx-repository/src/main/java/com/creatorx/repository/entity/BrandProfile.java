@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 public class BrandProfile {
     @Id
     @Column(name = "user_id", columnDefinition = "uuid")
-    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @JdbcTypeCode(SqlTypes.OTHER)
     private String userId;
 
     @OneToOne(fetch = FetchType.LAZY)

@@ -31,7 +31,7 @@ import java.util.List;
 public class CreatorProfile {
     @Id
     @Column(name = "user_id", columnDefinition = "uuid")
-    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @JdbcTypeCode(SqlTypes.OTHER)
     private String userId;
     
     @OneToOne(fetch = FetchType.LAZY)
