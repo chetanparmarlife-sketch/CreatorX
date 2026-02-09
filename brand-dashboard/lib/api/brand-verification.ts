@@ -10,10 +10,7 @@ export const brandVerificationService = {
     formData.append('file', file)
     formData.append('gstNumber', gstNumber)
 
-    return apiClient.post('/brand-verification/submit', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+    // Axios automatically sets the correct Content-Type with boundary for FormData
+    return apiClient.post('/brand-verification/submit', formData)
   },
 }

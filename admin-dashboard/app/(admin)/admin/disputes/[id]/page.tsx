@@ -256,7 +256,7 @@ export default function AdminDisputeDetailPage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3 text-sm">
             <h2 className="text-lg font-semibold text-slate-900">Assignment</h2>
             <p className="text-xs text-slate-500">
-              Current assignee: {dispute.assignedAdminId || user?.userId || 'Unassigned'}
+              Current assignee: {dispute.assignedAdminId || user?.id || 'Unassigned'}
             </p>
             <input
               className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
