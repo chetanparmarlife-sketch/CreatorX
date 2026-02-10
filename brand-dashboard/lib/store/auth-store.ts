@@ -8,7 +8,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { AuthResponse } from '@/lib/types'
-import { getCurrentUser, logout as apiLogout } from '@/lib/api/auth'
+import { getCurrentUser, logout as apiLogout, type User as ApiUser } from '@/lib/api/auth'
 
 interface AuthState {
   user: AuthResponse | null
@@ -23,6 +23,18 @@ interface AuthState {
   login: (user: AuthResponse) => void
   logout: () => Promise<void>
   checkAuth: () => Promise<void>
+}
+
+const toAuthUser = (user: AuthResponse | ApiUser): AuthResponse => {
+  if ('userId' in user) {
+    return user
+  }
+
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  }
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -80,7 +92,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const user = await getCurrentUser()
           set({
-            user,
+            user: toAuthUser(user),
             isAuthenticated: true,
             isLoading: false,
           })
