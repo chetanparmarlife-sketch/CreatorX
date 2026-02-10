@@ -8,6 +8,7 @@ package com.creatorx.api.security;
 import com.creatorx.common.util.Constants;
 import com.creatorx.repository.UserRepository;
 import com.creatorx.repository.entity.User;
+import com.creatorx.service.JwtService;
 import com.creatorx.service.SupabaseJwtService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -32,6 +33,7 @@ public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
     
     private final SupabaseJwtService supabaseJwtService;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
     
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -43,7 +45,7 @@ public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 // Validate Supabase JWT token
                 Claims claims = supabaseJwtService.validateToken(token);
-                
+
                 // Extract user ID from token (Supabase uses 'sub' claim)
                 String supabaseUserId = claims.getSubject();
                 if (supabaseUserId == null) {
@@ -51,45 +53,72 @@ public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
                     filterChain.doFilter(request, response);
                     return;
                 }
-                
+
                 // Find user by Supabase ID
                 User user = userRepository.findBySupabaseId(supabaseUserId)
                         .orElse(null);
-                
+
                 if (user == null) {
                     log.debug("User not found for Supabase ID: {}", supabaseUserId);
                     filterChain.doFilter(request, response);
                     return;
                 }
-                
+
                 // Check if user is active
                 if (user.getStatus() != com.creatorx.common.enums.UserStatus.ACTIVE) {
                     log.debug("User is not active: {}", user.getId());
                     filterChain.doFilter(request, response);
                     return;
                 }
-                
-                // Use UserAuthenticationToken so getName() returns user ID
-                // while getPrincipal() still returns the User entity
-                String role = user.getRole().name();
-                UserAuthenticationToken authentication = new UserAuthenticationToken(
-                        user,
-                        java.util.Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
-                );
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                
-                // Set authentication in security context
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                
+
+                setAuthentication(user, request);
                 log.debug("Authenticated user: {} with role: {}", user.getEmail(), user.getRole());
-                
             } catch (Exception e) {
                 log.debug("Supabase JWT token validation failed: {}", e.getMessage());
-                // Continue filter chain without authentication - let Spring Security handle authorization
+                // Fallback: validate internal JWT (admin direct login)
+                try {
+                    String email = jwtService.extractUsername(token);
+                    if (email == null || email.isBlank()) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    User user = userRepository.findByEmail(email).orElse(null);
+                    if (user == null) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    if (!jwtService.validateToken(token, email)) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    if (user.getStatus() != com.creatorx.common.enums.UserStatus.ACTIVE) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    setAuthentication(user, request);
+                    log.debug("Authenticated user via internal JWT: {} with role: {}", user.getEmail(), user.getRole());
+                } catch (Exception ex) {
+                    log.debug("Internal JWT validation failed: {}", ex.getMessage());
+                    // Continue filter chain without authentication - let Spring Security handle authorization
+                }
             }
         }
         
         filterChain.doFilter(request, response);
+    }
+
+    private void setAuthentication(User user, HttpServletRequest request) {
+        String role = user.getRole().name();
+        UserAuthenticationToken authentication = new UserAuthenticationToken(
+                user,
+                java.util.Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+        );
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
     
     private String getTokenFromRequest(HttpServletRequest request) {
