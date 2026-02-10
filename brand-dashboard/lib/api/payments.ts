@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import type { Wallet } from '@/lib/types'
 
 /**
  * Payload for adding a payment method
@@ -32,8 +33,8 @@ export type PaymentMethod = {
  * Payment service for brand wallet operations
  */
 export const paymentService = {
-  async getWallet() {
-    return apiClient.get('/wallet')
+  async getWallet(): Promise<Wallet> {
+    return apiClient.get<Wallet>('/wallet')
   },
 
   /**

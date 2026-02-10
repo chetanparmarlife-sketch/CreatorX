@@ -13,7 +13,7 @@ const normalizeTransactions = (data: TransactionsResponse | undefined): Transact
 }
 
 export function useWallet() {
-  return useQuery({
+  return useQuery<Wallet | null>({
     queryKey: ['wallet'],
     queryFn: () => paymentService.getWallet().catch(() => null),
   })
