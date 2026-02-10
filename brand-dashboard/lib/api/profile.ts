@@ -13,6 +13,10 @@ export type TeamMember = {
   name: string
   email: string
   role: string
+  status?: string
+  invitedAt?: string
+  joinedAt?: string
+  invitedBy?: string
 }
 
 export type InvitePayload = {
