@@ -4,8 +4,8 @@ import { login } from '@/lib/api/auth'
 import type { LoginResponse } from '@/lib/api/auth'
 
 const STORAGE_KEYS = {
-  accessToken: 'creatorx_access_token',
-  refreshToken: 'creatorx_refresh_token',
+  accessToken: 'creatorx_admin_access_token',
+  refreshToken: 'creatorx_admin_refresh_token',
 } as const
 
 type TokenPayload = {
