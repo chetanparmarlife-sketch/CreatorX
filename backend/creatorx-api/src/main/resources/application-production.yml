@@ -4,8 +4,8 @@ spring:
     show-sql: false
     open-in-view: false
   flyway:
-    enabled: true
-    validate-on-migrate: true
+    # TEMP DISABLED - V42 failed, need to clean it and run V43 instead
+    enabled: false
 
   # Use simple cache instead of Redis in production (until Redis is set up)
   cache:
