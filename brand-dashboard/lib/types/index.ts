@@ -319,6 +319,8 @@ export interface Conversation {
   campaign?: {
     id: string
     title: string
+    status?: string
+    platform?: string
   }
 }
 
