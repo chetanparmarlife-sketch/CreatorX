@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const token =
+      localStorage.getItem('creatorx_admin_access_token') ||
       localStorage.getItem('access_token') ||
       localStorage.getItem('creatorx_access_token')
 
