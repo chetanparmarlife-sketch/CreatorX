@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { Wallet } from '@/lib/types'
+import type { Transaction, Wallet } from '@/lib/types'
 
 /**
  * Payload for adding a payment method
@@ -28,6 +28,10 @@ export type PaymentMethod = {
   isDefault?: boolean
   createdAt?: string
 }
+
+type TransactionsResponse =
+  | { items?: Transaction[]; total?: number }
+  | Transaction[]
 
 /**
  * Payment service for brand wallet operations
@@ -73,7 +77,7 @@ export const paymentService = {
     from?: string
     to?: string
   }) {
-    return apiClient.get('/wallet/transactions', {
+    return apiClient.get<TransactionsResponse>('/wallet/transactions', {
       params: {
         page: params.page,
         size: params.size,
