@@ -6,7 +6,7 @@
  */
 
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware'
 import { AuthResponse } from '@/lib/types'
 import { getCurrentUser, logout as apiLogout, type User as ApiUser } from '@/lib/api/auth'
 
@@ -106,14 +106,26 @@ export const useAuthStore = create<AuthState>()(
         }
       },
     }),
-    {
-      name: 'creatorx-auth-storage',
-      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : undefined)),
-      partialize: (state: AuthState) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    }
+    (() => {
+      const memoryStorage: StateStorage = {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      }
+
+      const storage = createJSONStorage(() =>
+        typeof window !== 'undefined' ? localStorage : memoryStorage
+      )
+
+      return {
+        name: 'creatorx-auth-storage',
+        storage,
+        partialize: (state: AuthState) => ({
+          user: state.user,
+          isAuthenticated: state.isAuthenticated,
+        }),
+      }
+    })()
   )
 )
 
