@@ -41,8 +41,7 @@ export const paymentService = {
    * Get saved payment methods (cards)
    */
   async getPaymentMethods(): Promise<PaymentMethod[]> {
-    const response = await apiClient.get('/wallet/payment-methods')
-    return response.data
+    return apiClient.get<PaymentMethod[]>('/wallet/payment-methods')
   },
 
   /**
@@ -50,8 +49,7 @@ export const paymentService = {
    * Note: In production, cardLast4 and token should come from Razorpay checkout tokenization
    */
   async addPaymentMethod(payload: PaymentMethodPayload): Promise<PaymentMethod> {
-    const response = await apiClient.post('/wallet/payment-methods', payload)
-    return response.data
+    return apiClient.post<PaymentMethod>('/wallet/payment-methods', payload)
   },
 
   /**
