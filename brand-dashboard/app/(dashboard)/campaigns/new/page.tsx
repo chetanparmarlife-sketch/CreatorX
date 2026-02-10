@@ -113,7 +113,7 @@ const deliverableSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(100),
   description: z.string().optional(),
   type: z.enum(['IMAGE', 'VIDEO', 'STORY', 'REEL']),
-  dueDate: z.date().optional(),
+  dueDate: z.date({ required_error: 'Due date is required' }),
   isMandatory: z.boolean().default(true),
 })
 
@@ -178,6 +178,19 @@ export default function NewCampaignPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const createCampaign = useCreateCampaign()
   const { data: templates = [] } = useTemplates()
+
+  const formatApiError = (error: unknown, fallback: string) => {
+    if (!error || typeof error !== 'object') return fallback
+    const err = error as { message?: string; details?: Record<string, string> }
+    const message = typeof err.message === 'string' ? err.message : fallback
+    if (err.details && typeof err.details === 'object') {
+      const detailText = Object.entries(err.details)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(' • ')
+      return detailText ? `${message}. ${detailText}` : message
+    }
+    return message
+  }
 
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
@@ -352,8 +365,7 @@ export default function NewCampaignPage() {
       const created = await createCampaign.mutateAsync(campaignData)
       router.push(`/campaigns/${created.id}`)
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create campaign. Please try again.'
-      setSubmitError(errorMessage)
+      setSubmitError(formatApiError(error, 'Failed to create campaign. Please try again.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -410,8 +422,7 @@ export default function NewCampaignPage() {
       const created = await createCampaign.mutateAsync(campaignData)
       router.push(`/campaigns/${created.id}`)
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save draft. Please try again.'
-      setSubmitError(errorMessage)
+      setSubmitError(formatApiError(error, 'Failed to save draft. Please try again.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -813,7 +824,7 @@ export default function NewCampaignPage() {
                                   name={`deliverables.${index}.dueDate`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Due Date</FormLabel>
+                                      <FormLabel>Due Date *</FormLabel>
                                       <FormControl>
                                         <DatePicker
                                           date={field.value}
