@@ -5,6 +5,8 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+    # Ignore failed V41 migration - we'll manually repair via Railway console
+    ignore-migration-patterns: "*:failed"
 
   # Use simple cache instead of Redis in production (until Redis is set up)
   cache:
