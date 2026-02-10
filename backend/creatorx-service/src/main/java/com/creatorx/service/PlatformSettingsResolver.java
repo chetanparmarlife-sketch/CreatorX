@@ -5,6 +5,7 @@ import com.creatorx.repository.PlatformSettingRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlatformSettingsResolver {
     private final PlatformSettingRepository platformSettingRepository;
     private final ObjectMapper objectMapper;
@@ -103,6 +105,12 @@ public class PlatformSettingsResolver {
     }
 
     private Optional<String> getString(String key) {
-        return platformSettingRepository.findByKey(key).map(setting -> setting.getValue());
+        try {
+            return platformSettingRepository.findByKey(key).map(setting -> setting.getValue());
+        } catch (Exception e) {
+            // Fail safe if platform_settings table is missing or temporarily unavailable
+            log.warn("Platform settings lookup failed for key {}: {}", key, e.getMessage());
+            return Optional.empty();
+        }
     }
 }
