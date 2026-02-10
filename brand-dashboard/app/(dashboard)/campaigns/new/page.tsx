@@ -315,6 +315,13 @@ export default function NewCampaignPage() {
     setSubmitError(null)
 
     try {
+      const deliverables = data.deliverables ?? []
+      if (deliverables.length === 0) {
+        setSubmitError('Please add at least one deliverable.')
+        setIsSubmitting(false)
+        return
+      }
+
       // Format dates to ISO strings
       const campaignData = {
         title: data.title,
@@ -329,8 +336,8 @@ export default function NewCampaignPage() {
           : undefined,
         maxApplicants: data.maxApplicants,
         requirements: data.requirements,
-        deliverableTypes: data.deliverables?.map((d: { type: string }) => d.type),
-        deliverables: data.deliverables?.map((deliverable: { title: string; description?: string; type: string; dueDate?: Date; isMandatory: boolean }, index: number) => ({
+        deliverableTypes: deliverables.map((d: { type: string }) => d.type),
+        deliverables: deliverables.map((deliverable: { title: string; description?: string; type: string; dueDate?: Date; isMandatory: boolean }, index: number) => ({
           title: deliverable.title,
           description: deliverable.description,
           type: deliverable.type,
@@ -358,6 +365,13 @@ export default function NewCampaignPage() {
     setSubmitError(null)
 
     try {
+      const deliverables = formData.deliverables ?? []
+      if (deliverables.length === 0) {
+        setSubmitError('Please add at least one deliverable to save a draft.')
+        setIsSubmitting(false)
+        return
+      }
+
       // Save as draft - only require title
       if (!formData.title || formData.title.length < 5) {
         setSubmitError('Title is required (minimum 5 characters) to save as draft')
@@ -378,8 +392,8 @@ export default function NewCampaignPage() {
           : undefined,
         maxApplicants: formData.maxApplicants,
         requirements: formData.requirements,
-        deliverableTypes: formData.deliverables?.map((d) => d.type),
-        deliverables: formData.deliverables?.map((deliverable, index) => ({
+        deliverableTypes: deliverables.map((d) => d.type),
+        deliverables: deliverables.map((deliverable, index) => ({
           title: deliverable.title,
           description: deliverable.description,
           type: deliverable.type,
