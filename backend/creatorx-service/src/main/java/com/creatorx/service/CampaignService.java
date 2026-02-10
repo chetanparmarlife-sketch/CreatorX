@@ -268,7 +268,12 @@ public class CampaignService {
         }
         
         Campaign saved = campaignRepository.save(campaign);
-        moderationService.evaluateCampaign(saved, brand);
+        try {
+            moderationService.evaluateCampaign(saved, brand);
+        } catch (Exception e) {
+            // Moderation should never block campaign creation
+            log.warn("Moderation evaluation failed for campaign {}: {}", saved.getId(), e.getMessage(), e);
+        }
         log.info("Created campaign: {} by brand: {}", saved.getId(), brandId);
         
         return campaignMapper.toDTO(saved);
@@ -344,7 +349,12 @@ public class CampaignService {
         }
         
         Campaign updated = campaignRepository.save(campaign);
-        moderationService.evaluateCampaign(updated, campaign.getBrand());
+        try {
+            moderationService.evaluateCampaign(updated, campaign.getBrand());
+        } catch (Exception e) {
+            // Moderation should never block campaign updates
+            log.warn("Moderation evaluation failed for campaign {}: {}", updated.getId(), e.getMessage(), e);
+        }
         log.info("Updated campaign: {} by brand: {}", id, brandId);
         
         return campaignMapper.toDTO(updated);
