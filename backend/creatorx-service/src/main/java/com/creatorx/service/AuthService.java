@@ -40,6 +40,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final BrandProfileRepository brandProfileRepository;
     private final RestTemplate restTemplate;
+    private final JwtService jwtService;
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
     @Value("${supabase.url}")
@@ -122,25 +123,21 @@ public class AuthService {
 
         log.info("User logged in directly: {} with role: {}", email, user.getRole());
 
-        // Generate a simple token (in production, use proper JWT)
+        // Generate JWT token (used by admin dashboard middleware)
         String token = generateSimpleToken(user);
 
         return new LoginResult(user, token, null);
     }
 
     /**
-     * Generate a simple token for direct login
-     * In production, this should be replaced with proper JWT generation
+     * Generate a JWT token for direct login
      */
     private String generateSimpleToken(User user) {
-        // Create a simple base64 encoded token for now
-        // Format: userId:role:timestamp:random
-        String payload = String.format("%s:%s:%d:%s",
+        return jwtService.generateToken(
+                user.getEmail(),
                 user.getId().toString(),
-                user.getRole().name(),
-                System.currentTimeMillis(),
-                UUID.randomUUID().toString().substring(0, 8));
-        return java.util.Base64.getEncoder().encodeToString(payload.getBytes());
+                user.getRole().name()
+        );
     }
 
     /**
