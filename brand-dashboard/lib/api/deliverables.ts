@@ -1,6 +1,6 @@
 import { apiClient } from './client'
 
-export type DeliverableReviewStatus = 'APPROVED' | 'REVISION_REQUESTED' | 'REJECTED'
+export type DeliverableReviewStatus = 'PENDING' | 'APPROVED' | 'REVISION_REQUESTED' | 'REJECTED'
 
 export const deliverableService = {
   async getCampaignDeliverables(
