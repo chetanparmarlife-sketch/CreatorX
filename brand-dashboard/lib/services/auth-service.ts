@@ -65,7 +65,7 @@ export const authService = {
     industry,
     website,
   }: RegisterPayload): Promise<AuthResponse> => {
-    const response = await register(email, password, companyName, undefined, companyName, industry, website)
+    const response = await register(email, password, companyName, companyName)
     storeTokens({ accessToken: response.token, refreshToken: (response as any).refreshToken })
     return mapLoginResponse(response)
   },
