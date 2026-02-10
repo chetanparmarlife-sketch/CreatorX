@@ -145,7 +145,7 @@ const campaignSchema = z
     applicationDeadline: z.date().optional(),
     maxApplicants: z.number().min(1).optional(),
   })
-  .refine((data) => data.endDate >= data.startDate, {
+  .refine((data) => data.endDate > data.startDate, {
     message: 'End date must be after start date',
     path: ['endDate'],
   })
