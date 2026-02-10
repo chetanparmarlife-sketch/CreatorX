@@ -16,13 +16,19 @@ import { Campaign, CampaignStatus, CampaignPlatform } from '@/lib/types'
 
 const platformOptions = ['All', ...Object.values(CampaignPlatform)] as const
 
-const lifecycleTabs = [
+type LifecycleTab = {
+  id: string
+  label: string
+  statuses: CampaignStatus[]
+}
+
+const lifecycleTabs: LifecycleTab[] = [
   { id: 'DRAFT', label: 'Draft', statuses: [CampaignStatus.DRAFT] },
   { id: 'OPEN', label: 'Open', statuses: [CampaignStatus.ACTIVE, CampaignStatus.PAUSED] },
   { id: 'IN_REVIEW', label: 'In Review', statuses: [CampaignStatus.PENDING_REVIEW] },
   { id: 'ACTIVE', label: 'Active', statuses: [CampaignStatus.ACTIVE] },
   { id: 'COMPLETED', label: 'Completed', statuses: [CampaignStatus.COMPLETED] },
-] as const
+]
 
 const nextActionByStatus: Record<CampaignStatus, string> = {
   DRAFT: 'Finish details and submit',
