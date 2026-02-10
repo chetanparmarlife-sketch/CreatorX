@@ -1,0 +1,324 @@
+[
+    {
+        "method":  "DELETE",
+        "raw":  "/applications/${id}",
+        "file":  "src\\api\\services\\applicationService.ts",
+        "label":  "mobile",
+        "path":  "/api/v1/applications/{param}"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/campaigns/${id}/save",
+        "file":  "src\\api\\services\\campaignService.ts",
+        "label":  "mobile",
+        "path":  "/api/v1/campaigns/{param}/save"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/campaigns/${id}/save",
+        "file":  "src\\api\\services\\campaignService.ts",
+        "label":  "mobile",
+        "path":  "/api/v1/campaigns/{param}/save"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/conversations/${conversationId}/mark-read",
+        "file":  "src\\api\\services\\messagingService.ts",
+        "label":  "mobile",
+        "path":  "/api/v1/conversations/{param}/mark-read"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/notifications/${notificationId}/read",
+        "file":  "src\\api\\services\\notificationService.ts",
+        "label":  "mobile",
+        "path":  "/api/v1/notifications/{param}/read"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/creator/social-accounts/${provider}/refresh",
+        "file":  "src\\api\\services\\socialConnectService.ts",
+        "label":  "mobile",
+        "path":  "/api/v1/creator/social-accounts/{param}/refresh"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/creator/social-accounts/${provider}/disconnect",
+        "file":  "src\\api\\services\\socialConnectService.ts",
+        "label":  "mobile",
+        "path":  "/api/v1/creator/social-accounts/{param}/disconnect"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/campaigns/${campaignId}/analytics",
+        "file":  "admin-dashboard\\lib\\api\\analytics.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaigns/{param}/analytics"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/campaigns/${id}",
+        "file":  "admin-dashboard\\lib\\api\\campaigns.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaigns/{param}"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/creators/${id}",
+        "file":  "admin-dashboard\\lib\\api\\creators.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/creators/{param}"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/campaigns/${campaignId}/invite",
+        "file":  "admin-dashboard\\lib\\api\\creators.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaigns/{param}/invite"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/campaigns/${campaignId}/deliverables",
+        "file":  "admin-dashboard\\lib\\api\\deliverables.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaigns/{param}/deliverables"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/deliverables/${deliverableId}/review",
+        "file":  "admin-dashboard\\lib\\api\\deliverables.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/deliverables/{param}/review"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/deliverables/${deliverableId}/history",
+        "file":  "admin-dashboard\\lib\\api\\deliverables.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/deliverables/{param}/history"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/conversations/${conversationId}/mark-read",
+        "file":  "admin-dashboard\\lib\\api\\messages.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/conversations/{param}/mark-read"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/team-members/${id}",
+        "file":  "admin-dashboard\\lib\\api\\profile.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/team-members/{param}"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/campaign-templates/${id}",
+        "file":  "admin-dashboard\\lib\\api\\templates.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaign-templates/{param}"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/campaign-templates/from-campaign/${campaignId}",
+        "file":  "admin-dashboard\\lib\\api\\templates.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaign-templates/from-campaign/{param}"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/campaign-templates/${id}",
+        "file":  "admin-dashboard\\lib\\api\\templates.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaign-templates/{param}"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/campaign-templates/${id}",
+        "file":  "admin-dashboard\\lib\\api\\templates.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/campaign-templates/{param}"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/admin/campaign-management/${campaignId}",
+        "file":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/campaign-management/{param}"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/admin/campaign-management/applications/${applicationId}/shortlist",
+        "file":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/shortlist"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/admin/campaign-management/applications/${applicationId}/select",
+        "file":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/select"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/admin/campaign-management/applications/${applicationId}/reject",
+        "file":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/reject"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/admin/campaign-management/applications/${applicationId}/status",
+        "file":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/status"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/admin/campaign-management/deliverables/${submissionId}/review",
+        "file":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/campaign-management/deliverables/{param}/review"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/admin/campaign-management/templates/${templateId}",
+        "file":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/campaign-management/templates/{param}"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/kyc/documents/${documentId}/approve",
+        "file":  "admin-dashboard\\lib\\api\\admin\\kyc.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/kyc/documents/{param}/approve"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/kyc/documents/${documentId}/reject",
+        "file":  "admin-dashboard\\lib\\api\\admin\\kyc.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/kyc/documents/{param}/reject"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/admin/moderation/rules/${ruleId}",
+        "file":  "admin-dashboard\\lib\\api\\admin\\moderation.ts",
+        "label":  "admin-dashboard",
+        "path":  "/api/v1/admin/moderation/rules/{param}"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/campaigns/${campaignId}/analytics",
+        "file":  "brand-dashboard\\lib\\api\\analytics.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaigns/{param}/analytics"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/campaigns/${id}",
+        "file":  "brand-dashboard\\lib\\api\\campaigns.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaigns/{param}"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/creators/${id}",
+        "file":  "brand-dashboard\\lib\\api\\creators.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/creators/{param}"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/campaigns/${campaignId}/invite",
+        "file":  "brand-dashboard\\lib\\api\\creators.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaigns/{param}/invite"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/campaigns/${campaignId}/deliverables",
+        "file":  "brand-dashboard\\lib\\api\\deliverables.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaigns/{param}/deliverables"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/deliverables/${deliverableId}/review",
+        "file":  "brand-dashboard\\lib\\api\\deliverables.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/deliverables/{param}/review"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/deliverables/${deliverableId}/history",
+        "file":  "brand-dashboard\\lib\\api\\deliverables.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/deliverables/{param}/history"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/conversations/${conversationId}/mark-read",
+        "file":  "brand-dashboard\\lib\\api\\messages.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/conversations/{param}/mark-read"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/team-members/${id}",
+        "file":  "brand-dashboard\\lib\\api\\profile.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/team-members/{param}"
+    },
+    {
+        "method":  "GET",
+        "raw":  "/campaign-templates/${id}",
+        "file":  "brand-dashboard\\lib\\api\\templates.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaign-templates/{param}"
+    },
+    {
+        "method":  "POST",
+        "raw":  "/campaign-templates/from-campaign/${campaignId}",
+        "file":  "brand-dashboard\\lib\\api\\templates.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaign-templates/from-campaign/{param}"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/campaign-templates/${id}",
+        "file":  "brand-dashboard\\lib\\api\\templates.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaign-templates/{param}"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/campaign-templates/${id}",
+        "file":  "brand-dashboard\\lib\\api\\templates.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/campaign-templates/{param}"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/kyc/documents/${documentId}/approve",
+        "file":  "brand-dashboard\\lib\\api\\admin\\kyc.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/kyc/documents/{param}/approve"
+    },
+    {
+        "method":  "PUT",
+        "raw":  "/kyc/documents/${documentId}/reject",
+        "file":  "brand-dashboard\\lib\\api\\admin\\kyc.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/kyc/documents/{param}/reject"
+    },
+    {
+        "method":  "DELETE",
+        "raw":  "/admin/moderation/rules/${ruleId}",
+        "file":  "brand-dashboard\\lib\\api\\admin\\moderation.ts",
+        "label":  "brand-dashboard",
+        "path":  "/api/v1/admin/moderation/rules/{param}"
+    }
+]

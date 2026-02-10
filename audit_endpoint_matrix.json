@@ -1,0 +1,2825 @@
+[
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/audit",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminAuditController.java",
+        "methodName":  "listAuditLogs",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/audit/export",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminAuditController.java",
+        "methodName":  "exportAuditLogs",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "listCampaigns",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "createCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/admin/campaign-management/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "deleteCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "getCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/campaign-management/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "updateCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management/{param}/applications",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "listApplications",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management/{param}/deliverables",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "listDeliverables",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/{param}/invite",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "inviteCreator",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management/applications",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "listAllApplications",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/reject",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "rejectApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/select",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "selectApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/shortlist",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "shortlistApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/campaign-management/applications/{param}/status",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "updateApplicationStatus",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/applications/bulk-status",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "bulkUpdateApplications",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management/deliverables",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "listAllDeliverables",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/deliverables/{param}/review",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "reviewDeliverable",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management/templates",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "listTemplates",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/templates",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "createTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/admin/campaign-management/templates/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "deleteTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\campaign-management.ts",
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaign-management/templates/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "getTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/campaign-management/templates/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "updateTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/campaign-management/templates/from-campaign/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignManagementController.java",
+        "methodName":  "createTemplateFromCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/campaigns/{param}/approve",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignReviewController.java",
+        "methodName":  "approveCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/campaigns/{param}/reject",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignReviewController.java",
+        "methodName":  "rejectCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/campaigns/pending",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminCampaignReviewController.java",
+        "methodName":  "listPending",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/compliance/gdpr",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminComplianceController.java",
+        "methodName":  "listRequests",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/compliance/gdpr/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminComplianceController.java",
+        "methodName":  "updateRequest",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/compliance/gdpr/{param}/anonymize",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminComplianceController.java",
+        "methodName":  "anonymizeUser",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/compliance/gdpr/{param}/export",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminComplianceController.java",
+        "methodName":  "generateExport",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/compliance/reports",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminComplianceReportController.java",
+        "methodName":  "listReports",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/compliance/reports/regulatory",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminComplianceReportController.java",
+        "methodName":  "generateRegulatoryReport",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/compliance/reports/tax",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminComplianceReportController.java",
+        "methodName":  "generateTaxReport",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/finance/reports/campaigns",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminFinanceController.java",
+        "methodName":  "getCampaignReport",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/finance/reports/export",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminFinanceController.java",
+        "methodName":  "exportReport",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/finance/reports/period",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminFinanceController.java",
+        "methodName":  "getPeriodReport",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/finance/reports/users",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminFinanceController.java",
+        "methodName":  "getUserReport",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/finance/summary",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminFinanceController.java",
+        "methodName":  "getSummary",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/messages/conversations",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminMessageController.java",
+        "methodName":  "listConversations",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/messages/conversations/{param}/messages",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminMessageController.java",
+        "methodName":  "getMessages",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/messages/conversations/{param}/messages",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminMessageController.java",
+        "methodName":  "sendMessage",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/moderation/flags",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "listFlags",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/moderation/flags",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "flagCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/moderation/flags/{param}/resolve",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "resolveFlag",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/moderation/rules",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "listRules",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/moderation/rules",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "createRule",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/admin/moderation/rules/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "deleteRule",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\moderation.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\admin\\moderation.ts"
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/moderation/rules/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "updateRule",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/moderation/rules/{param}/test",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminModerationController.java",
+        "methodName":  "testRule",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/admin/permissions/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminPermissionController.java",
+        "methodName":  "revokePermission",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/permissions/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminPermissionController.java",
+        "methodName":  "listPermissions",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/permissions/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminPermissionController.java",
+        "methodName":  "grantPermission",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/permissions/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminPermissionController.java",
+        "methodName":  "replacePermissions",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/profiles/brand/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminProfileController.java",
+        "methodName":  "updateBrandProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/profiles/creator/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminProfileController.java",
+        "methodName":  "updateCreatorProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/profiles/user/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminProfileController.java",
+        "methodName":  "updateUserProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/settings",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminSettingsController.java",
+        "methodName":  "listSettings",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/settings",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminSettingsController.java",
+        "methodName":  "upsertSetting",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/system/feedback",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminSystemController.java",
+        "methodName":  "submitFeedback",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/system/health",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminSystemController.java",
+        "methodName":  "getHealthSummary",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/admin/system/session",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminSystemController.java",
+        "methodName":  "trackSession",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/system/summary",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminSystemController.java",
+        "methodName":  "getSummary",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/users",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminUserController.java",
+        "methodName":  "listUsers",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/users/{param}/status",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminUserController.java",
+        "methodName":  "updateStatus",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/admin/users/appeals",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminUserController.java",
+        "methodName":  "listAppeals",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/admin/users/appeals/{param}/resolve",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AdminUserController.java",
+        "methodName":  "resolveAppeal",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/appeals",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AppealController.java",
+        "methodName":  "listAppeals",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/appeals",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AppealController.java",
+        "methodName":  "submitAppeal",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/applications",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "getApplications",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\applications.ts"
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/applications",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "submitApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/applications/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "withdrawApplication",
+        "mobile":  "src\\api\\services\\applicationService.ts",
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/applications/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "getApplicationById",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/applications/{param}/reject",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "rejectApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/applications/{param}/select",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "selectApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/applications/{param}/shortlist",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "shortlistApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/applications/{param}/status",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "updateApplicationStatus",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/applications/bulk-status",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ApplicationController.java",
+        "methodName":  "bulkUpdateStatus",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\applications.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\applications.ts"
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/auth/link-supabase-user",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AuthController.java",
+        "methodName":  "linkSupabaseUser",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/auth/login",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AuthController.java",
+        "methodName":  "login",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/auth/me",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AuthController.java",
+        "methodName":  "getCurrentUser",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/auth/register",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AuthController.java",
+        "methodName":  "register",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/auth/verify-email",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AuthController.java",
+        "methodName":  "verifyEmail",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/auth/verify-phone",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\AuthController.java",
+        "methodName":  "verifyPhone",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/brand-verification/admin/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\BrandVerificationController.java",
+        "methodName":  "getAdminDetail",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/brand-verification/bulk-review",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\BrandVerificationController.java",
+        "methodName":  "bulkReview",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/brand-verification/pending",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\BrandVerificationController.java",
+        "methodName":  "getPending",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/brand-verification/review/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\BrandVerificationController.java",
+        "methodName":  "reviewDocument",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/brand-verification/status",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\BrandVerificationController.java",
+        "methodName":  "getStatus",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/brand-verification/submit",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\BrandVerificationController.java",
+        "methodName":  "submitGstDocument",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "getCampaigns",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/campaigns",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "createCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/campaigns/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "deleteCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\campaigns.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\campaigns.ts"
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "getCampaignById",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/campaigns/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "updateCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns/{param}/analytics",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignAnalyticsController.java",
+        "methodName":  "getCampaignAnalytics",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\analytics.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\analytics.ts"
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns/{param}/applications",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "getCampaignApplications",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns/{param}/deliverables",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "getCampaignDeliverables",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\deliverables.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\deliverables.ts"
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/campaigns/{param}/invite",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "inviteCreator",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\creators.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\creators.ts"
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/campaigns/{param}/save",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "unsaveCampaign",
+        "mobile":  "src\\api\\services\\campaignService.ts",
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/campaigns/{param}/save",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "saveCampaign",
+        "mobile":  "src\\api\\services\\campaignService.ts",
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns/active",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "getActiveCampaigns",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns/saved",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "getSavedCampaigns",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaigns/search",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignController.java",
+        "methodName":  "searchCampaigns",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaign-templates",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignTemplateController.java",
+        "methodName":  "getTemplates",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/campaign-templates",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignTemplateController.java",
+        "methodName":  "createTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/campaign-templates/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignTemplateController.java",
+        "methodName":  "deleteTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\templates.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\templates.ts"
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/campaign-templates/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignTemplateController.java",
+        "methodName":  "getTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\templates.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\templates.ts"
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/campaign-templates/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignTemplateController.java",
+        "methodName":  "updateTemplate",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\templates.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\templates.ts"
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/campaign-templates/from-campaign/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CampaignTemplateController.java",
+        "methodName":  "createFromCampaign",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\templates.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\templates.ts"
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/compliance/gdpr",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ComplianceController.java",
+        "methodName":  "listRequests",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/compliance/gdpr",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ComplianceController.java",
+        "methodName":  "submitRequest",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/conversations",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ConversationController.java",
+        "methodName":  "getConversations",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/conversations/{param}/mark-read",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ConversationController.java",
+        "methodName":  "markRead",
+        "mobile":  "src\\api\\services\\messagingService.ts",
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\messages.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\messages.ts"
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/conversations/{param}/messages",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ConversationController.java",
+        "methodName":  "getMessages",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/conversations/{param}/messages",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ConversationController.java",
+        "methodName":  "sendMessage",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/conversations/application/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ConversationController.java",
+        "methodName":  "getConversationByApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/conversations/unread-count",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ConversationController.java",
+        "methodName":  "getUnreadCount",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/creator/social-accounts",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\SocialAccountController.java",
+        "methodName":  "getAccounts",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/creator/social-accounts/{param}/disconnect",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\SocialAccountController.java",
+        "methodName":  "disconnect",
+        "mobile":  "src\\api\\services\\socialConnectService.ts",
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/creator/social-accounts/{param}/refresh",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\SocialAccountController.java",
+        "methodName":  "refresh",
+        "mobile":  "src\\api\\services\\socialConnectService.ts",
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/creators",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CreatorController.java",
+        "methodName":  "searchCreators",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/creators/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\CreatorController.java",
+        "methodName":  "getCreatorById",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\creators.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\creators.ts"
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/deliverables",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DeliverableController.java",
+        "methodName":  "getDeliverables",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/deliverables",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DeliverableController.java",
+        "methodName":  "submitDeliverable",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/deliverables/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DeliverableController.java",
+        "methodName":  "resubmitDeliverable",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/deliverables/{param}/history",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DeliverableController.java",
+        "methodName":  "getDeliverableHistory",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\deliverables.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\deliverables.ts"
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/deliverables/{param}/review",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DeliverableController.java",
+        "methodName":  "reviewDeliverable",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\deliverables.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\deliverables.ts"
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/disputes",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "listDisputes",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/disputes",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "createDispute",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/disputes/{param}/assign",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "assignDispute",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/disputes/{param}/evidence",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "listEvidence",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/disputes/{param}/evidence",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "addEvidence",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/disputes/{param}/evidence/admin",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "listEvidenceForAdmin",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/disputes/{param}/notes",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "listInternalNotes",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/disputes/{param}/notes",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "addInternalNote",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/disputes/{param}/resolve",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "resolveDispute",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/disputes/admin",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "listDisputesForAdmin",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/disputes/admin/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\DisputeController.java",
+        "methodName":  "getDisputeForAdmin",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/health",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\HealthController.java",
+        "methodName":  "health",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/kyc/documents",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\KYCController.java",
+        "methodName":  "getKYCDocuments",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/kyc/documents/{param}/approve",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\KYCController.java",
+        "methodName":  "approveKYC",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\kyc.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\admin\\kyc.ts"
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/kyc/documents/{param}/reject",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\KYCController.java",
+        "methodName":  "rejectKYC",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\admin\\kyc.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\admin\\kyc.ts"
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/kyc/documents/bulk-review",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\KYCController.java",
+        "methodName":  "bulkReview",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/kyc/pending",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\KYCController.java",
+        "methodName":  "getPendingDocuments",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/kyc/status",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\KYCController.java",
+        "methodName":  "getKYCStatus",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/kyc/submit",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\KYCController.java",
+        "methodName":  "submitKYC",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/messages/conversation/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\MessageController.java",
+        "methodName":  "getMessages",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/messages/conversation/{param}/read",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\MessageController.java",
+        "methodName":  "markAsRead",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/messages/conversations",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\MessageController.java",
+        "methodName":  "getConversations",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/messages/conversations/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\MessageController.java",
+        "methodName":  "getConversation",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/messages/conversations/application/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\MessageController.java",
+        "methodName":  "getConversationByApplication",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/messages/unread-count",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\MessageController.java",
+        "methodName":  "getUnreadCount",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/notifications",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\NotificationController.java",
+        "methodName":  "getNotifications",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/notifications/{param}/read",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\NotificationController.java",
+        "methodName":  "markAsRead",
+        "mobile":  "src\\api\\services\\notificationService.ts",
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/notifications/read-all",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\NotificationController.java",
+        "methodName":  "markAllAsRead",
+        "mobile":  "src\\api\\services\\notificationService.ts",
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/notifications/register-device",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\NotificationController.java",
+        "methodName":  "registerDevice",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/notifications/unread-count",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\NotificationController.java",
+        "methodName":  "getUnreadCount",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/notifications/unregister-device/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\NotificationController.java",
+        "methodName":  "unregisterDevice",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/payments/orders",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\PaymentOrderController.java",
+        "methodName":  "createPaymentOrder",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/payments/orders/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\PaymentOrderController.java",
+        "methodName":  "getPaymentOrder",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/profile",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "getProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/profile",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "updateProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/profile/avatar",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "uploadAvatar",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/profile/brand",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "getBrandProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/profile/brand",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "updateBrandProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/profile/creator",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "getCreatorProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/profile/creator",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "updateCreatorProfile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/profile/logo",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "uploadLogo",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/profile/portfolio",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "getPortfolio",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/profile/portfolio",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "addPortfolioItem",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/profile/portfolio/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\ProfileController.java",
+        "methodName":  "deletePortfolioItem",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/social/connect/{param}/callback",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\SocialConnectController.java",
+        "methodName":  "oauthCallback",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/social/connect/{param}/start",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\SocialConnectController.java",
+        "methodName":  "startOAuth",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/storage/delete",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\StorageController.java",
+        "methodName":  "deleteFile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/storage/signed-url",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\StorageController.java",
+        "methodName":  "generateSignedUrl",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/storage/upload",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\StorageController.java",
+        "methodName":  "uploadFile",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/storage/upload/avatar",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\StorageController.java",
+        "methodName":  "uploadAvatar",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/storage/upload/deliverable",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\StorageController.java",
+        "methodName":  "uploadDeliverable",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/storage/upload/kyc",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\StorageController.java",
+        "methodName":  "uploadKYCDocument",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/storage/upload/portfolio",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\StorageController.java",
+        "methodName":  "uploadPortfolioItem",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/team-members",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\TeamMemberController.java",
+        "methodName":  "getTeamMembers",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/team-members/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\TeamMemberController.java",
+        "methodName":  "removeTeamMember",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  "admin-dashboard\\lib\\api\\profile.ts",
+        "brand_dashboard":  "brand-dashboard\\lib\\api\\profile.ts"
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/team-members/accept",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\TeamMemberController.java",
+        "methodName":  "acceptInvitation",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/team-members/invite",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\TeamMemberController.java",
+        "methodName":  "inviteTeamMember",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/wallet",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "getWallet",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/wallet/bank-accounts",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "getBankAccounts",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/wallet/bank-accounts",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "addBankAccount",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/wallet/bank-accounts/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "deleteBankAccount",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "PUT",
+        "path":  "/api/v1/wallet/bank-accounts/{param}/default",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "setDefaultBankAccount",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/wallet/transactions",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "getTransactions",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/wallet/withdraw",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "requestWithdrawal",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "GET",
+        "path":  "/api/v1/wallet/withdrawals",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "getWithdrawals",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "DELETE",
+        "path":  "/api/v1/wallet/withdrawals/{param}",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WalletController.java",
+        "methodName":  "cancelWithdrawal",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    },
+    {
+        "method":  "POST",
+        "path":  "/api/v1/webhooks/razorpay",
+        "controller":  "backend\\creatorx-api\\src\\main\\java\\com\\creatorx\\api\\controller\\WebhookController.java",
+        "methodName":  "handleRazorpayWebhook",
+        "mobile":  {
+
+                   },
+        "admin_dashboard":  {
+
+                            },
+        "brand_dashboard":  {
+
+                            }
+    }
+]

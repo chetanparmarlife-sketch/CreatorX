@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew :creatorx-api:test:*)",
+      "Bash(./gradlew:*)",
+      "Bash(grep:*)",
+      "Read(//c/CX/CreatorX-2/brand-dashboard/lib/**)",
+      "Bash(ls:*)",
+      "Bash(cd:*)",
+      "Bash(tree:*)",
+      "Bash(git -C \"C:\\\\CX\\\\CreatorX-2\" log --oneline -20)"
+    ]
+  }
+}
