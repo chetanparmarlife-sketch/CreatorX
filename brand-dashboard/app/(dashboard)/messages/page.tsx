@@ -493,7 +493,7 @@ export default function MessagesPage() {
     })
   }, [searchParams])
 
-  const { isConnected, sendMessage, onMessage } = useWebSocket(token)
+  const { isConnected, sendMessage, setMessageHandler } = useWebSocket(token)
   const handleSocketMessage = useCallback(
     (payload: { conversationId: string }) => {
       queryClient.invalidateQueries({ queryKey: ['messages', payload.conversationId] })
@@ -502,7 +502,9 @@ export default function MessagesPage() {
     [queryClient]
   )
 
-  onMessage(handleSocketMessage)
+  useEffect(() => {
+    setMessageHandler(handleSocketMessage)
+  }, [handleSocketMessage, setMessageHandler])
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeConversationId) || null,
