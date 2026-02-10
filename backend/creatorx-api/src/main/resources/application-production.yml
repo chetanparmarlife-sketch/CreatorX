@@ -4,11 +4,8 @@ spring:
     show-sql: false
     open-in-view: false
   flyway:
-    # TEMPORARILY DISABLED - V41 failed in prod, blocking all deployments
-    # We need to manually delete the failed entry from flyway_schema_history
-    # Once cleaned up, re-enable this and V42 will run successfully
-    enabled: false
-    validate-on-migrate: false
+    enabled: true
+    validate-on-migrate: true
 
   # Use simple cache instead of Redis in production (until Redis is set up)
   cache:
