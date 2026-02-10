@@ -290,7 +290,7 @@ export default function NewCampaignPage() {
       title: '',
       description: '',
       type: 'IMAGE',
-      dueDate: undefined,
+      dueDate: watchEndDate ?? watchStartDate ?? new Date(),
       isMandatory: true,
     })
   }
@@ -299,6 +299,7 @@ export default function NewCampaignPage() {
     setSelectedTemplateId(templateId)
     const template = templates.find((item) => item.id === templateId)
     if (!template) return
+    const templateFallbackDate = template.endDate ?? template.startDate ?? new Date().toISOString()
 
     form.reset({
       title: template.title || '',
@@ -311,7 +312,7 @@ export default function NewCampaignPage() {
         title: item.title,
         description: item.description || '',
         type: item.type as any,
-        dueDate: item.dueDate ? new Date(item.dueDate) : undefined,
+        dueDate: item.dueDate ? new Date(item.dueDate) : new Date(templateFallbackDate),
         isMandatory: item.isMandatory ?? true,
       })),
       startDate: template.startDate ? new Date(template.startDate) : undefined,
