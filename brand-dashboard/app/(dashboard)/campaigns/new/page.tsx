@@ -42,7 +42,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useBrandWallet, useAllocateToCampaign } from '@/lib/hooks/use-wallet'
-import { toast } from 'sonner'
 
 // Categories
 const categories = [
@@ -388,8 +387,7 @@ export default function NewCampaignPage() {
       const created = await createCampaign.mutateAsync(campaignData)
       setCreatedCampaign(created)
 
-      toast.success('Campaign created successfully!')
-
+      // Campaign created successfully - now check wallet balance
       // Fetch latest wallet balance
       const { data: currentWallet } = await refetchWallet()
 
@@ -1243,9 +1241,8 @@ export default function NewCampaignPage() {
                             amount: createdCampaign.budget,
                           })
                           setFundingStep('complete')
-                          toast.success('Campaign funded successfully!')
                         } catch (error: any) {
-                          toast.error('Failed to fund campaign: ' + (error?.message || 'Unknown error'))
+                          alert('Failed to fund campaign: ' + (error?.message || 'Unknown error'))
                         }
                       }}
                       disabled={allocateMutation.isPending}

@@ -34,7 +34,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card } from '@/components/ui/card'
 import { useBrandWallet, useAllocateToCampaign } from '@/lib/hooks/use-wallet'
-import { toast } from 'sonner'
 
 const tabOptions = ['All', 'Pending', 'Shortlisted', 'Selected', 'Rejected'] as const
 
@@ -163,7 +162,7 @@ export default function ApplicationsPage() {
     const amountNeeded = campaign.budget
 
     if (wallet.balance < amountNeeded) {
-      toast.error(`Insufficient balance. You need ${formatCurrency(amountNeeded - wallet.balance)} more.`)
+      // Redirect to add funds
       router.push(`/payments?action=deposit&amount=${amountNeeded - wallet.balance}&campaignId=${campaign.id}`)
       return
     }
@@ -173,10 +172,10 @@ export default function ApplicationsPage() {
         campaignId: campaign.id,
         amount: amountNeeded,
       })
-      toast.success('Campaign funded successfully!')
+      // Success - refetch campaign data
       refetchCampaign()
     } catch (error: any) {
-      toast.error('Failed to fund campaign: ' + (error?.message || 'Unknown error'))
+      alert('Failed to fund campaign: ' + (error?.message || 'Unknown error'))
     }
   }
 
