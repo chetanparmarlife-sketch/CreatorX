@@ -1238,7 +1238,7 @@ export default function NewCampaignPage() {
                         try {
                           await allocateMutation.mutateAsync({
                             campaignId: createdCampaign.id,
-                            amount: createdCampaign.budget,
+                            request: { amount: createdCampaign.budget },
                           })
                           setFundingStep('complete')
                         } catch (error: any) {

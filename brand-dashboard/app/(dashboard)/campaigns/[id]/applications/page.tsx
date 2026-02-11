@@ -170,7 +170,7 @@ export default function ApplicationsPage() {
     try {
       await allocateMutation.mutateAsync({
         campaignId: campaign.id,
-        amount: amountNeeded,
+        request: { amount: amountNeeded },
       })
       // Success - refetch campaign data
       refetchCampaign()
