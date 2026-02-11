@@ -1199,7 +1199,7 @@ export default function NewCampaignPage() {
             <DialogHeader>
               <DialogTitle>Fund Your Campaign</DialogTitle>
               <DialogDescription>
-                Your campaign "{createdCampaign.title}" has been created successfully.
+                Your campaign &ldquo;{createdCampaign.title}&rdquo; has been created successfully.
               </DialogDescription>
             </DialogHeader>
 
