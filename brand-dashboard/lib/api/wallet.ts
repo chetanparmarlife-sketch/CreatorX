@@ -54,8 +54,7 @@ export interface PageResponse<T> {
  * Get brand wallet balance and stats
  */
 export async function getBrandWallet(): Promise<BrandWallet> {
-  const response = await apiClient.get('/wallet')
-  return response.data
+  return await apiClient.get<BrandWallet>('/wallet')
 }
 
 /**
@@ -64,8 +63,7 @@ export async function getBrandWallet(): Promise<BrandWallet> {
 export async function createDepositOrder(
   request: DepositRequest
 ): Promise<PaymentOrder> {
-  const response = await apiClient.post('/wallet/deposit', request)
-  return response.data
+  return await apiClient.post<PaymentOrder>('/wallet/deposit', request)
 }
 
 /**
@@ -75,13 +73,12 @@ export async function getWalletTransactions(params: {
   page?: number
   size?: number
 }): Promise<PageResponse<EscrowTransaction>> {
-  const response = await apiClient.get('/wallet/transactions', {
+  return await apiClient.get<PageResponse<EscrowTransaction>>('/wallet/transactions', {
     params: {
       page: params.page ?? 0,
       size: params.size ?? 20,
     },
   })
-  return response.data
 }
 
 /**
@@ -101,7 +98,7 @@ export async function getCampaignTransactions(
   campaignId: string,
   params: { page?: number; size?: number }
 ): Promise<PageResponse<EscrowTransaction>> {
-  const response = await apiClient.get(
+  return await apiClient.get<PageResponse<EscrowTransaction>>(
     `/wallet/campaigns/${campaignId}/transactions`,
     {
       params: {
@@ -110,5 +107,4 @@ export async function getCampaignTransactions(
       },
     }
   )
-  return response.data
 }
