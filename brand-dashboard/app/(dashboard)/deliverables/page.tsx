@@ -98,19 +98,23 @@ export default function DeliverablesOverviewPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['brand-deliverables', statusFilter],
     queryFn: () =>
-      deliverableService.getBrandDeliverables(
-        statusFilter === 'ALL' ? undefined : statusFilter
-      ),
+      deliverableService.getBrandDeliverables({
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        page: 0,
+        size: 100,
+      }),
   })
   const { data: pendingData } = useQuery({
     queryKey: ['brand-deliverables-pending-count'],
-    queryFn: () => deliverableService.getBrandDeliverables('PENDING'),
+    queryFn: () => deliverableService.getBrandDeliverables({ status: 'PENDING', page: 0, size: 1 }),
   })
 
-  const deliverables = useMemo(() => (data as DeliverableItem[]) ?? [], [data])
+  const deliverablesPage = data as { items?: DeliverableItem[]; total?: number } | undefined
+  const pendingPage = pendingData as { items?: DeliverableItem[]; total?: number } | undefined
+  const deliverables = useMemo(() => deliverablesPage?.items ?? [], [deliverablesPage])
   const pendingCount = useMemo(
-    () => ((pendingData as DeliverableItem[]) ?? []).length,
-    [pendingData]
+    () => pendingPage?.total ?? pendingPage?.items?.length ?? 0,
+    [pendingPage]
   )
   const dueSummary = useMemo(() => {
     return deliverables.reduce(

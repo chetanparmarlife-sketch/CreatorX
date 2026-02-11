@@ -79,11 +79,10 @@ export function Sidebar() {
   const { user, logout } = useAuthStore()
   const { data: pendingDeliverables } = useQuery({
     queryKey: ['deliverables-pending-count'],
-    queryFn: () => deliverableService.getBrandDeliverables('PENDING'),
+    queryFn: () => deliverableService.getBrandDeliverables({ status: 'PENDING', page: 0, size: 1 }),
   })
-  const pendingCount = Array.isArray(pendingDeliverables)
-    ? pendingDeliverables.length
-    : 0
+  const pendingPage = pendingDeliverables as { items?: any[]; total?: number } | undefined
+  const pendingCount = pendingPage?.total ?? pendingPage?.items?.length ?? 0
 
   const handleLogout = async () => {
     await logout()

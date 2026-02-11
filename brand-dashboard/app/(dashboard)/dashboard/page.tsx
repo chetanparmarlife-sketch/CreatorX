@@ -62,7 +62,7 @@ export default function DashboardPage() {
   })
   const { data: deliverablesData, isLoading: deliverablesLoading } = useQuery({
     queryKey: ['brand-deliverables-summary'],
-    queryFn: () => deliverableService.getBrandDeliverables(),
+    queryFn: () => deliverableService.getBrandDeliverables({ page: 0, size: 50 }),
   })
 
   const campaigns = campaignsData?.items ?? []
@@ -94,7 +94,7 @@ export default function DashboardPage() {
   const reviewCampaigns = campaigns.filter((campaign) => campaign.status === CampaignStatus.PENDING_REVIEW)
   const completedCampaigns = campaigns.filter((campaign) => campaign.status === CampaignStatus.COMPLETED)
 
-  const deliverables = (deliverablesData as any[]) ?? []
+  const deliverables = (deliverablesData as { items?: any[] } | undefined)?.items ?? []
   const deliverableCounts = deliverables.reduce(
     (acc: Record<string, number>, item: any) => {
       const key = item.status || 'PENDING'
@@ -166,7 +166,7 @@ export default function DashboardPage() {
     },
   ]
 
-  const isLoading = campaignsLoading || creatorsLoading || transactionsLoading || deliverablesLoading
+  const isLoading = campaignsLoading || creatorsLoading || transactionsLoading
 
   if (isLoading) {
     return (
@@ -368,16 +368,30 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="section-card">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Deliverables status</h3>
-          <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-600">
-            <ContextPanel title="Pending" description={String(deliverableCounts.PENDING || 0)} />
-            <ContextPanel title="Approved" description={String(deliverableCounts.APPROVED || 0)} />
-            <ContextPanel title="Needs revision" description={String(deliverableCounts.REVISION_REQUESTED || 0)} />
-            <ContextPanel title="Rejected" description={String(deliverableCounts.REJECTED || 0)} />
-          </div>
+          {deliverablesLoading ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-600">
+              <ContextPanel title="Pending" description={String(deliverableCounts.PENDING || 0)} />
+              <ContextPanel title="Approved" description={String(deliverableCounts.APPROVED || 0)} />
+              <ContextPanel title="Needs revision" description={String(deliverableCounts.REVISION_REQUESTED || 0)} />
+              <ContextPanel title="Rejected" description={String(deliverableCounts.REJECTED || 0)} />
+            </div>
+          )}
         </div>
         <div className="section-card">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">In-progress creator tasks</h3>
-          {inProgressTasks.length === 0 ? (
+          {deliverablesLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : inProgressTasks.length === 0 ? (
             <EmptyState
               title="No active creator tasks"
               description="Pending deliverables will show up here."
@@ -404,3 +418,6 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+
+

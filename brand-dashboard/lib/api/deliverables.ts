@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import type { Page } from '@/lib/types'
 
 export type DeliverableReviewStatus = 'PENDING' | 'APPROVED' | 'REVISION_REQUESTED' | 'REJECTED'
 
@@ -11,9 +12,17 @@ export const deliverableService = {
       params: status ? { status } : {},
     })
   },
-  async getBrandDeliverables(status?: DeliverableReviewStatus) {
-    return apiClient.get('/deliverables', {
-      params: status ? { status } : {},
+  async getBrandDeliverables(params?: {
+    status?: DeliverableReviewStatus
+    page?: number
+    size?: number
+  }) {
+    return apiClient.get<Page<any>>('/deliverables', {
+      params: {
+        status: params?.status,
+        page: params?.page ?? 0,
+        size: params?.size ?? 20,
+      },
     })
   },
   async reviewDeliverable(
