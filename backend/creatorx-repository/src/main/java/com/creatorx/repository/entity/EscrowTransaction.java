@@ -4,6 +4,8 @@ import com.creatorx.common.enums.EscrowTransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -88,6 +90,7 @@ public class EscrowTransaction {
      */
     @Column(name = "metadata", columnDefinition = "jsonb")
     @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> metadata = new HashMap<>();
 
     @CreationTimestamp
