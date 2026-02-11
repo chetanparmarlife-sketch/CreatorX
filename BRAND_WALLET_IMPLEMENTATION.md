@@ -52,11 +52,11 @@ Implemented a centralized brand wallet escrow system where brands deposit money 
 
 ### API Layer
 **`BrandWalletController.java`** - REST endpoints
-- `GET /api/v1/wallet` - Get wallet balance
-- `POST /api/v1/wallet/deposit` - Create deposit order
-- `GET /api/v1/wallet/transactions` - Transaction history
-- `POST /api/v1/wallet/campaigns/{id}/allocate` - Fund campaign
-- `GET /api/v1/wallet/campaigns/{id}/transactions` - Campaign transactions
+- `GET /api/v1/brand-wallet` - Get wallet balance
+- `POST /api/v1/brand-wallet/deposit` - Create deposit order
+- `GET /api/v1/brand-wallet/transactions` - Transaction history
+- `POST /api/v1/brand-wallet/campaigns/{id}/allocate` - Fund campaign
+- `GET /api/v1/brand-wallet/campaigns/{id}/transactions` - Campaign transactions
 
 ---
 
@@ -64,7 +64,7 @@ Implemented a centralized brand wallet escrow system where brands deposit money 
 
 ### 1. Brand Deposits Money
 ```
-Brand Dashboard → POST /api/v1/wallet/deposit
+Brand Dashboard → POST /api/v1/brand-wallet/deposit
   ↓
 Creates Razorpay order (amount: 50000)
   ↓
@@ -84,7 +84,7 @@ escrow_transactions: +50,000 (DEPOSIT)
 ```
 Brand clicks "Fund Campaign"
   ↓
-POST /api/v1/wallet/campaigns/{id}/allocate { amount: 30000 }
+POST /api/v1/brand-wallet/campaigns/{id}/allocate { amount: 30000 }
   ↓
 BrandWalletService.allocateToCampaign()
   ↓

@@ -32,7 +32,7 @@ import java.math.BigDecimal;
  * Handles deposits, allocations, and transaction history
  */
 @RestController
-@RequestMapping("/api/v1/wallet")
+@RequestMapping("/api/v1/brand-wallet")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Brand Wallet", description = "Brand wallet and escrow management")

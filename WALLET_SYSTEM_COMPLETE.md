@@ -178,7 +178,7 @@ http://localhost:3000
 
 #### Get Wallet Balance
 ```http
-GET /api/v1/wallet
+GET /api/v1/brand-wallet
 Authorization: Bearer {jwt_token}
 
 Response:
@@ -194,7 +194,7 @@ Response:
 
 #### Create Deposit Order
 ```http
-POST /api/v1/wallet/deposit
+POST /api/v1/brand-wallet/deposit
 Authorization: Bearer {jwt_token}
 Content-Type: application/json
 
@@ -215,7 +215,7 @@ Response:
 
 #### Get Transaction History
 ```http
-GET /api/v1/wallet/transactions?page=0&size=20
+GET /api/v1/brand-wallet/transactions?page=0&size=20
 Authorization: Bearer {jwt_token}
 
 Response:
@@ -240,7 +240,7 @@ Response:
 
 #### Allocate to Campaign
 ```http
-POST /api/v1/wallet/campaigns/{campaignId}/allocate
+POST /api/v1/brand-wallet/campaigns/{campaignId}/allocate
 Authorization: Bearer {jwt_token}
 Content-Type: application/json
 
@@ -253,7 +253,7 @@ Response: 200 OK
 
 #### Get Campaign Transactions
 ```http
-GET /api/v1/wallet/campaigns/{campaignId}/transactions?page=0&size=20
+GET /api/v1/brand-wallet/campaigns/{campaignId}/transactions?page=0&size=20
 Authorization: Bearer {jwt_token}
 
 Response: Same as transaction history
