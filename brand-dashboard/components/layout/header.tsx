@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { WalletBalanceWidget } from '@/components/wallet/wallet-balance-widget'
 
 interface HeaderProps {
   user: AuthResponse | null
@@ -36,6 +37,10 @@ export function Header({ user }: HeaderProps) {
           <h1 className="text-lg font-semibold text-slate-900">{companyName}</h1>
         </div>
         <div className="flex items-center gap-3">
+          {/* Wallet Balance Widget */}
+          <WalletBalanceWidget />
+
+          {/* User Profile Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-10 px-2">

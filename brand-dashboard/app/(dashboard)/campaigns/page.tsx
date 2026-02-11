@@ -13,6 +13,7 @@ import { QueueToolbar } from '@/components/shared/queue-toolbar'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Campaign, CampaignStatus, CampaignPlatform } from '@/lib/types'
+import { FundingStatusBadge } from '@/components/campaigns/funding-status-badge'
 
 const platformOptions = ['All', ...Object.values(CampaignPlatform)] as const
 
@@ -324,7 +325,10 @@ export default function CampaignsPage() {
                         <div className="text-xs text-gray-400">Performance: — · Spend: —</div>
                       </td>
                       <td className="px-6 py-4">
-                        <StatusBadge status={campaign.status} />
+                        <div className="flex flex-col gap-2">
+                          <StatusBadge status={campaign.status} />
+                          <FundingStatusBadge campaign={campaign} />
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {nextActionByStatus[campaign.status]}
