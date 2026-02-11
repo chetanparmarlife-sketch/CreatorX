@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Plus, TrendingUp, TrendingDown, CreditCard, Wallet } from 'lucide-react'
-import { PageHeader } from '@/components/shared/page-header'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -139,10 +138,15 @@ export default function PaymentsPage() {
 
       <div className="space-y-6">
         {/* Header */}
-        <PageHeader
-          title="Wallet & Payments"
-          subtitle="Manage your campaign funds and transactions"
-        />
+        <div className="space-y-1 mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+            Wallet & Payments
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage your campaign funds and transactions
+          </p>
+          <div className="h-1 w-12 rounded-full bg-primary/70" />
+        </div>
 
         {/* Add Funds Button */}
         <div className="flex justify-end">
