@@ -15,16 +15,31 @@ const Tooltip = ({ children }: TooltipProps) => {
   return <div className="relative inline-block">{children}</div>
 }
 
-const TooltipTrigger = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ children, ...props }, ref) => {
-  return (
-    <div ref={ref} className="group" {...props}>
-      {children}
-    </div>
-  )
-})
+interface TooltipTriggerProps extends React.HTMLAttributes<HTMLElement> {
+  asChild?: boolean
+}
+
+const TooltipTrigger = React.forwardRef<HTMLElement, TooltipTriggerProps>(
+  ({ children, asChild = false, className, ...props }, ref) => {
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<{ className?: string }>
+      const childClassName = [child.props.className, className, 'group']
+        .filter(Boolean)
+        .join(' ')
+
+      return React.cloneElement(child, {
+        ...props,
+        className: childClassName,
+      })
+    }
+
+    return (
+      <div ref={ref as React.Ref<HTMLDivElement>} className={`group ${className || ''}`} {...props}>
+        {children}
+      </div>
+    )
+  }
+)
 TooltipTrigger.displayName = 'TooltipTrigger'
 
 interface TooltipContentProps extends React.HTMLAttributes<HTMLDivElement> {
