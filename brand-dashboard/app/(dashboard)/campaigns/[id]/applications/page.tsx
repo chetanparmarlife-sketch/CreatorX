@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import { ThumbsDown, ThumbsUp, AlertCircle, CheckCircle, Wallet, Loader2, Plus } from 'lucide-react'
 import { applicationService } from '@/lib/api/applications'
 import { messageService } from '@/lib/api/messages'
 import { useCampaign } from '@/lib/hooks/use-campaigns'
-import { Application } from '@/lib/types'
+import { Application, EscrowStatus } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -31,6 +31,10 @@ import {
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Card } from '@/components/ui/card'
+import { useBrandWallet, useAllocateToCampaign } from '@/lib/hooks/use-wallet'
+import { toast } from 'sonner'
 
 const tabOptions = ['All', 'Pending', 'Shortlisted', 'Selected', 'Rejected'] as const
 
@@ -48,12 +52,22 @@ const statusStyles: Record<string, string> = {
   REJECTED: 'bg-red-100 text-red-700',
 }
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount)
+
 export default function ApplicationsPage() {
   const params = useParams()
   const campaignId = params?.id as string
   const queryClient = useQueryClient()
+  const router = useRouter()
 
-  const { data: campaign } = useCampaign(campaignId)
+  const { data: campaign, refetch: refetchCampaign } = useCampaign(campaignId)
+  const { data: wallet } = useBrandWallet()
+  const allocateMutation = useAllocateToCampaign()
   const [activeTab, setActiveTab] = useState<(typeof tabOptions)[number]>('All')
   const [profileApplication, setProfileApplication] = useState<Application | null>(null)
   const [pitchApplication, setPitchApplication] = useState<Application | null>(null)
@@ -143,6 +157,29 @@ export default function ApplicationsPage() {
     })
   }
 
+  const handleFundCampaign = async () => {
+    if (!campaign || !wallet) return
+
+    const amountNeeded = campaign.budget
+
+    if (wallet.balance < amountNeeded) {
+      toast.error(`Insufficient balance. You need ${formatCurrency(amountNeeded - wallet.balance)} more.`)
+      router.push(`/payments?action=deposit&amount=${amountNeeded - wallet.balance}&campaignId=${campaign.id}`)
+      return
+    }
+
+    try {
+      await allocateMutation.mutateAsync({
+        campaignId: campaign.id,
+        amount: amountNeeded,
+      })
+      toast.success('Campaign funded successfully!')
+      refetchCampaign()
+    } catch (error: any) {
+      toast.error('Failed to fund campaign: ' + (error?.message || 'Unknown error'))
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="text-sm text-slate-500">
@@ -163,6 +200,111 @@ export default function ApplicationsPage() {
           </p>
         </div>
       </div>
+
+      {/* Escrow Status Banner */}
+      {campaign && (
+        <div className="space-y-4">
+          {campaign.escrowStatus === EscrowStatus.UNFUNDED && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertTitle className="text-orange-800">Campaign Not Funded</AlertTitle>
+              <AlertDescription className="text-orange-700">
+                <div className="flex items-center justify-between mt-2">
+                  <span>
+                    This campaign needs {formatCurrency(campaign.budget)} to be activated.
+                    {wallet && wallet.balance < campaign.budget && (
+                      <span className="block text-sm mt-1">
+                        Your balance: {formatCurrency(wallet.balance)} (Need {formatCurrency(campaign.budget - wallet.balance)} more)
+                      </span>
+                    )}
+                  </span>
+                  <Button
+                    onClick={handleFundCampaign}
+                    disabled={allocateMutation.isPending}
+                    className="ml-4"
+                  >
+                    {allocateMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Funding...
+                      </>
+                    ) : (
+                      <>
+                        <Wallet className="mr-2 h-4 w-4" />
+                        Fund Campaign
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {campaign.escrowStatus === EscrowStatus.FUNDED && (
+            <Card className="bg-green-50 border-green-200 p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-green-800">Campaign Funded</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm text-green-700">
+                    <div>
+                      <span className="text-green-600">Total Allocated:</span>
+                      <p className="font-medium">{formatCurrency(campaign.escrowAllocated || 0)}</p>
+                    </div>
+                    <div>
+                      <span className="text-green-600">Released to Creators:</span>
+                      <p className="font-medium">{formatCurrency(campaign.escrowReleased || 0)}</p>
+                    </div>
+                    <div>
+                      <span className="text-green-600">Remaining:</span>
+                      <p className="font-medium">
+                        {formatCurrency((campaign.escrowAllocated || 0) - (campaign.escrowReleased || 0))}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-green-600">Status:</span>
+                      <Badge className="bg-green-100 text-green-800 border-green-300">
+                        ✓ Funded
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {campaign.escrowStatus === EscrowStatus.PARTIAL && (
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle className="text-yellow-800">Partially Funded</AlertTitle>
+              <AlertDescription className="text-yellow-700">
+                <div className="mt-2">
+                  <div className="flex justify-between mb-1">
+                    <span>Funding Progress</span>
+                    <span className="font-medium">
+                      {formatCurrency(campaign.escrowAllocated || 0)} / {formatCurrency(campaign.budget)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-yellow-200 rounded-full h-2">
+                    <div
+                      className="bg-yellow-600 h-2 rounded-full"
+                      style={{ width: `${((campaign.escrowAllocated || 0) / campaign.budget) * 100}%` }}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleFundCampaign}
+                    className="mt-3"
+                    size="sm"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Remaining {formatCurrency(campaign.budget - (campaign.escrowAllocated || 0))}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
         <TabsList className="w-full justify-start">
