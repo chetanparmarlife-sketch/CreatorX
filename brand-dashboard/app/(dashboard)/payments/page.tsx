@@ -1,13 +1,57 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Calendar, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, TrendingUp, TrendingDown, CreditCard, Wallet } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { usePaymentMethods, useTransactions, useWallet } from '@/lib/hooks/use-payments'
-import type { Transaction } from '@/lib/types'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  useBrandWallet,
+  useWalletTransactions,
+  useCreateDepositOrder,
+} from '@/lib/hooks/use-wallet'
+import Script from 'next/script'
+
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(value)
+
+const getTransactionColor = (type: string) => {
+  switch (type) {
+    case 'DEPOSIT':
+    case 'REFUND':
+      return 'text-green-600'
+    case 'ALLOCATION':
+    case 'RELEASE':
+      return 'text-red-600'
+    default:
+      return 'text-gray-600'
+  }
+}
+
+const getTransactionSign = (type: string) => {
+  switch (type) {
+    case 'DEPOSIT':
+    case 'REFUND':
+      return '+'
+    case 'ALLOCATION':
+    case 'RELEASE':
+      return '-'
+    default:
+      return ''
+  }
+}
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
@@ -18,217 +62,285 @@ function EmptyState({ title, description }: { title: string; description: string
   )
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(value)
-
 export default function PaymentsPage() {
-  const router = useRouter()
-  const { data: paymentMethods, isLoading: methodsLoading } = usePaymentMethods()
-  const { data: wallet } = useWallet()
-  const [statusFilter, setStatusFilter] = useState('ALL')
-  const [typeFilter, setTypeFilter] = useState('ALL')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
-  const { data: transactions, isLoading: transactionsLoading } = useTransactions({
-    page: 0,
-    size: 20,
-    status: statusFilter === 'ALL' ? undefined : statusFilter,
-    from: fromDate || undefined,
-    to: toDate || undefined,
-  })
+  const { data: wallet, refetch: refetchWallet } = useBrandWallet()
+  const { data: transactionsPage } = useWalletTransactions({ page: 0, size: 20 })
+  const createDeposit = useCreateDepositOrder()
 
-  const hasMethods = (paymentMethods as any[])?.length > 0
-  const transactionRows = useMemo(() => transactions ?? [], [transactions])
-  const filteredTransactions = useMemo(() => {
-    if (typeFilter === 'ALL') return transactionRows
-    return transactionRows.filter((transaction) => transaction.type === typeFilter)
-  }, [transactionRows, typeFilter])
-  const totalSpent = filteredTransactions.reduce((sum, transaction) => sum + (transaction.amount ?? 0), 0)
+  const [showAddFunds, setShowAddFunds] = useState(false)
+  const [amount, setAmount] = useState<number>(10000)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const transactions = transactionsPage?.content ?? []
+
+  const handleAddFunds = async () => {
+    if (amount < 1000) {
+      setError('Minimum deposit: ₹1,000')
+      return
+    }
+
+    setIsProcessing(true)
+    setError(null)
+
+    try {
+      // 1. Create payment order
+      const order = await createDeposit.mutateAsync({ amount })
+
+      // 2. Open Razorpay checkout
+      if (!window.Razorpay) {
+        throw new Error('Razorpay SDK not loaded')
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: order.amount * 100, // Convert to paise
+        currency: order.currency,
+        name: 'CreatorX',
+        description: 'Add funds to wallet',
+        order_id: order.razorpayOrderId,
+        handler: async function (response: any) {
+          console.log('Payment successful:', response)
+
+          // Wait for webhook to process (2-3 seconds)
+          setTimeout(() => {
+            refetchWallet()
+            setShowAddFunds(false)
+            setIsProcessing(false)
+            setAmount(10000)
+          }, 2500)
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false)
+          },
+        },
+        theme: {
+          color: '#7c3aed',
+        },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.open()
+    } catch (err: any) {
+      console.error('Error adding funds:', err)
+      setError(err.message || 'Failed to create payment order')
+      setIsProcessing(false)
+    }
+  }
 
   return (
-    <div>
-      <PageHeader 
-        title="Payments" 
-        ctaLabel="Add Payment Method"
-        onCtaClick={() => router.push('/settings')}
+    <>
+      {/* Load Razorpay script */}
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="lazyOnload"
       />
 
       <div className="space-y-6">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Available balance</p>
-            <p className="mt-2 text-2xl font-semibold text-gray-900">
-              {wallet ? formatCurrency(wallet.balance ?? 0) : '—'}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Pending: {wallet ? formatCurrency(wallet.pendingBalance ?? 0) : '—'}</p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Payments activity</p>
-            <p className="mt-2 text-2xl font-semibold text-gray-900">{formatCurrency(totalSpent)}</p>
-            <p className="text-xs text-gray-500 mt-1">Filtered total</p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Payout readiness</p>
-            <p className="mt-2 text-sm text-gray-700">
-              {hasMethods ? 'Payment method connected.' : 'Add a payment method to schedule payouts.'}
-            </p>
-            <Button
-              className="mt-3"
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/settings')}
-            >
-              Manage payout settings
-            </Button>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Payable schedule</p>
-            <p className="mt-2 text-sm text-gray-700">Next payout: —</p>
-            <p className="text-xs text-gray-500 mt-1">Schedule: — (coming soon)</p>
-          </div>
+        {/* Header */}
+        <PageHeader
+          title="Wallet & Payments"
+          subtitle="Manage your campaign funds and transactions"
+        />
+
+        {/* Add Funds Button */}
+        <div className="flex justify-end">
+          <Button
+            onClick={() => setShowAddFunds(!showAddFunds)}
+            disabled={isProcessing}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Funds
+          </Button>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h3>
-          {methodsLoading ? (
-            <div className="text-sm text-gray-500">Loading payment methods...</div>
-          ) : hasMethods ? (
-            <div className="space-y-3">
-              {(paymentMethods as any[]).map((method) => (
-                <div
-                  key={method.id || method.accountNumber}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700"
-                >
-                  <div>
-                    <p className="font-medium">{method.bankName || 'Bank account'}</p>
-                    <p className="text-xs text-gray-500">
-                      {method.accountNumber ? `**** ${String(method.accountNumber).slice(-4)}` : 'Default'}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-500">{method.status || 'Active'}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="No payment methods added"
-              description="Add a payment method to start processing transactions"
-            />
-          )}
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Transactions</h3>
-            
-            <div className="flex gap-3">
+        {/* Add Funds Form */}
+        {showAddFunds && (
+          <Card className="p-6 border-purple-200 bg-purple-50">
+            <h3 className="text-lg font-semibold mb-4">Add Funds to Wallet</h3>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <div className="flex gap-4 items-end">
               <div className="flex-1">
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="date"
-                    placeholder="From"
-                    className="pl-10 bg-white border-gray-300"
-                    value={fromDate}
-                    onChange={(event) => setFromDate(event.target.value)}
-                  />
-                </div>
+                <label className="text-sm text-gray-600 mb-2 block">
+                  Amount (INR)
+                </label>
+                <Input
+                  type="number"
+                  min="1000"
+                  step="1000"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(Number(e.target.value))
+                    setError(null)
+                  }}
+                  placeholder="10000"
+                  disabled={isProcessing}
+                />
+                <p className="text-xs text-gray-500 mt-1">Minimum: ₹1,000</p>
               </div>
-
-              <div className="flex-1">
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="date"
-                    placeholder="To"
-                    className="pl-10 bg-white border-gray-300"
-                    value={toDate}
-                    onChange={(event) => setToDate(event.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                  className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700"
-                >
-                  <option value="ALL">All statuses</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="FAILED">Failed</option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              </div>
-
-              <div className="relative">
-                <select
-                  value={typeFilter}
-                  onChange={(event) => setTypeFilter(event.target.value)}
-                  className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700"
-                >
-                  <option value="ALL">All types</option>
-                  <option value="EARNING">Earnings</option>
-                  <option value="WITHDRAWAL">Withdrawals</option>
-                  <option value="REFUND">Refunds</option>
-                  <option value="BONUS">Bonuses</option>
-                  <option value="PENALTY">Penalties</option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              </div>
-
+              <Button
+                onClick={handleAddFunds}
+                disabled={isProcessing}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {isProcessing
+                  ? 'Processing...'
+                  : `Pay ${formatCurrency(amount)}`}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => {
-                  setStatusFilter('ALL')
-                  setTypeFilter('ALL')
-                  setFromDate('')
-                  setToDate('')
+                  setShowAddFunds(false)
+                  setError(null)
                 }}
+                disabled={isProcessing}
               >
-                Reset
+                Cancel
               </Button>
             </div>
-          </div>
+          </Card>
+        )}
 
-          {transactionsLoading ? (
-            <div className="p-6 text-sm text-gray-500">Loading transactions...</div>
-          ) : filteredTransactions.length === 0 ? (
-            <EmptyState
-              title="No transactions found"
-              description="Your transaction history will appear here"
-            />
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredTransactions.map((transaction: Transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between px-6 py-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {transaction.description || transaction.type}
+        {/* Wallet Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="p-6 border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-600">
+                  Available Balance
+                </p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {wallet ? formatCurrency(wallet.balance) : '—'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Ready to allocate</p>
+              </div>
+              <Wallet className="h-8 w-8 text-purple-500" />
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              Total Deposited
+            </p>
+            <p className="text-2xl font-semibold text-gray-900 mt-2">
+              {wallet ? formatCurrency(wallet.totalDeposited) : '—'}
+            </p>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-green-500" />
+              <p className="text-xs text-green-600">Lifetime</p>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              Allocated to Campaigns
+            </p>
+            <p className="text-2xl font-semibold text-gray-900 mt-2">
+              {wallet ? formatCurrency(wallet.totalAllocated) : '—'}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">In active campaigns</p>
+          </Card>
+
+          <Card className="p-6">
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              Released to Creators
+            </p>
+            <p className="text-2xl font-semibold text-gray-900 mt-2">
+              {wallet ? formatCurrency(wallet.totalReleased) : '—'}
+            </p>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingDown className="h-3 w-3 text-orange-500" />
+              <p className="text-xs text-orange-600">Payouts</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Transaction History */}
+        <Card>
+          <div className="p-6 border-b">
+            <h3 className="text-lg font-semibold">Transaction History</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              All wallet deposits, allocations, and releases
+            </p>
+          </div>
+          <div className="divide-y">
+            {transactions.length === 0 ? (
+              <EmptyState
+                title="No transactions yet"
+                description="Your transaction history will appear here after you add funds"
+              />
+            ) : (
+              transactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="p-4 flex items-center justify-between hover:bg-gray-50"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900">
+                        {tx.description}
+                      </p>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {tx.type}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {new Date(tx.createdAt).toLocaleString('en-IN', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {transaction.createdAt
-                        ? new Date(transaction.createdAt).toLocaleDateString()
-                        : 'Pending'}
-                    </p>
+                    {tx.campaignTitle && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Campaign: {tx.campaignTitle}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {formatCurrency(transaction.amount ?? 0)}
+                    <p
+                      className={`text-lg font-semibold ${getTransactionColor(tx.type)}`}
+                    >
+                      {getTransactionSign(tx.type)}
+                      {formatCurrency(tx.amount)}
                     </p>
-                    <p className="text-xs text-gray-500">{transaction.status || 'Processed'}</p>
+                    {tx.balanceAfter !== null && tx.balanceAfter !== undefined && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Balance: {formatCurrency(tx.balanceAfter)}
+                      </p>
+                    )}
                   </div>
                 </div>
-              ))}
+              ))
+            )}
+          </div>
+        </Card>
+
+        {/* Info Card */}
+        <Card className="p-6 bg-blue-50 border-blue-200">
+          <div className="flex items-start gap-3">
+            <CreditCard className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-blue-900">
+                How the wallet works
+              </h4>
+              <ul className="text-sm text-blue-800 mt-2 space-y-1">
+                <li>• Add funds to your wallet via Razorpay (UPI, Card, Net Banking)</li>
+                <li>• Allocate funds to campaigns when creating or funding them</li>
+                <li>
+                  • Funds are automatically released to creators when deliverables
+                  are approved
+                </li>
+                <li>• Unused campaign funds are refunded to your wallet when campaigns end</li>
+              </ul>
             </div>
-          )}
-        </div>
+          </div>
+        </Card>
       </div>
-    </div>
+    </>
   )
 }

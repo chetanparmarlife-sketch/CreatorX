@@ -8,6 +8,8 @@ import com.creatorx.repository.WithdrawalRequestRepository;
 import com.creatorx.repository.entity.BankAccount;
 import com.creatorx.repository.entity.WebhookEvent;
 import com.creatorx.repository.entity.WithdrawalRequest;
+import com.creatorx.service.BrandWalletService;
+import com.creatorx.service.EscrowService;
 import com.creatorx.service.PaymentCollectionService;
 import com.creatorx.service.RefundService;
 import com.creatorx.service.WalletService;
@@ -55,6 +57,8 @@ public class WebhookController {
     private final WithdrawalRequestRepository withdrawalRequestRepository;
     private final BankAccountRepository bankAccountRepository;
     private final WalletService walletService;
+    private final BrandWalletService brandWalletService;
+    private final EscrowService escrowService;
     private final PaymentCollectionService paymentCollectionService;
     private final RefundService refundService;
     private final ObjectMapper objectMapper;
@@ -424,6 +428,7 @@ public class WebhookController {
      * Handle payment.captured event
      * Phase 4.2: Brand Payment Collection
      * Updates payment order status to CAPTURED when brand payment succeeds
+     * Routes to wallet deposit or campaign escrow based on payment order type
      */
     private void handlePaymentCaptured(JsonNode event) {
         JsonNode paymentEntity = event.path("payload").path("payment").path("entity");
@@ -442,7 +447,24 @@ public class WebhookController {
         log.info("Payment captured: {} for order: {} (method: {})", paymentId, orderId, method);
 
         try {
+            // Process payment capture and get the payment order
             paymentCollectionService.processPaymentCapture(orderId, paymentId, method, bank, vpa);
+
+            // Get the payment order to determine if it's a wallet deposit or campaign payment
+            com.creatorx.repository.entity.PaymentOrder paymentOrder = paymentCollectionService
+                .getByRazorpayOrderId(orderId)
+                .orElse(null);
+
+            if (paymentOrder != null && paymentOrder.getCampaign() == null) {
+                // This is a wallet deposit (no campaign associated)
+                log.info("Processing as wallet deposit: order={}", orderId);
+                brandWalletService.creditWalletFromPayment(paymentOrder);
+            } else if (paymentOrder != null && paymentOrder.getCampaign() != null) {
+                // This is a direct campaign payment (old flow)
+                log.info("Processing as campaign escrow: order={}, campaign={}",
+                    orderId, paymentOrder.getCampaign().getId());
+                escrowService.creditBrandDeposit(paymentOrder);
+            }
         } catch (Exception e) {
             log.error("Error processing payment capture for order {}: {}", orderId, e.getMessage(), e);
             // Don't rethrow - webhook is already stored for investigation

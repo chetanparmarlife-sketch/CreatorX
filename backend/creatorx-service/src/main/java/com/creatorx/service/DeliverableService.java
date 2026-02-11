@@ -49,6 +49,7 @@ public class DeliverableService {
     private final NotificationService notificationService;
     private final DeliverableMapper deliverableMapper;
     private final SupabaseStorageService storageService;
+    private final BrandWalletService brandWalletService;
 
     /**
      * Get deliverables for creator (filtered by status, paginated)
@@ -540,6 +541,31 @@ public class DeliverableService {
 
         log.info("Deliverable reviewed: {} by brand: {} with status: {}", submissionId, brandId, status);
 
+        // Release payment to creator if approved
+        if (status == SubmissionStatus.APPROVED) {
+            try {
+                // Calculate payment amount for this deliverable
+                java.math.BigDecimal paymentAmount = calculateDeliverablePayment(submission);
+
+                // Release from campaign escrow to creator wallet
+                brandWalletService.releaseToCreator(
+                    submission.getApplication().getCampaign().getId(),
+                    submission.getApplication().getCreator().getId(),
+                    paymentAmount,
+                    "Deliverable approved: " + submission.getCampaignDeliverable().getTitle()
+                );
+
+                log.info("Payment released for approved deliverable: deliverable={}, creator={}, amount={}",
+                    submissionId,
+                    submission.getApplication().getCreator().getId(),
+                    paymentAmount);
+            } catch (Exception e) {
+                log.error("Failed to release payment for deliverable {}: {}", submissionId, e.getMessage(), e);
+                // Don't fail the approval - payment can be manually released
+                // TODO: Create a flag or notification for manual payment review
+            }
+        }
+
         // Send notification to creator
         String notificationTitle = switch (status) {
             case APPROVED -> "Deliverable Approved!";
@@ -622,5 +648,30 @@ public class DeliverableService {
             return creator.getCreatorProfile().getUsername();
         }
         return creator.getEmail();
+    }
+
+    /**
+     * Calculate payment amount for a deliverable
+     * For now, divides campaign budget equally among deliverables
+     * TODO: Support custom pricing per deliverable
+     */
+    private java.math.BigDecimal calculateDeliverablePayment(DeliverableSubmission submission) {
+        com.creatorx.repository.entity.Campaign campaign = submission.getApplication().getCampaign();
+
+        // Get total number of deliverables for this campaign
+        int totalDeliverables = campaign.getCampaignDeliverables().size();
+        if (totalDeliverables == 0) {
+            log.warn("Campaign {} has no deliverables defined", campaign.getId());
+            return java.math.BigDecimal.ZERO;
+        }
+
+        // Divide budget equally (for now)
+        java.math.BigDecimal perDeliverableAmount = campaign.getBudget()
+            .divide(java.math.BigDecimal.valueOf(totalDeliverables), 2, java.math.RoundingMode.HALF_UP);
+
+        log.debug("Calculated deliverable payment: campaign={}, budget={}, totalDeliverables={}, amount={}",
+            campaign.getId(), campaign.getBudget(), totalDeliverables, perDeliverableAmount);
+
+        return perDeliverableAmount;
     }
 }

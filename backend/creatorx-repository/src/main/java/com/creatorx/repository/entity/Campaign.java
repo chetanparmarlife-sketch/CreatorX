@@ -91,6 +91,19 @@ public class Campaign extends BaseEntity {
 
     @Column(name = "reviewed_at")
     private java.time.LocalDateTime reviewedAt;
+
+    // Escrow and wallet fields
+    @Column(name = "escrow_allocated", precision = 15, scale = 2)
+    @Builder.Default
+    private java.math.BigDecimal escrowAllocated = java.math.BigDecimal.ZERO;
+
+    @Column(name = "escrow_released", precision = 15, scale = 2)
+    @Builder.Default
+    private java.math.BigDecimal escrowReleased = java.math.BigDecimal.ZERO;
+
+    @Column(name = "escrow_status", length = 20)
+    @Builder.Default
+    private String escrowStatus = "UNFUNDED";
     
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CampaignDeliverable> campaignDeliverables = new ArrayList<>();
