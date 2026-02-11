@@ -1,25 +1,61 @@
 'use client'
 
 import * as React from 'react'
-import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 
-const TooltipProvider = TooltipPrimitive.Provider
+// Simple tooltip implementation without external dependencies
+const TooltipProvider = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>
+}
 
-const Tooltip = TooltipPrimitive.Root
+interface TooltipProps {
+  children: React.ReactNode
+}
 
-const TooltipTrigger = TooltipPrimitive.Trigger
+const Tooltip = ({ children }: TooltipProps) => {
+  return <div className="relative inline-block">{children}</div>
+}
 
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Content
-    ref={ref}
-    sideOffset={sideOffset}
-    className={`z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 ${className || ''}`}
-    {...props}
-  />
-))
-TooltipContent.displayName = TooltipPrimitive.Content.displayName
+const TooltipTrigger = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ children, ...props }, ref) => {
+  return (
+    <div ref={ref} className="group" {...props}>
+      {children}
+    </div>
+  )
+})
+TooltipTrigger.displayName = 'TooltipTrigger'
+
+interface TooltipContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  side?: 'top' | 'bottom' | 'left' | 'right'
+  sideOffset?: number
+}
+
+const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>(
+  ({ className, children, side = 'top', ...props }, ref) => {
+    const positionClasses = {
+      top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
+      bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
+      left: 'right-full top-1/2 -translate-y-1/2 mr-2',
+      right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={`absolute z-50 hidden group-hover:block ${positionClasses[side]}`}
+        {...props}
+      >
+        <div
+          className={`overflow-hidden rounded-md border bg-slate-900 px-3 py-1.5 text-sm text-white shadow-md ${className || ''}`}
+        >
+          {children}
+        </div>
+      </div>
+    )
+  }
+)
+TooltipContent.displayName = 'TooltipContent'
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
