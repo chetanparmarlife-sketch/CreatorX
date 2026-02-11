@@ -50,7 +50,12 @@ public class CampaignDTO {
     
     // Is saved by current user (for creators)
     private Boolean isSaved;
-    
+
+    // Escrow / funding status
+    private BigDecimal escrowAllocated;
+    private BigDecimal escrowReleased;
+    private String escrowStatus;
+
     @Data
     @Builder
     @NoArgsConstructor

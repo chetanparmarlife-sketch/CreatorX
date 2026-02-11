@@ -1,5 +1,18 @@
 {
     "recommendations": [
-        "openai.chatgpt"
+        "openai.chatgpt",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-docker",
+        "expo.vscode-expo-tools",
+        "dsznajder.es7-react-js-snippets",
+        "bradlc.vscode-tailwindcss",
+        "yoavbls.pretty-ts-errors",
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "vscjava.vscode-gradle",
+        "mikestead.dotenv",
+        "github.vscode-github-actions"
     ]
 }

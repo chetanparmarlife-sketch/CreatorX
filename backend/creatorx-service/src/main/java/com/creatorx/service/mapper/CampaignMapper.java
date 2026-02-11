@@ -41,8 +41,11 @@ public interface CampaignMapper {
     @Mapping(target = "reviewReason", ignore = true)
     @Mapping(target = "reviewedBy", ignore = true)
     @Mapping(target = "reviewedAt", ignore = true)
+    @Mapping(target = "escrowAllocated", ignore = true)
+    @Mapping(target = "escrowReleased", ignore = true)
+    @Mapping(target = "escrowStatus", ignore = true)
     Campaign toEntity(CampaignDTO dto);
-    
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "brand", ignore = true)
     @Mapping(target = "campaignDeliverables", ignore = true)
@@ -54,6 +57,9 @@ public interface CampaignMapper {
     @Mapping(target = "reviewReason", ignore = true)
     @Mapping(target = "reviewedBy", ignore = true)
     @Mapping(target = "reviewedAt", ignore = true)
+    @Mapping(target = "escrowAllocated", ignore = true)
+    @Mapping(target = "escrowReleased", ignore = true)
+    @Mapping(target = "escrowStatus", ignore = true)
     void updateEntityFromDTO(CampaignDTO dto, @MappingTarget Campaign entity);
     
     default CampaignDTO.BrandInfo mapBrandInfo(User brand) {
