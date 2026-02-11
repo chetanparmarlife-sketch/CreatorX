@@ -6,10 +6,10 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
-import { Plus, Trash2, ChevronLeft, ChevronRight, CheckCircle2, Sparkles } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, ChevronRight, CheckCircle2, Sparkles, Wallet, Loader2, AlertCircle } from 'lucide-react'
 import { useCreateCampaign } from '@/lib/hooks/use-campaigns'
 import { useTemplates } from '@/lib/hooks/use-templates'
-import { CampaignPlatform, CampaignStatus } from '@/lib/types'
+import { CampaignPlatform, CampaignStatus, Campaign } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,8 +31,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useBrandWallet, useAllocateToCampaign } from '@/lib/hooks/use-wallet'
+import { toast } from 'sonner'
 
 // Categories
 const categories = [
@@ -65,6 +75,13 @@ const deliverableTypes = [
   { value: 'STORY', label: 'Story' },
   { value: 'REEL', label: 'Reel' },
 ] as const
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount)
 
 const budgetGuidanceByPlatform: Record<
   CampaignPlatform,
@@ -176,8 +193,13 @@ export default function NewCampaignPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [showFundingDialog, setShowFundingDialog] = useState(false)
+  const [createdCampaign, setCreatedCampaign] = useState<Campaign | null>(null)
+  const [fundingStep, setFundingStep] = useState<'check' | 'complete'>('check')
   const createCampaign = useCreateCampaign()
   const { data: templates = [] } = useTemplates()
+  const { data: wallet, refetch: refetchWallet } = useBrandWallet()
+  const allocateMutation = useAllocateToCampaign()
 
   const formatApiError = (error: unknown, fallback: string) => {
     if (!error || typeof error !== 'object') return fallback
@@ -364,7 +386,31 @@ export default function NewCampaignPage() {
       }
 
       const created = await createCampaign.mutateAsync(campaignData)
-      router.push(`/campaigns/${created.id}`)
+      setCreatedCampaign(created)
+
+      toast.success('Campaign created successfully!')
+
+      // Fetch latest wallet balance
+      const { data: currentWallet } = await refetchWallet()
+
+      // Check if brand has sufficient balance
+      if (!currentWallet || currentWallet.balance === 0) {
+        // No wallet or empty balance - redirect to add funds
+        router.push(
+          `/payments?action=deposit&amount=${created.budget}&campaignId=${created.id}`
+        )
+        return
+      }
+
+      if (currentWallet.balance < created.budget) {
+        // Insufficient balance - show funding dialog with options
+        setFundingStep('check')
+        setShowFundingDialog(true)
+      } else {
+        // Sufficient balance - show funding dialog with fund now option
+        setFundingStep('check')
+        setShowFundingDialog(true)
+      }
     } catch (error: unknown) {
       setSubmitError(formatApiError(error, 'Failed to create campaign. Please try again.'))
     } finally {
@@ -1147,6 +1193,141 @@ export default function NewCampaignPage() {
           </div>
         </form>
       </Form>
+
+      {/* Funding Dialog */}
+      {showFundingDialog && createdCampaign && wallet && (
+        <Dialog open={showFundingDialog} onOpenChange={setShowFundingDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Fund Your Campaign</DialogTitle>
+              <DialogDescription>
+                Your campaign "{createdCampaign.title}" has been created successfully.
+              </DialogDescription>
+            </DialogHeader>
+
+            {fundingStep === 'check' && (
+              <div className="space-y-4">
+                <Alert className={
+                  wallet.balance >= createdCampaign.budget
+                    ? "border-green-200 bg-green-50"
+                    : "border-orange-200 bg-orange-50"
+                }>
+                  <Wallet className="h-4 w-4" />
+                  <AlertTitle>Current Balance</AlertTitle>
+                  <AlertDescription>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Available</p>
+                        <p className="text-lg font-semibold">
+                          {formatCurrency(wallet.balance)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Required</p>
+                        <p className="text-lg font-semibold">
+                          {formatCurrency(createdCampaign.budget)}
+                        </p>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
+                {wallet.balance >= createdCampaign.budget ? (
+                  // Sufficient balance
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={async () => {
+                        try {
+                          await allocateMutation.mutateAsync({
+                            campaignId: createdCampaign.id,
+                            amount: createdCampaign.budget,
+                          })
+                          setFundingStep('complete')
+                          toast.success('Campaign funded successfully!')
+                        } catch (error: any) {
+                          toast.error('Failed to fund campaign: ' + (error?.message || 'Unknown error'))
+                        }
+                      }}
+                      disabled={allocateMutation.isPending}
+                      className="flex-1"
+                    >
+                      {allocateMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Funding...
+                        </>
+                      ) : (
+                        'Fund Now'
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        router.push(`/campaigns/${createdCampaign.id}/applications`)
+                      }}
+                    >
+                      Fund Later
+                    </Button>
+                  </div>
+                ) : (
+                  // Insufficient balance
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      You need {formatCurrency(createdCampaign.budget - wallet.balance)} more
+                      to fund this campaign.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          router.push(
+                            `/payments?action=deposit&amount=${
+                              createdCampaign.budget - wallet.balance
+                            }&campaignId=${createdCampaign.id}`
+                          )
+                        }}
+                        className="flex-1"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Funds
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          router.push(`/campaigns/${createdCampaign.id}/applications`)
+                        }}
+                      >
+                        Skip
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {fundingStep === 'complete' && (
+              <div className="py-6 text-center space-y-4">
+                <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Campaign Funded!</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your campaign is now active and ready for applications.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    router.push(`/campaigns/${createdCampaign.id}/applications`)
+                  }}
+                  className="w-full"
+                >
+                  View Campaign
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
