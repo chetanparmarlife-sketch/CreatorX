@@ -1,7 +1,7 @@
 # CreatorX Wallet System - Implementation Plan
 
 **Last Updated:** February 12, 2026
-**Current Phase:** Phase 1 complete, ready for Phase 2
+**Current Phase:** Phase 2 complete, ready for Phase 3
 
 ---
 
@@ -39,34 +39,17 @@ All wallet-to-campaign integration is live and deployed.
 
 ---
 
-## Broken User Flow: Missing Campaign Detail Page
+### Phase 2: UX Polish - COMPLETE
 
-**Priority: HIGH** - This is the most impactful issue right now.
-
-Multiple existing flows route to `/campaigns/[id]` which **does not exist**:
-
-- Campaign list "Open" button → `/campaigns/${campaign.id}` → 404
-- Post-creation funding dialog "View Campaign" → 404
-- Post-creation funding dialog "Fund Later" → 404
-- Save draft → `/campaigns/${created.id}` → 404
-
-Sub-pages exist (`/campaigns/[id]/applications`, `/campaigns/[id]/deliverables`, `/campaigns/[id]/analytics`) but the main detail page is missing.
-
-**Options:**
-1. Create a proper campaign detail/overview page at `campaigns/[id]/page.tsx`
-2. Redirect `/campaigns/[id]` to `/campaigns/[id]/applications` (quick fix)
+| Task | What was built | Status |
+| --- | --- | --- |
+| Campaign detail page | Full overview page at `campaigns/[id]/page.tsx` — breadcrumb, header, escrow banners, stat cards, details, sub-page nav | Done |
+| Low balance notifications | Amber banner on dashboard when wallet balance < ₹5,000 with "Add funds" link to payments | Done |
+| Transaction export | "Export CSV" button on payments page Transaction History section | Done |
 
 ---
 
 ## Next Phases
-
-### Phase 2: UX Polish
-
-| Task | Description | Effort |
-| --- | --- | --- |
-| Campaign detail page | Fix the broken `/campaigns/[id]` route (see above) | Medium |
-| Low balance notifications | Banner on dashboard when balance < threshold | Small |
-| Transaction export | CSV download from payments page | Small |
 
 ### Phase 3: Business Logic
 
@@ -103,11 +86,11 @@ Sub-pages exist (`/campaigns/[id]/applications`, `/campaigns/[id]/deliverables`,
 
 ## Recommended Next Move
 
-**Fix the broken campaign detail route**, then move to Phase 2 UX polish.
+**Phase 3: Business Logic** — per-deliverable pricing + auto-refund scheduler.
 
-The campaign detail page is the central hub of the brand experience. Every campaign-related flow (list, creation, funding) tries to navigate there and currently hits a 404. This should be resolved before building new features.
+These are real business logic gaps. Per-deliverable pricing lets brands assign custom payment amounts to each deliverable instead of equal splits (needs migration V55). The auto-refund scheduler reclaims unused campaign funds automatically when campaigns end.
 
-After that, the highest-value work is Phase 3 (per-deliverable pricing + auto-refund scheduler) since those are real business logic gaps. Security (Phase 4) and testing (Phase 6) can be interleaved.
+Security (Phase 4) and testing (Phase 6) can be interleaved with Phase 3.
 
 ---
 
@@ -157,7 +140,9 @@ brand-dashboard/lib/types/index.ts (EscrowStatus enum)
 brand-dashboard/app/(dashboard)/payments/page.tsx
 brand-dashboard/app/(dashboard)/campaigns/page.tsx (FundingStatusBadge)
 brand-dashboard/app/(dashboard)/campaigns/new/page.tsx (funding dialog)
+brand-dashboard/app/(dashboard)/campaigns/[id]/page.tsx (campaign detail/overview)
 brand-dashboard/app/(dashboard)/campaigns/[id]/applications/page.tsx (escrow banners)
+brand-dashboard/app/(dashboard)/dashboard/page.tsx (low balance banner)
 brand-dashboard/components/wallet/wallet-balance-widget.tsx
 brand-dashboard/components/campaigns/funding-status-badge.tsx
 brand-dashboard/components/layout/header.tsx (wallet widget)

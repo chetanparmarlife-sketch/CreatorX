@@ -2,13 +2,14 @@
 
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { TrendingUp, Users, Calendar, IndianRupee } from 'lucide-react'
+import { TrendingUp, Users, Calendar, IndianRupee, AlertCircle, Wallet } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/shared/page-header'
 import { StatCardsSkeleton, Skeleton } from '@/components/shared/skeleton'
 import { useCampaigns } from '@/lib/hooks/use-campaigns'
 import { useCreators } from '@/lib/hooks/use-creators'
 import { useTransactions } from '@/lib/hooks/use-payments'
+import { useBrandWallet } from '@/lib/hooks/use-wallet'
 import { deliverableService } from '@/lib/api/deliverables'
 import { ActionBar } from '@/components/shared/action-bar'
 import { ContextPanel } from '@/components/shared/context-panel'
@@ -52,8 +53,11 @@ const formatRelativeTime = (dateString?: string) => {
   return `${days}d ago`
 }
 
+const LOW_BALANCE_THRESHOLD = 5000
+
 export default function DashboardPage() {
   const router = useRouter()
+  const { data: walletData } = useBrandWallet()
   const { data: campaignsData, isLoading: campaignsLoading } = useCampaigns({}, 0)
   const { data: creatorsData, isLoading: creatorsLoading } = useCreators({ page: 0, size: 20 })
   const { data: transactionsData, isLoading: transactionsLoading } = useTransactions({
@@ -201,6 +205,23 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader title="Dashboard" />
+
+      {walletData && walletData.balance < LOW_BALANCE_THRESHOLD && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+          <div className="flex-1 text-sm text-amber-800">
+            <span className="font-medium">Low wallet balance:</span>{' '}
+            {formatCurrency(walletData.balance)} remaining.{' '}
+            <button
+              className="underline underline-offset-2 font-medium hover:text-amber-900"
+              onClick={() => router.push('/payments')}
+            >
+              Add funds
+            </button>
+          </div>
+          <Wallet className="h-5 w-5 shrink-0 text-amber-500" />
+        </div>
+      )}
 
       <div className="premium-hero">
         <div className="relative z-10 space-y-6">

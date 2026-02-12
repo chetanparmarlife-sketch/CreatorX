@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, TrendingUp, TrendingDown, CreditCard, Wallet } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { Plus, TrendingUp, TrendingDown, CreditCard, Wallet, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -72,6 +72,29 @@ export default function PaymentsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const transactions = transactionsPage?.content ?? []
+
+  const exportTransactionsCsv = useCallback(() => {
+    if (!transactions.length) return
+    const rows = [
+      ['Date', 'Description', 'Type', 'Campaign', 'Amount (INR)', 'Balance After'],
+      ...transactions.map((tx) => [
+        new Date(tx.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+        tx.description || '',
+        tx.type,
+        tx.campaignTitle || '',
+        `${getTransactionSign(tx.type)}${tx.amount}`,
+        tx.balanceAfter != null ? String(tx.balanceAfter) : '',
+      ]),
+    ]
+    const csvContent = rows.map((row) => row.map((v) => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `wallet-transactions-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }, [transactions])
 
   const handleAddFunds = async () => {
     if (amount < 1000) {
@@ -266,11 +289,19 @@ export default function PaymentsPage() {
 
         {/* Transaction History */}
         <Card>
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold">Transaction History</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              All wallet deposits, allocations, and releases
-            </p>
+          <div className="p-6 border-b flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Transaction History</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                All wallet deposits, allocations, and releases
+              </p>
+            </div>
+            {transactions.length > 0 && (
+              <Button variant="outline" size="sm" onClick={exportTransactionsCsv}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+            )}
           </div>
           <div className="divide-y">
             {transactions.length === 0 ? (

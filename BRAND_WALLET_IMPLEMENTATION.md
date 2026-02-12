@@ -57,9 +57,11 @@ Hooks
   lib/hooks/use-payments.ts  - useTransactions (creator side, used by dashboard/profile)
 
 Pages
-  app/(dashboard)/payments/page.tsx              - Deposit funds, Razorpay checkout, transaction history
+  app/(dashboard)/payments/page.tsx              - Deposit funds, Razorpay checkout, transaction history, CSV export
+  app/(dashboard)/dashboard/page.tsx             - Low balance notification banner (< ₹5,000 threshold)
   app/(dashboard)/campaigns/page.tsx             - Campaign list with FundingStatusBadge per row
   app/(dashboard)/campaigns/new/page.tsx         - Post-creation funding dialog (fund now / add funds / skip)
+  app/(dashboard)/campaigns/[id]/page.tsx        - Campaign detail/overview (escrow banners, stat cards, sub-page nav)
   app/(dashboard)/campaigns/[id]/applications/   - Escrow status banners (UNFUNDED/FUNDED/PARTIAL) + fund button
 
 Components
@@ -149,4 +151,4 @@ NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxx
 2. **No Auto-Refund Scheduler** - Unused campaign funds require manual refund
 3. **Platform Fee Hardcoded** - 10% commission in WalletService (not configurable via settings)
 4. **INR Only** - No multi-currency support
-5. **No Campaign Detail Page** - `/campaigns/[id]` route missing; "Open" from list is broken
+5. ~~No Campaign Detail Page~~ - **Fixed:** Campaign detail page now exists at `/campaigns/[id]`
