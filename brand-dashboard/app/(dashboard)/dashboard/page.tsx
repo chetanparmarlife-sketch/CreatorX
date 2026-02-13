@@ -127,7 +127,7 @@ export default function DashboardPage() {
       .map((transaction: Transaction) => ({
         id: String(transaction.id),
         title: 'Payment processed',
-        description: `${formatCurrency(transaction.amount ?? 0)} • ${transaction.description || 'Transaction'}`,
+        description: `${formatCurrency(transaction.amount ?? 0)} - ${transaction.description || 'Transaction'}`,
         time: formatRelativeTime(transaction.createdAt),
         type: 'payment',
       }))
@@ -142,7 +142,7 @@ export default function DashboardPage() {
       value: String(activeCampaigns.length),
       change: `${campaigns.length} total`,
       changeType: 'positive',
-      color: 'bg-amber-100 text-amber-700',
+      color: 'bg-blue-100 text-blue-700',
     },
     {
       icon: Users,
@@ -150,7 +150,7 @@ export default function DashboardPage() {
       value: String(creatorsTotal),
       change: creators.length ? `${creators.length} listed` : 'No creators yet',
       changeType: 'positive',
-      color: 'bg-blue-100 text-blue-700',
+      color: 'bg-emerald-100 text-emerald-700',
     },
     {
       icon: TrendingUp,
@@ -158,7 +158,7 @@ export default function DashboardPage() {
       value: `${averageEngagement}%`,
       change: creators.length ? 'Across listed creators' : 'No data yet',
       changeType: 'positive',
-      color: 'bg-emerald-100 text-emerald-700',
+      color: 'bg-teal-100 text-teal-700',
     },
     {
       icon: IndianRupee,
@@ -166,7 +166,7 @@ export default function DashboardPage() {
       value: formatCurrency(totalSpend),
       change: transactionsData?.length ? 'Wallet transactions' : 'No transactions yet',
       changeType: 'negative',
-      color: 'bg-slate-900 text-amber-100',
+      color: 'bg-slate-900 text-slate-100',
     },
   ]
 
@@ -223,29 +223,84 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="premium-hero">
-        <div className="relative z-10 space-y-6">
-          <div>
-            <p className="text-xs uppercase tracking-[0.32em] text-amber-700/70">Brand Momentum</p>
-            <h2 className="text-2xl font-semibold text-foreground md:text-3xl">
-              Keep the spotlight on your top campaigns.
-            </h2>
+      <div className="hero-surface">
+        <div className="hero-grid">
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <span className="hero-chip">Live brand pulse</span>
+              <h2 className="text-3xl font-semibold text-slate-900 md:text-4xl">
+                Keep every campaign moving with clarity and momentum.
+              </h2>
+              <p className="text-sm text-slate-600">
+                A fast read on spend, creator activity, and deliverables so you can act before
+                the week gets busy.
+              </p>
+            </div>
+            <div className="hero-actions">
+              <button className="hero-primary" onClick={() => router.push('/campaigns/new')}>
+                Launch campaign
+              </button>
+              <button className="hero-secondary" onClick={() => router.push('/campaigns')}>
+                View performance
+              </button>
+            </div>
+            <div className="insight-strip">
+              <div className="insight-pill">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Budget utilization</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">{budgetUtilization}%</p>
+                <p className="text-xs text-slate-500">Spend vs total budget</p>
+              </div>
+              <div className="insight-pill">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Active campaigns</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">{activeCampaigns.length}</p>
+                <p className="text-xs text-slate-500">{campaigns.length} campaigns total</p>
+              </div>
+              <div className="insight-pill">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Avg engagement</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">{averageEngagement}%</p>
+                <p className="text-xs text-slate-500">Across listed creators</p>
+              </div>
+            </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-amber-200/60 bg-white/90 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Budget Utilization</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{budgetUtilization}%</p>
-              <p className="text-xs text-slate-500">Spend vs total budget</p>
+          <div className="hero-panel space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Wallet health</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  {formatCurrency(walletData?.balance ?? 0)}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Wallet className="h-5 w-5 text-primary" />
+              </div>
             </div>
-            <div className="rounded-2xl border border-amber-200/60 bg-white/90 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Active Campaigns</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{activeCampaigns.length}</p>
-              <p className="text-xs text-slate-500">{campaigns.length} campaigns total</p>
+            <div className="rounded-xl border border-slate-200/70 bg-white/90 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Campaign mix</p>
+              <div className="mt-3 grid gap-3 text-sm text-slate-600">
+                <div className="flex items-center justify-between">
+                  <span>In review</span>
+                  <span className="font-semibold text-slate-900">{reviewCampaigns.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Active now</span>
+                  <span className="font-semibold text-slate-900">{activeCampaigns.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Completed</span>
+                  <span className="font-semibold text-slate-900">{completedCampaigns.length}</span>
+                </div>
+              </div>
             </div>
-            <div className="rounded-2xl border border-amber-200/60 bg-white/90 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Avg Engagement</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{averageEngagement}%</p>
-              <p className="text-xs text-slate-500">Across listed creators</p>
+            <div className="rounded-xl border border-slate-200/70 bg-white/90 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Deliverables signal</p>
+              <div className="mt-3 flex items-center gap-2">
+                <StatusChip tone={deliverableCounts.REVISION_REQUESTED ? 'needs_action' : 'approved'} size="compact">
+                  {deliverableCounts.REVISION_REQUESTED ? 'Needs attention' : 'On track'}
+                </StatusChip>
+                <span className="text-xs text-slate-500">
+                  {deliverableCounts.PENDING || 0} pending approvals
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -339,7 +394,7 @@ export default function DashboardPage() {
               <div className="p-6 text-sm text-slate-500">No recent activity yet.</div>
             ) : (
               recentActivities.map((activity) => (
-              <div key={activity.id} className="p-6 hover:bg-slate-50/70 transition-colors">
+              <div key={activity.id} className="activity-row p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h4 className="text-slate-900 font-medium mb-1">{activity.title}</h4>
@@ -359,25 +414,25 @@ export default function DashboardPage() {
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <button
-              className="w-full text-left px-4 py-3 rounded-xl border border-amber-200/60 bg-amber-50/70 text-amber-900 hover:bg-amber-100/70 transition-colors"
+              className="quick-action border-emerald-200/70 bg-emerald-50 text-emerald-900"
               onClick={() => router.push('/campaigns/new')}
             >
               <div className="text-sm font-medium">Create Campaign</div>
             </button>
             <button
-              className="w-full text-left px-4 py-3 rounded-xl border border-slate-200/70 bg-white/80 text-slate-700 hover:bg-slate-50 transition-colors"
+              className="quick-action"
               onClick={() => router.push('/creators')}
             >
               <div className="text-sm font-medium">Find Influencers</div>
             </button>
             <button
-              className="w-full text-left px-4 py-3 rounded-xl border border-slate-200/70 bg-white/80 text-slate-700 hover:bg-slate-50 transition-colors"
+              className="quick-action"
               onClick={() => router.push('/payments')}
             >
               <div className="text-sm font-medium">Process Payments</div>
             </button>
             <button
-              className="w-full text-left px-4 py-3 rounded-xl border border-slate-200/70 bg-white/80 text-slate-700 hover:bg-slate-50 transition-colors"
+              className="quick-action"
               onClick={() => router.push('/campaigns')}
             >
               <div className="text-sm font-medium">View Reports</div>
@@ -420,10 +475,10 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {inProgressTasks.map((task: any) => (
-                <div key={task.id} className="rounded-xl border border-slate-200/70 bg-white/80 p-3">
+                <div key={task.id} className="task-card">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-slate-900">
-                      {task.campaignTitle || 'Campaign'} · {task.creatorName || 'Creator'}
+                      {task.campaignTitle || 'Campaign'} - {task.creatorName || 'Creator'}
                     </p>
                     <StatusChip tone="needs_action" size="compact">
                       {task.status || 'PENDING'}
