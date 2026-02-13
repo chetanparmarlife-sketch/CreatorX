@@ -116,11 +116,16 @@ Creator → POST /api/v1/wallet/withdraw → RazorpayService.createPayout()
 - Pessimistic locking on all wallet mutations (prevents race conditions)
 - HMAC-SHA256 webhook signature verification (constant-time comparison)
 - WebhookEvent deduplication (unique constraint on webhook_id)
+- Webhook retry: failed events retried every 15 min (max 3 attempts) via `WebhookRetryScheduler`
+- Webhook replay prevention: 60-min age window, 5-min clock skew tolerance
+- Rate limiting: Redis-based, 3 tiers (general 100/min, auth 5/min, payment 10/min), fail-open
 - Idempotency keys on payment orders (SHA256 of brand+amount+campaign+timestamp)
+- Idempotency filter on sensitive POST endpoints (wallet/withdraw, bank-accounts, admin payouts)
 - Database constraints: `balance >= 0`, `balance = deposited - allocated`, `released <= allocated`
 - PCI-compliant card storage (Razorpay tokens only, never raw card numbers)
 - Role-based access: `@PreAuthorize("hasRole('BRAND')")` / `@PreAuthorize("hasRole('CREATOR')")`
 - Withdrawal limits: min 100, max 50K per tx, max 2L per month
+- Audit trail: EscrowTransaction records all wallet movements, AdminAuditService tracks admin actions
 
 ---
 

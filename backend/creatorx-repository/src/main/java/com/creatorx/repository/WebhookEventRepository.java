@@ -49,6 +49,14 @@ public interface WebhookEventRepository extends JpaRepository<WebhookEvent, Stri
     List<WebhookEvent> findByCreatedAtAfter(@Param("after") LocalDateTime after);
 
     /**
+     * Find failed webhook events eligible for retry
+     * @param maxRetries Maximum retry attempts before giving up
+     * @return List of failed webhook events
+     */
+    @Query("SELECT w FROM WebhookEvent w WHERE w.status = 'FAILED' AND w.retryCount < :maxRetries ORDER BY w.createdAt ASC")
+    List<WebhookEvent> findFailedForRetry(@Param("maxRetries") int maxRetries);
+
+    /**
      * Delete webhook events older than a certain timestamp
      * Useful for periodic cleanup to save storage
      * @param before Timestamp to delete before

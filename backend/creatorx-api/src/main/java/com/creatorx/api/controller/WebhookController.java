@@ -137,14 +137,16 @@ public class WebhookController {
 
             // 3. Persist webhook event FIRST for idempotency
             // Handle race condition: if unique constraint violation, treat as duplicate
+            WebhookEvent webhookEvent;
             try {
-                WebhookEvent webhookEvent = WebhookEvent.builder()
+                webhookEvent = WebhookEvent.builder()
                         .webhookId(webhookId)
                         .eventType(eventType)
                         .payload(payload)
                         .processedAt(LocalDateTime.now())
+                        .status("RECEIVED")
                         .build();
-                webhookEventRepository.save(webhookEvent);
+                webhookEvent = webhookEventRepository.save(webhookEvent);
                 log.info("Webhook event stored: {}", webhookId);
             } catch (DataIntegrityViolationException e) {
                 // Unique constraint violation = duplicate webhook
@@ -153,40 +155,15 @@ public class WebhookController {
             }
 
             // 4. Process event based on type
-            switch (eventType) {
-                // Payout events (creator withdrawals)
-                case "payout.processed":
-                    handlePayoutProcessed(event);
-                    break;
-                case "payout.failed":
-                    handlePayoutFailed(event);
-                    break;
-                case "payout.reversed":
-                    handlePayoutReversed(event);
-                    break;
-                // Fund account validation events (bank verification)
-                case "fund_account.validation.completed":
-                    handleFundAccountValidation(event, true);
-                    break;
-                case "fund_account.validation.failed":
-                    handleFundAccountValidation(event, false);
-                    break;
-                // Payment events (brand deposits) - Phase 4.2
-                case "payment.captured":
-                    handlePaymentCaptured(event);
-                    break;
-                case "payment.failed":
-                    handlePaymentFailed(event);
-                    break;
-                // Refund events - Phase 4.2
-                case "refund.processed":
-                    handleRefundProcessed(event);
-                    break;
-                case "refund.failed":
-                    handleRefundFailed(event);
-                    break;
-                default:
-                    log.info("Ignoring webhook event type: {}", eventType);
+            try {
+                processWebhookEvent(eventType, event);
+                webhookEvent.setStatus("PROCESSED");
+                webhookEventRepository.save(webhookEvent);
+            } catch (Exception processingError) {
+                log.error("Webhook {} processing failed: {}", webhookId, processingError.getMessage(), processingError);
+                webhookEvent.setStatus("FAILED");
+                webhookEvent.setErrorMessage(processingError.getMessage());
+                webhookEventRepository.save(webhookEvent);
             }
 
             return ResponseEntity.ok().build();
@@ -196,6 +173,48 @@ public class WebhookController {
             // Return 200 to prevent Razorpay retries on permanent failures
             // The webhook is already stored for manual investigation
             return ResponseEntity.ok().build();
+        }
+    }
+
+    /**
+     * Route webhook event to the appropriate handler.
+     * Public so WebhookRetryScheduler can reprocess failed events.
+     */
+    public void processWebhookEvent(String eventType, JsonNode event) {
+        switch (eventType) {
+            // Payout events (creator withdrawals)
+            case "payout.processed":
+                handlePayoutProcessed(event);
+                break;
+            case "payout.failed":
+                handlePayoutFailed(event);
+                break;
+            case "payout.reversed":
+                handlePayoutReversed(event);
+                break;
+            // Fund account validation events (bank verification)
+            case "fund_account.validation.completed":
+                handleFundAccountValidation(event, true);
+                break;
+            case "fund_account.validation.failed":
+                handleFundAccountValidation(event, false);
+                break;
+            // Payment events (brand deposits) - Phase 4.2
+            case "payment.captured":
+                handlePaymentCaptured(event);
+                break;
+            case "payment.failed":
+                handlePaymentFailed(event);
+                break;
+            // Refund events - Phase 4.2
+            case "refund.processed":
+                handleRefundProcessed(event);
+                break;
+            case "refund.failed":
+                handleRefundFailed(event);
+                break;
+            default:
+                log.info("Ignoring webhook event type: {}", eventType);
         }
     }
 

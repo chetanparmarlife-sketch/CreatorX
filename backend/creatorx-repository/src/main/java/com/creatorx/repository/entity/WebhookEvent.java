@@ -55,4 +55,24 @@ public class WebhookEvent extends BaseEntity {
     @Column(name = "processed_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime processedAt = LocalDateTime.now();
+
+    /**
+     * Processing status: PROCESSED, FAILED
+     */
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private String status = "PROCESSED";
+
+    /**
+     * Error message if processing failed
+     */
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+
+    /**
+     * Number of retry attempts
+     */
+    @Column(name = "retry_count", nullable = false)
+    @Builder.Default
+    private Integer retryCount = 0;
 }

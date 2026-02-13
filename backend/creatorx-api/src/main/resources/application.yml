@@ -166,6 +166,12 @@ creatorx:
       auto-hours: 6
       manual-minutes: 10
       cron: ${SOCIAL_REFRESH_CRON:0 0 */6 * * ?}
+  # Webhook Retry Scheduler
+  webhook:
+    retry:
+      enabled: ${WEBHOOK_RETRY_ENABLED:true}
+      max-retries: ${WEBHOOK_RETRY_MAX:3}
+      cron: ${WEBHOOK_RETRY_CRON:0 */15 * * * *}  # Every 15 minutes
   # Campaign Completion & Auto-Refund Scheduler
   campaign:
     completion:
