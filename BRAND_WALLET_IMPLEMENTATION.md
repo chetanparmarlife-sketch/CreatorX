@@ -4,7 +4,7 @@
 Centralized brand wallet escrow system where brands deposit money first, then allocate funds to campaigns. Payments are automatically released to creators when deliverables are approved.
 
 **Status:** Fully implemented (backend + frontend + API integration)
-**Last Updated:** February 12, 2026
+**Last Updated:** February 13, 2026
 
 ---
 
@@ -147,8 +147,8 @@ NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxx
 
 ## Known Limitations
 
-1. **Per-Deliverable Pricing** - Budget divided equally among deliverables (no custom amounts yet)
-2. **No Auto-Refund Scheduler** - Unused campaign funds require manual refund
-3. **Platform Fee Hardcoded** - 10% commission in WalletService (not configurable via settings)
+1. ~~Per-Deliverable Pricing~~ - **Fixed:** `price` column on `campaign_deliverables` with equal-split fallback
+2. ~~No Auto-Refund Scheduler~~ - **Fixed:** `CampaignCompletionScheduler` runs daily at 1 AM
+3. ~~Platform Fee Hardcoded~~ - **Fixed:** Configurable via `platform_settings` table (default 10%, seeded via V56)
 4. **INR Only** - No multi-currency support
 5. ~~No Campaign Detail Page~~ - **Fixed:** Campaign detail page now exists at `/campaigns/[id]`

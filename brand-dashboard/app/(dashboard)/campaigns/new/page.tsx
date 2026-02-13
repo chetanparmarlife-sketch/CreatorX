@@ -131,6 +131,7 @@ const deliverableSchema = z.object({
   type: z.enum(['IMAGE', 'VIDEO', 'STORY', 'REEL']),
   dueDate: z.date({ required_error: 'Due date is required' }),
   isMandatory: z.boolean().default(true),
+  price: z.number().min(0).optional(),
 })
 
 // Main form schema
@@ -372,7 +373,7 @@ export default function NewCampaignPage() {
         maxApplicants: data.maxApplicants,
         requirements: data.requirements,
         deliverableTypes: deliverables.map((d: { type: string }) => d.type),
-        deliverables: deliverables.map((deliverable: { title: string; description?: string; type: string; dueDate?: Date; isMandatory: boolean }, index: number) => ({
+        deliverables: deliverables.map((deliverable: { title: string; description?: string; type: string; dueDate?: Date; isMandatory: boolean; price?: number }, index: number) => ({
           title: deliverable.title,
           description: deliverable.description,
           type: deliverable.type,
@@ -381,6 +382,7 @@ export default function NewCampaignPage() {
             : undefined,
           isMandatory: deliverable.isMandatory,
           orderIndex: index,
+          price: deliverable.price || undefined,
         })),
       }
 
@@ -882,6 +884,34 @@ export default function NewCampaignPage() {
                                   )}
                                 />
                               </div>
+
+                              <FormField
+                                control={form.control}
+                                name={`deliverables.${index}.price`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Price (INR)</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="100"
+                                        placeholder="Leave empty for equal split"
+                                        value={field.value ?? ''}
+                                        onChange={(e) =>
+                                          field.onChange(
+                                            e.target.value ? Number(e.target.value) : undefined
+                                          )
+                                        }
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Custom payment for this deliverable. If empty, budget is split equally.
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
                               <FormField
                                 control={form.control}

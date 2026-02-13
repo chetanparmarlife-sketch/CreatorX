@@ -651,25 +651,31 @@ public class DeliverableService {
     }
 
     /**
-     * Calculate payment amount for a deliverable
-     * For now, divides campaign budget equally among deliverables
-     * TODO: Support custom pricing per deliverable
+     * Calculate payment amount for a deliverable.
+     * Uses per-deliverable price if set, otherwise divides budget equally.
      */
     private java.math.BigDecimal calculateDeliverablePayment(DeliverableSubmission submission) {
+        com.creatorx.repository.entity.CampaignDeliverable deliverable = submission.getCampaignDeliverable();
         com.creatorx.repository.entity.Campaign campaign = submission.getApplication().getCampaign();
 
-        // Get total number of deliverables for this campaign
+        // Use per-deliverable price if set
+        if (deliverable.getPrice() != null && deliverable.getPrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            log.debug("Using per-deliverable price: campaign={}, deliverable={}, price={}",
+                campaign.getId(), deliverable.getTitle(), deliverable.getPrice());
+            return deliverable.getPrice();
+        }
+
+        // Fallback: divide budget equally
         int totalDeliverables = campaign.getCampaignDeliverables().size();
         if (totalDeliverables == 0) {
             log.warn("Campaign {} has no deliverables defined", campaign.getId());
             return java.math.BigDecimal.ZERO;
         }
 
-        // Divide budget equally (for now)
         java.math.BigDecimal perDeliverableAmount = campaign.getBudget()
             .divide(java.math.BigDecimal.valueOf(totalDeliverables), 2, java.math.RoundingMode.HALF_UP);
 
-        log.debug("Calculated deliverable payment: campaign={}, budget={}, totalDeliverables={}, amount={}",
+        log.debug("Using equal-split payment: campaign={}, budget={}, totalDeliverables={}, amount={}",
             campaign.getId(), campaign.getBudget(), totalDeliverables, perDeliverableAmount);
 
         return perDeliverableAmount;

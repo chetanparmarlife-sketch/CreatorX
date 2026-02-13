@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -93,6 +94,9 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
         Pageable pageable
     );
     
+    // Find active campaigns past their end date (for auto-completion scheduler)
+    List<Campaign> findByStatusAndEndDateBefore(CampaignStatus status, LocalDate date);
+
     // Count campaigns by status
     long countByStatus(CampaignStatus status);
     

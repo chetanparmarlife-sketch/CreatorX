@@ -196,6 +196,7 @@ export interface CampaignDeliverable {
   dueDate?: string
   isMandatory: boolean
   orderIndex: number
+  price?: number
 }
 
 export interface CampaignCreateRequest {
@@ -221,6 +222,7 @@ export interface CampaignDeliverableCreateRequest {
   dueDate?: string
   isMandatory: boolean
   orderIndex: number
+  price?: number
 }
 
 export interface CampaignUpdateRequest {

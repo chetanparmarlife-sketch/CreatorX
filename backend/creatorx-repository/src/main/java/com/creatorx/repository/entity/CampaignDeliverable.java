@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -47,7 +48,10 @@ public class CampaignDeliverable extends BaseEntity {
     @Column(name = "order_index")
     @Builder.Default
     private Integer orderIndex = 0;
-    
+
+    @Column(name = "price", precision = 15, scale = 2)
+    private BigDecimal price;
+
     public enum DeliverableType {
         IMAGE,
         VIDEO,

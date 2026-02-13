@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
@@ -19,7 +20,8 @@ public class CampaignDeliverableDTO {
     private LocalDate dueDate;
     private Boolean isMandatory;
     private Integer orderIndex;
-    
+    private BigDecimal price;
+
     public enum CampaignDeliverableType {
         IMAGE,
         VIDEO,

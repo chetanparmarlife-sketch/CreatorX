@@ -1,7 +1,7 @@
 # CreatorX Wallet System - Implementation Plan
 
-**Last Updated:** February 12, 2026
-**Current Phase:** Phase 2 complete, ready for Phase 3
+**Last Updated:** February 13, 2026
+**Current Phase:** Phase 3 complete, ready for Phase 4
 
 ---
 
@@ -49,15 +49,17 @@ All wallet-to-campaign integration is live and deployed.
 
 ---
 
-## Next Phases
+### Phase 3: Business Logic - COMPLETE
 
-### Phase 3: Business Logic
-
-| Task | Description | Effort |
+| Task | What was built | Status |
 | --- | --- | --- |
-| Per-deliverable pricing | Custom payment amounts per deliverable instead of equal split (needs migration V55) | Large |
-| Auto-refund scheduler | `@Scheduled` job to refund unused funds when campaigns end | Medium |
-| Configurable platform fee | Move 10% commission from hardcoded to settings table | Small |
+| Per-deliverable pricing | `price` column on `campaign_deliverables` (V55), entity/DTO/mapper updated, `DeliverableService` uses per-deliverable price with equal-split fallback, frontend form + detail page show price | Done |
+| Auto-refund scheduler | `CampaignCompletionScheduler` runs daily at 1 AM, finds ACTIVE campaigns past endDate, auto-completes + refunds unused escrow via `BrandWalletService.refundUnusedCampaignFunds()` | Done |
+| Configurable platform fee | Already implemented via `platformSettingsResolver` + `platform_settings` table. Seeded 10% default via V56 migration (was defaulting to 0%) | Done |
+
+---
+
+## Next Phases
 
 ### Phase 4: Security & Reliability
 
@@ -86,11 +88,9 @@ All wallet-to-campaign integration is live and deployed.
 
 ## Recommended Next Move
 
-**Phase 3: Business Logic** — per-deliverable pricing + auto-refund scheduler.
+**Phase 4: Security & Reliability** — rate limiting, webhook retry, audit logging.
 
-These are real business logic gaps. Per-deliverable pricing lets brands assign custom payment amounts to each deliverable instead of equal splits (needs migration V55). The auto-refund scheduler reclaims unused campaign funds automatically when campaigns end.
-
-Security (Phase 4) and testing (Phase 6) can be interleaved with Phase 3.
+Rate limiting is already partially configured in `application.yml` (`creatorx.rate-limit.*`). Webhook retry and enhanced audit logging round out the reliability story before scaling. Testing (Phase 6) can be interleaved.
 
 ---
 
@@ -103,6 +103,8 @@ backend/creatorx-api/src/main/resources/db/migration/
   V5__create_wallet_and_transactions.sql
   V34__create_payment_orders.sql
   V54__create_brand_wallets.sql
+  V55__add_deliverable_pricing.sql
+  V56__seed_platform_fee.sql
 
 backend/creatorx-repository/src/main/java/com/creatorx/repository/
   BrandWalletRepository.java
@@ -121,7 +123,9 @@ backend/creatorx-service/src/main/java/com/creatorx/service/
   EscrowService.java
   razorpay/RazorpayService.java
   razorpay/RazorpayWebhookVerifier.java
+  scheduler/CampaignCompletionScheduler.java (auto-complete + refund)
   dto/CampaignDTO.java (escrow fields added Feb 12)
+  dto/CampaignDeliverableDTO.java (price field)
   mapper/CampaignMapper.java (escrow ignore on write-back)
 
 backend/creatorx-api/src/main/java/com/creatorx/api/controller/

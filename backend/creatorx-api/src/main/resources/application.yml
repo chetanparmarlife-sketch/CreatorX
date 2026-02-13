@@ -166,6 +166,11 @@ creatorx:
       auto-hours: 6
       manual-minutes: 10
       cron: ${SOCIAL_REFRESH_CRON:0 0 */6 * * ?}
+  # Campaign Completion & Auto-Refund Scheduler
+  campaign:
+    completion:
+      enabled: ${CAMPAIGN_COMPLETION_ENABLED:true}
+      cron: ${CAMPAIGN_COMPLETION_CRON:0 0 1 * * *}  # 1 AM daily
   # Phase 4.2: Payout Scheduler Configuration
   payout:
     scheduler:

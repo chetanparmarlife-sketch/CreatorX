@@ -579,6 +579,7 @@ public class CampaignService {
                 .dueDate(dto.getDueDate())
                 .isMandatory(dto.getIsMandatory() != null ? dto.getIsMandatory() : true)
                 .orderIndex(dto.getOrderIndex() != null ? dto.getOrderIndex() : 0)
+                .price(dto.getPrice())
                 .build();
     }
     
