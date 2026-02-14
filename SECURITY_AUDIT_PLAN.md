@@ -170,3 +170,16 @@ All open findings have been resolved.
 | D | Rate-limit duplication | NO ACTION | Complementary (in-memory vs Redis), not redundant |
 | E | Dead AppContext files | FIXED | Deleted `AppContext.tsx`, `AppContext.api.tsx`, `AppContext.migrated.tsx` (all unused, `index.ts` exports from `AppFacade`) |
 | F | Admin duplication in brand-dashboard | FIXED | Removed `brand-dashboard/app/(admin)/` (13 files) and `brand-dashboard/lib/api/admin/` (10 files). Admin functions live only in `admin-dashboard/`. |
+
+---
+
+## Audit Round 3 — Fix Status
+
+| # | Finding | Status | Fix Applied |
+|---|---------|--------|-------------|
+| 1 | Mobile token refresh URL `/auth/refresh` → `/auth/refresh-token` | FIXED | `src/api/client.ts:164` corrected to match backend `@PostMapping("/refresh-token")` |
+| 2 | WalletService debit asymmetry | FIXED | `debitWallet` and `debitWalletWithType` now auto-create wallet with zero balance (matching `creditWallet`) so missing wallets get clean "Insufficient balance" error |
+| 3 | Direct login bypass | NO ACTION | By design for admin/test users. Only works for accounts with local password hash. |
+| 4 | PaymentMethodService dead code | FIXED | Removed impossible `if (isDefault && !existingMethods.isEmpty())` block — first card is auto-default, no other cards to unset |
+| 5 | API client duplication | NO ACTION | Expected across separate apps (brand-dashboard, admin-dashboard, mobile) with different auth storage |
+| 6 | N+1 query in ApplicationRepository | FIXED | Added `JOIN FETCH a.campaign` to all paginated queries with separate `countQuery` to avoid lazy-load N+1 |

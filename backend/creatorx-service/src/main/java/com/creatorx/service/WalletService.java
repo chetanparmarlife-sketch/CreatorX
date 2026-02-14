@@ -195,9 +195,20 @@ public class WalletService {
             throw new BusinessException("Debit amount must be greater than 0");
         }
 
-        // Lock wallet for update
+        // Lock wallet for update (auto-create with zero balance so we get a clean
+        // "Insufficient balance" error instead of a raw ResourceNotFoundException)
         Wallet wallet = walletRepository.findByUserIdWithLock(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+                    return walletRepository.save(Wallet.builder()
+                            .user(user)
+                            .balance(BigDecimal.ZERO)
+                            .pendingBalance(BigDecimal.ZERO)
+                            .totalEarned(BigDecimal.ZERO)
+                            .totalWithdrawn(BigDecimal.ZERO)
+                            .build());
+                });
 
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new BusinessException("Insufficient balance. Available: " + wallet.getBalance());
@@ -266,7 +277,17 @@ public class WalletService {
         }
 
         Wallet wallet = walletRepository.findByUserIdWithLock(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Wallet", userId));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+                    return walletRepository.save(Wallet.builder()
+                            .user(user)
+                            .balance(BigDecimal.ZERO)
+                            .pendingBalance(BigDecimal.ZERO)
+                            .totalEarned(BigDecimal.ZERO)
+                            .totalWithdrawn(BigDecimal.ZERO)
+                            .build());
+                });
 
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new BusinessException("Insufficient balance. Available: " + wallet.getBalance());

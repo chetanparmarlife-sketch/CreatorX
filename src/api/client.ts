@@ -161,7 +161,7 @@ class ApiClient {
 
             // Call backend refresh token endpoint
             const refreshResponse = await axios.post<{ accessToken: string; refreshToken?: string }>(
-              `${API_BASE_URL}/auth/refresh`,
+              `${API_BASE_URL}/auth/refresh-token`,
               { refreshToken },
               {
                 headers: {

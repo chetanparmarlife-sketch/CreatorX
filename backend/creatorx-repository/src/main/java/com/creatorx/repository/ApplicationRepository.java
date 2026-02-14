@@ -14,15 +14,17 @@ import java.util.Optional;
 
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, String> {
-    // Find applications by creator
-    @Query("SELECT a FROM Application a WHERE a.creator.id = :creatorId ORDER BY a.appliedAt DESC")
+    // Find applications by creator (JOIN FETCH campaign to avoid N+1)
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :creatorId ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId")
     Page<Application> findByCreatorId(@Param("creatorId") String creatorId, Pageable pageable);
-    
-    @Query("SELECT a FROM Application a WHERE a.creator.id = :creatorId AND a.status = :status ORDER BY a.appliedAt DESC")
+
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :creatorId AND a.status = :status ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId AND a.status = :status")
     Page<Application> findByCreatorIdAndStatus(@Param("creatorId") String creatorId, @Param("status") ApplicationStatus status, Pageable pageable);
-    
-    // Find applications by campaign
-    @Query("SELECT a FROM Application a WHERE a.campaign.id = :campaignId ORDER BY a.appliedAt DESC")
+
+    // Find applications by campaign (JOIN FETCH campaign to avoid N+1)
+    @Query("SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.campaign.id = :campaignId ORDER BY a.appliedAt DESC")
     List<Application> findByCampaignId(@Param("campaignId") String campaignId);
     
     @Query("SELECT a FROM Application a WHERE a.campaign.id = :campaignId AND a.status = :status ORDER BY a.appliedAt DESC")
@@ -32,19 +34,25 @@ public interface ApplicationRepository extends JpaRepository<Application, String
         Pageable pageable
     );
     
-    // Find pending applications for brand (campaigns owned by brand)
-    @Query("SELECT a FROM Application a WHERE a.campaign.brand.id = :brandId AND a.status = 'APPLIED' ORDER BY a.appliedAt DESC")
+    // Find pending applications for brand (JOIN FETCH campaign to avoid N+1)
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE c.brand.id = :brandId AND a.status = 'APPLIED' ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId AND a.status = 'APPLIED'")
     Page<Application> findPendingApplicationsForBrand(@Param("brandId") String brandId, Pageable pageable);
-    
-    // Find all applications for brand (campaigns owned by brand) - all statuses
-    @Query("SELECT a FROM Application a WHERE a.campaign.brand.id = :brandId ORDER BY a.appliedAt DESC")
+
+    // Find all applications for brand (JOIN FETCH campaign to avoid N+1)
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE c.brand.id = :brandId ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId")
     Page<Application> findAllApplicationsForBrand(@Param("brandId") String brandId, Pageable pageable);
 
-    @Query("SELECT a FROM Application a WHERE " +
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE " +
+           "(:brandId IS NULL OR c.brand.id = :brandId) AND " +
+           "(:campaignId IS NULL OR c.id = :campaignId) AND " +
+           "(:status IS NULL OR a.status = :status) " +
+           "ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE " +
            "(:brandId IS NULL OR a.campaign.brand.id = :brandId) AND " +
            "(:campaignId IS NULL OR a.campaign.id = :campaignId) AND " +
-           "(:status IS NULL OR a.status = :status) " +
-           "ORDER BY a.appliedAt DESC")
+           "(:status IS NULL OR a.status = :status)")
     Page<Application> findAdminApplications(
         @Param("brandId") String brandId,
         @Param("campaignId") String campaignId,
@@ -72,6 +80,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     long countActiveApplicationsByCreatorId(@Param("creatorId") String creatorId);
     
     // Find applications by user ID (alias for findByCreatorId - used by ComplianceService)
-    @Query("SELECT a FROM Application a WHERE a.creator.id = :userId ORDER BY a.appliedAt DESC")
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :userId ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :userId")
     Page<Application> findByUserId(@Param("userId") String userId, Pageable pageable);
 }

@@ -74,15 +74,9 @@ public class PaymentMethodService {
             throw new BusinessException("This payment method has already been added");
         }
 
-        // Check if this is the first payment method (set as default)
+        // First payment method for this user is automatically set as default
         List<PaymentMethod> existingMethods = paymentMethodRepository.findByUserId(userId);
         boolean isDefault = existingMethods.isEmpty();
-
-        // If setting as default, unset other defaults
-        if (isDefault && !existingMethods.isEmpty()) {
-            existingMethods.forEach(pm -> pm.setIsDefault(false));
-            paymentMethodRepository.saveAll(existingMethods);
-        }
 
         PaymentMethod paymentMethod = PaymentMethod.builder()
                 .user(user)
