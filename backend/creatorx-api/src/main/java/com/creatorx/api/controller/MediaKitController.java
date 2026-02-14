@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  * REST Controller for Media Kit operations
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Media Kit", description = "Media Kit management endpoints")

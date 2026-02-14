@@ -10,7 +10,6 @@ import {
   AuthResponse,
   RefreshTokenRequest,
   ForgotPasswordRequest,
-  VerifyOtpRequest,
 } from '../types';
 import { STORAGE_KEYS } from '@/src/config/env';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '@/src/lib/secureStore';
@@ -80,13 +79,6 @@ export const authService = {
    */
   async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
     await apiClient.post('/auth/forgot-password', data);
-  },
-
-  /**
-   * Verify OTP for password reset
-   */
-  async verifyOtp(data: VerifyOtpRequest): Promise<void> {
-    await apiClient.post('/auth/verify-otp', data);
   },
 
   /**

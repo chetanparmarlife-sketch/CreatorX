@@ -47,7 +47,6 @@ class ApiClient {
         if (config.url?.includes('/auth/register') || 
             config.url?.includes('/auth/login') ||
             config.url?.includes('/auth/forgot-password') ||
-            config.url?.includes('/auth/verify-otp') ||
             config.url?.includes('/auth/refresh-token') ||
             config.url?.includes('/auth/refresh')) {
           return config;
