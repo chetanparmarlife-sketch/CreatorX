@@ -12,24 +12,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [hasToken, setHasToken] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const token =
-      localStorage.getItem('creatorx_admin_access_token') ||
-      localStorage.getItem('access_token') ||
-      localStorage.getItem('creatorx_access_token')
+    const checkAuth = async () => {
+      const token =
+        localStorage.getItem('creatorx_admin_access_token') ||
+        localStorage.getItem('access_token') ||
+        localStorage.getItem('creatorx_access_token')
 
-    const hasSupabaseSession =
-      typeof window !== 'undefined' &&
-      (window as any).supabase &&
-      (window as any).supabase.auth.getSession()
+      if (token) {
+        setHasToken(true)
+        return
+      }
 
-    if (!token && !hasSupabaseSession) {
+      // Check Supabase session (async — getSession returns a Promise)
+      if (typeof window !== 'undefined' && (window as any).supabase) {
+        try {
+          const { data } = await (window as any).supabase.auth.getSession()
+          if (data?.session) {
+            setHasToken(true)
+            return
+          }
+        } catch {
+          // Supabase not available, fall through
+        }
+      }
+
       setHasToken(false)
       router.push('/login')
-      return
     }
 
-
-    setHasToken(true)
+    checkAuth()
   }, [router, user])
 
   useEffect(() => {

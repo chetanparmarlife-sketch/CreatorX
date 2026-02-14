@@ -36,19 +36,18 @@ public class StorageController {
      * Upload file
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Upload file", description = "Upload file to Supabase Storage")
     public ResponseEntity<FileUploadResponse> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
             @RequestParam(value = "folder", required = false) String folder
     ) {
-        User currentUser = getCurrentUser();
-        
         FileValidationService.FileCategory category = determineCategory(type);
         String bucket = getBucketForType(type);
-        
+
         FileUploadResponse response = storageService.uploadFile(file, bucket, folder, category);
-        
+
         return ResponseEntity.ok(response);
     }
     

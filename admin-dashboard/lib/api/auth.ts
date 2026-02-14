@@ -222,18 +222,21 @@ export async function refreshToken(): Promise<string | null> {
 
 /**
  * Get current admin user from backend
+ * Backend returns { user: { id, email, role, ... }, message }
  */
 export async function getCurrentUser(): Promise<User> {
-  const response = await apiClient.get<User>('/auth/me')
+  const response = await apiClient.get<{ user: User; message?: string }>('/auth/me')
+
+  const user = response.user ?? (response as unknown as User)
 
   // Verify ADMIN role
-  if (response.role !== 'ADMIN') {
+  if (user.role !== 'ADMIN') {
     clearAuthData()
-    throw new AdminAccessDeniedError('Admin access required', response.role)
+    throw new AdminAccessDeniedError('Admin access required', user.role)
   }
 
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response))
-  return response
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
+  return user
 }
 
 /**

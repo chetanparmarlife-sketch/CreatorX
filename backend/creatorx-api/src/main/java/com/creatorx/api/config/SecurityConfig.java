@@ -55,7 +55,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
-                        // Public auth endpoints (login, register, password reset, link)
+                        // Public auth endpoints (login, register, password reset)
+                        // Note: link-supabase-user, verify-email, verify-phone are permitAll
+                        // at Spring Security level but protected by X-Webhook-Secret in controller
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",

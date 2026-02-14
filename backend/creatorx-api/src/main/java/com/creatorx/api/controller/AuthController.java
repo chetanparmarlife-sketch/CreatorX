@@ -205,22 +205,40 @@ public class AuthController {
     /**
      * Update email verification status.
      * Called via Supabase webhook when email is verified.
+     * Requires X-Webhook-Secret header for authorization.
      */
     @PostMapping("/verify-email")
-    @Operation(summary = "Verify email", description = "Update email verification status (called via webhook)")
-    public ResponseEntity<Void> verifyEmail(@RequestParam String supabaseUserId) {
+    @Operation(summary = "Verify email", description = "Update email verification status (webhook-only)")
+    public ResponseEntity<Void> verifyEmail(
+            @RequestParam String supabaseUserId,
+            @RequestHeader(value = "X-Webhook-Secret", required = false) String webhookSecret) {
+        if (!isValidWebhookSecret(webhookSecret)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         authService.updateEmailVerification(supabaseUserId, true);
         return ResponseEntity.ok().build();
     }
 
     /**
      * Update phone verification status.
+     * Requires X-Webhook-Secret header for authorization.
      */
     @PostMapping("/verify-phone")
-    @Operation(summary = "Verify phone", description = "Update phone verification status")
-    public ResponseEntity<Void> verifyPhone(@RequestParam String supabaseUserId) {
+    @Operation(summary = "Verify phone", description = "Update phone verification status (webhook-only)")
+    public ResponseEntity<Void> verifyPhone(
+            @RequestParam String supabaseUserId,
+            @RequestHeader(value = "X-Webhook-Secret", required = false) String webhookSecret) {
+        if (!isValidWebhookSecret(webhookSecret)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         authService.updatePhoneVerification(supabaseUserId, true);
         return ResponseEntity.ok().build();
+    }
+
+    private boolean isValidWebhookSecret(String webhookSecret) {
+        return webhookInternalSecret != null
+                && !webhookInternalSecret.isBlank()
+                && webhookInternalSecret.equals(webhookSecret);
     }
 
     // --- Helpers ---

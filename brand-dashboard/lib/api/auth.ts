@@ -272,14 +272,17 @@ export async function refreshToken(): Promise<string | null> {
 
 /**
  * Get current user from backend
+ * Backend returns { user: { id, email, role, ... }, message }
  */
 export async function getCurrentUser(): Promise<User> {
-  const response = await apiClient.get<User>('/auth/me')
+  const response = await apiClient.get<{ user: User; message?: string }>('/auth/me')
+
+  const user = response.user ?? (response as unknown as User)
 
   // Update stored user data
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response))
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
 
-  return response
+  return user
 }
 
 /**
