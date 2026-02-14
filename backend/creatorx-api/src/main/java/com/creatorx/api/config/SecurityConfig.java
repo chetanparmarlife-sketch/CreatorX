@@ -65,7 +65,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/link-supabase-user",
                                 "/api/v1/auth/verify-email",
                                 "/api/v1/auth/verify-phone",
-                                "/api/v1/auth/refresh")
+                                "/api/v1/auth/refresh-token")
                         .permitAll()
                         // Other public endpoints
                         .requestMatchers(
