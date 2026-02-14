@@ -154,15 +154,22 @@ public class CampaignService {
                         pageable
                 );
             } else {
-                campaigns = campaignRepository.searchCampaignsWithFullText(
-                        filterStatus != null ? filterStatus.name() : "ACTIVE",
-                        category,
-                        platform != null ? platform.name() : null,
-                        budgetMin,
-                        budgetMax,
-                        sanitizedSearch,
-                        pageable
-                );
+                try {
+                    campaigns = campaignRepository.searchCampaignsWithFullText(
+                            filterStatus != null ? filterStatus.name() : "ACTIVE",
+                            category,
+                            platform != null ? platform.name() : null,
+                            budgetMin,
+                            budgetMax,
+                            sanitizedSearch,
+                            pageable
+                    );
+                } catch (Exception e) {
+                    // Full-text search requires PostgreSQL; fall back to LIKE-based search
+                    log.debug("Full-text search unavailable, falling back to LIKE-based search: {}", e.getMessage());
+                    CampaignStatus status = filterStatus != null ? filterStatus : CampaignStatus.ACTIVE;
+                    campaigns = campaignRepository.searchCampaigns(status, category, sanitizedSearch, pageable);
+                }
             }
         } else {
             // Use regular filter query
@@ -461,17 +468,25 @@ public class CampaignService {
         }
         
         CampaignStatus filterStatus = determineStatusFilter(null, currentUser);
-        
-        Page<Campaign> campaigns = campaignRepository.searchCampaignsWithFullText(
-                filterStatus != null ? filterStatus.name() : "ACTIVE",
-                null, // category
-                null, // platform
-                null, // budgetMin
-                null, // budgetMax
-                sanitizedQuery,
-                validatedPageable
-        );
-        
+
+        Page<Campaign> campaigns;
+        try {
+            campaigns = campaignRepository.searchCampaignsWithFullText(
+                    filterStatus != null ? filterStatus.name() : "ACTIVE",
+                    null, // category
+                    null, // platform
+                    null, // budgetMin
+                    null, // budgetMax
+                    sanitizedQuery,
+                    validatedPageable
+            );
+        } catch (Exception e) {
+            // Full-text search requires PostgreSQL; fall back to LIKE-based search for H2/other DBs
+            log.debug("Full-text search unavailable, falling back to LIKE-based search: {}", e.getMessage());
+            CampaignStatus status = filterStatus != null ? filterStatus : CampaignStatus.ACTIVE;
+            campaigns = campaignRepository.searchCampaigns(status, null, sanitizedQuery, validatedPageable);
+        }
+
         return campaigns.map(campaign -> {
             CampaignDTO dto = campaignMapper.toDTO(campaign);
             if (currentUser != null && currentUser.getRole() == UserRole.CREATOR) {

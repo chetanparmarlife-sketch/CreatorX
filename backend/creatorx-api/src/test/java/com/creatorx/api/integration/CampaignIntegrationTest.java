@@ -6,7 +6,6 @@ import com.creatorx.repository.entity.Campaign;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.testdata.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,23 +47,26 @@ class CampaignIntegrationTest extends BaseIntegrationTest {
         }
 
         @Test
-        @Disabled("500 error - needs service layer investigation")
         @DisplayName("Should create and retrieve campaign via API")
         void testCreateAndGetCampaign() throws Exception {
                 authenticateAs(brandUser);
 
-                String createRequest = """
+                // Use future dates to satisfy @Future validation on startDate
+                String startDate = java.time.LocalDate.now().plusDays(7).toString();
+                String endDate = java.time.LocalDate.now().plusDays(37).toString();
+
+                String createRequest = String.format("""
                                 {
                                     "title": "Integration Test Campaign",
-                                    "description": "Test description",
+                                    "description": "Test description for integration testing",
                                     "budget": 50000.00,
                                     "platform": "INSTAGRAM",
                                     "category": "Tech",
                                     "deliverableTypes": ["IMAGE", "VIDEO"],
-                                    "startDate": "2024-06-01",
-                                    "endDate": "2024-06-30"
+                                    "startDate": "%s",
+                                    "endDate": "%s"
                                 }
-                                """;
+                                """, startDate, endDate);
 
                 mockMvc.perform(post("/api/v1/campaigns")
                                 .with(csrf())
@@ -153,7 +155,6 @@ class CampaignIntegrationTest extends BaseIntegrationTest {
         }
 
         @Test
-        @Disabled("500 error - search service needs investigation")
         @DisplayName("Should search campaigns with query")
         void testSearchCampaigns() throws Exception {
                 authenticateAs(creatorUser); // Requires authentication
