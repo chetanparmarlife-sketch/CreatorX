@@ -7,6 +7,7 @@ import com.creatorx.repository.BankAccountRepository;
 import com.creatorx.repository.WebhookEventRepository;
 import com.creatorx.repository.WithdrawalRequestRepository;
 import com.creatorx.repository.entity.BankAccount;
+import com.creatorx.repository.entity.WebhookEvent;
 import com.creatorx.repository.entity.WithdrawalRequest;
 import com.creatorx.service.WalletService;
 import com.creatorx.service.razorpay.RazorpayWebhookVerifier;
@@ -472,6 +473,153 @@ class WebhookControllerTest extends BaseIntegrationTest {
             verify(walletService, never()).creditWalletWithType(
                     anyString(), any(BigDecimal.class), anyString(), any(), any(TransactionType.class), any()
             );
+        }
+    }
+
+    @Nested
+    @DisplayName("Webhook Status Tracking Tests (Phase 6)")
+    class StatusTrackingTests {
+
+        @Test
+        @DisplayName("Successful webhook should transition RECEIVED → PROCESSED")
+        void successfulWebhook_statusProcessed() throws Exception {
+            String webhookId = "evt_status_success_001";
+            String payload = createProcessedWebhookPayload(
+                    webhookId,
+                    testWithdrawal.getRazorpayPayoutId(),
+                    testWithdrawal.getId(),
+                    "UTR_STATUS_TEST"
+            );
+
+            mockMvc.perform(post(WEBHOOK_ENDPOINT)
+                    .header("X-Razorpay-Signature", VALID_SIGNATURE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload))
+                    .andExpect(status().isOk());
+
+            // Verify webhook event has PROCESSED status
+            WebhookEvent event = webhookEventRepository.findByWebhookId(webhookId).orElseThrow();
+            assertThat(event.getStatus()).isEqualTo("PROCESSED");
+            assertThat(event.getErrorMessage()).isNull();
+            assertThat(event.getRetryCount()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("Webhook with unknown payout should still be PROCESSED (handler returns gracefully)")
+        void unknownPayout_statusProcessed() throws Exception {
+            String webhookId = "evt_status_unknown_001";
+            String payload = createProcessedWebhookPayload(
+                    webhookId,
+                    "pout_nonexistent_999",
+                    "nonexistent_ref",
+                    "UTR_UNKNOWN"
+            );
+
+            mockMvc.perform(post(WEBHOOK_ENDPOINT)
+                    .header("X-Razorpay-Signature", VALID_SIGNATURE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload))
+                    .andExpect(status().isOk());
+
+            // Handler returns gracefully for unknown payouts (no exception), so status should be PROCESSED
+            WebhookEvent event = webhookEventRepository.findByWebhookId(webhookId).orElseThrow();
+            assertThat(event.getStatus()).isEqualTo("PROCESSED");
+            assertThat(event.getErrorMessage()).isNull();
+        }
+
+        @Test
+        @DisplayName("Webhook event should store eventType and payload")
+        void webhook_storesEventTypeAndPayload() throws Exception {
+            String webhookId = "evt_status_metadata_001";
+            String payload = createFailedWebhookPayload(
+                    webhookId,
+                    testWithdrawal.getRazorpayPayoutId(),
+                    "Test failure reason"
+            );
+
+            mockMvc.perform(post(WEBHOOK_ENDPOINT)
+                    .header("X-Razorpay-Signature", VALID_SIGNATURE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload))
+                    .andExpect(status().isOk());
+
+            WebhookEvent event = webhookEventRepository.findByWebhookId(webhookId).orElseThrow();
+            assertThat(event.getEventType()).isEqualTo("payout.failed");
+            assertThat(event.getPayload()).contains(webhookId);
+            assertThat(event.getProcessedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Failed webhook retry query should find FAILED events under max retries")
+        void failedRetryQuery_findsEligibleEvents() throws Exception {
+            // Manually create FAILED webhook events with varying retry counts
+            WebhookEvent failedEvent1 = WebhookEvent.builder()
+                    .webhookId("evt_retry_eligible_1")
+                    .eventType("payout.failed")
+                    .payload("{\"id\":\"evt_retry_eligible_1\",\"event\":\"payout.failed\"}")
+                    .status("FAILED")
+                    .errorMessage("Processing error")
+                    .retryCount(1)
+                    .processedAt(LocalDateTime.now())
+                    .build();
+            webhookEventRepository.save(failedEvent1);
+
+            WebhookEvent failedEvent2 = WebhookEvent.builder()
+                    .webhookId("evt_retry_exhausted_1")
+                    .eventType("payout.failed")
+                    .payload("{\"id\":\"evt_retry_exhausted_1\",\"event\":\"payout.failed\"}")
+                    .status("FAILED")
+                    .errorMessage("Processing error")
+                    .retryCount(3)
+                    .processedAt(LocalDateTime.now())
+                    .build();
+            webhookEventRepository.save(failedEvent2);
+
+            WebhookEvent processedEvent = WebhookEvent.builder()
+                    .webhookId("evt_already_processed_1")
+                    .eventType("payout.processed")
+                    .payload("{\"id\":\"evt_already_processed_1\",\"event\":\"payout.processed\"}")
+                    .status("PROCESSED")
+                    .retryCount(0)
+                    .processedAt(LocalDateTime.now())
+                    .build();
+            webhookEventRepository.save(processedEvent);
+
+            // Query for failed events with max retries = 3
+            var eligibleForRetry = webhookEventRepository.findFailedForRetry(3);
+
+            // Only failedEvent1 (retryCount=1 < 3) should be eligible
+            assertThat(eligibleForRetry).hasSize(1);
+            assertThat(eligibleForRetry.get(0).getWebhookId()).isEqualTo("evt_retry_eligible_1");
+        }
+
+        @Test
+        @DisplayName("Ignored event type should still be PROCESSED")
+        void ignoredEventType_statusProcessed() throws Exception {
+            String webhookId = "evt_status_ignored_001";
+            String payload = String.format("""
+                {
+                    "id": "%s",
+                    "event": "order.paid",
+                    "payload": {
+                        "order": {
+                            "entity": {
+                                "id": "order_test_001"
+                            }
+                        }
+                    }
+                }
+                """, webhookId);
+
+            mockMvc.perform(post(WEBHOOK_ENDPOINT)
+                    .header("X-Razorpay-Signature", VALID_SIGNATURE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload))
+                    .andExpect(status().isOk());
+
+            // Ignored event types don't throw exceptions, so status should be PROCESSED
+            WebhookEvent event = webhookEventRepository.findByWebhookId(webhookId).orElseThrow();
+            assertThat(event.getStatus()).isEqualTo("PROCESSED");
         }
     }
 
