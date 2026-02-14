@@ -167,8 +167,8 @@ public class CampaignService {
                 } catch (Exception e) {
                     // Full-text search requires PostgreSQL; fall back to LIKE-based search
                     log.debug("Full-text search unavailable, falling back to LIKE-based search: {}", e.getMessage());
-                    CampaignStatus status = filterStatus != null ? filterStatus : CampaignStatus.ACTIVE;
-                    campaigns = campaignRepository.searchCampaigns(status, category, sanitizedSearch, pageable);
+                    CampaignStatus fallbackStatus = filterStatus != null ? filterStatus : CampaignStatus.ACTIVE;
+                    campaigns = campaignRepository.searchCampaigns(fallbackStatus, category, sanitizedSearch, pageable);
                 }
             }
         } else {
