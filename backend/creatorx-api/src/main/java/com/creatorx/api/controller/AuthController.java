@@ -9,6 +9,7 @@ import com.creatorx.api.dto.ForgotPasswordRequest;
 import com.creatorx.api.dto.LinkSupabaseUserRequest;
 import com.creatorx.api.dto.RefreshTokenRequest;
 import com.creatorx.api.dto.RegisterRequest;
+import com.creatorx.common.exception.BusinessException;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -30,6 +32,9 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+
+    @org.springframework.beans.factory.annotation.Value("${creatorx.webhook.internal-secret:}")
+    private String webhookInternalSecret;
 
     /**
      * Register a new user.
@@ -59,7 +64,30 @@ public class AuthController {
      */
     @PostMapping("/link-supabase-user")
     @Operation(summary = "Link Supabase user", description = "Link Supabase user ID to internal user profile")
-    public ResponseEntity<AuthResponse> linkSupabaseUser(@Valid @RequestBody LinkSupabaseUserRequest request) {
+    public ResponseEntity<AuthResponse> linkSupabaseUser(
+            @Valid @RequestBody LinkSupabaseUserRequest request,
+            @RequestHeader(value = "X-Webhook-Secret", required = false) String webhookSecret) {
+
+        // Dual-path auth: webhook secret OR authenticated self-link
+        boolean isWebhook = webhookInternalSecret != null
+                && !webhookInternalSecret.isBlank()
+                && webhookInternalSecret.equals(webhookSecret);
+
+        if (!isWebhook) {
+            // Self-link path: require JWT auth and verify caller's email matches request
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()
+                    || auth.getPrincipal().equals("anonymousUser")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        AuthResponse.builder().message("Authentication required").build());
+            }
+            User caller = (User) auth.getPrincipal();
+            if (!caller.getEmail().equalsIgnoreCase(request.getEmail())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                        AuthResponse.builder().message("You can only link your own account").build());
+            }
+        }
+
         User user = authService.linkSupabaseUser(
                 request.getSupabaseUserId(),
                 request.getEmail(),

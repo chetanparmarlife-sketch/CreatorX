@@ -551,27 +551,29 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
     @DisplayName("8. Link Supabase User Flow")
     class LinkSupabaseUserTests {
 
+        private static final String WEBHOOK_SECRET = "test-webhook-secret-for-integration-tests";
+
         @Test
-        @DisplayName("Can link new Supabase user to backend")
+        @DisplayName("Can link new Supabase user via webhook secret")
         void canLinkNewSupabaseUser() throws Exception {
             String supabaseId = "new-supabase-" + UUID.randomUUID();
 
             Map<String, Object> linkRequest = new HashMap<>();
             linkRequest.put("supabaseUserId", supabaseId);
-            linkRequest.put("email", "new-user@example.com");
+            linkRequest.put("email", "new-user-" + UUID.randomUUID() + "@example.com");
             linkRequest.put("name", "New User");
             linkRequest.put("role", "CREATOR");
 
             mockMvc.perform(post("/api/v1/auth/link-supabase-user")
+                    .header("X-Webhook-Secret", WEBHOOK_SECRET)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(linkRequest)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.user.email").value("new-user@example.com"))
                     .andExpect(jsonPath("$.user.role").value("CREATOR"));
         }
 
         @Test
-        @DisplayName("Linking existing user returns existing profile")
+        @DisplayName("Linking existing user via webhook secret returns existing profile")
         void linkingExistingUserReturnsProfile() throws Exception {
             Map<String, Object> linkRequest = new HashMap<>();
             linkRequest.put("supabaseUserId", creatorUser.getSupabaseId());
@@ -580,6 +582,7 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
             linkRequest.put("role", "CREATOR");
 
             mockMvc.perform(post("/api/v1/auth/link-supabase-user")
+                    .header("X-Webhook-Secret", WEBHOOK_SECRET)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(linkRequest)))
                     .andExpect(status().isOk())
@@ -594,9 +597,91 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
             // Missing supabaseUserId and name
 
             mockMvc.perform(post("/api/v1/auth/link-supabase-user")
+                    .header("X-Webhook-Secret", WEBHOOK_SECRET)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(incompleteRequest)))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Unauthenticated link without webhook secret returns 401")
+        void unauthenticatedLinkReturns401() throws Exception {
+            Map<String, Object> linkRequest = new HashMap<>();
+            linkRequest.put("supabaseUserId", "attacker-supabase-id");
+            linkRequest.put("email", "victim@example.com");
+            linkRequest.put("name", "Attacker");
+            linkRequest.put("role", "CREATOR");
+
+            mockMvc.perform(post("/api/v1/auth/link-supabase-user")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(linkRequest)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Wrong webhook secret returns 401")
+        void wrongWebhookSecretReturns401() throws Exception {
+            Map<String, Object> linkRequest = new HashMap<>();
+            linkRequest.put("supabaseUserId", "attacker-supabase-id");
+            linkRequest.put("email", "victim@example.com");
+            linkRequest.put("name", "Attacker");
+            linkRequest.put("role", "CREATOR");
+
+            mockMvc.perform(post("/api/v1/auth/link-supabase-user")
+                    .header("X-Webhook-Secret", "wrong-secret")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(linkRequest)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Authenticated user cannot link another user's email")
+        void authenticatedUserCannotLinkOthersEmail() throws Exception {
+            String token = generateValidToken(creatorUser);
+
+            Map<String, Object> linkRequest = new HashMap<>();
+            linkRequest.put("supabaseUserId", "attacker-supabase-id");
+            linkRequest.put("email", "someone-else@example.com");
+            linkRequest.put("name", "Attacker");
+            linkRequest.put("role", "CREATOR");
+
+            mockMvc.perform(post("/api/v1/auth/link-supabase-user")
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(linkRequest)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("Authenticated user can self-link own email")
+        void authenticatedUserCanSelfLink() throws Exception {
+            // Create a new user without a supabase ID (or with temp_ prefix)
+            User newUser = userRepository.save(
+                    User.builder()
+                            .email("self-link-" + UUID.randomUUID() + "@example.com")
+                            .supabaseId("temp_" + UUID.randomUUID())
+                            .role(UserRole.CREATOR)
+                            .status(com.creatorx.common.enums.UserStatus.ACTIVE)
+                            .emailVerified(false)
+                            .phoneVerified(false)
+                            .passwordHash("supabase_managed")
+                            .build());
+
+            String token = generateValidToken(newUser);
+            String newSupabaseId = "real-supabase-" + UUID.randomUUID();
+
+            Map<String, Object> linkRequest = new HashMap<>();
+            linkRequest.put("supabaseUserId", newSupabaseId);
+            linkRequest.put("email", newUser.getEmail());
+            linkRequest.put("name", "Self Linker");
+            linkRequest.put("role", "CREATOR");
+
+            mockMvc.perform(post("/api/v1/auth/link-supabase-user")
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(linkRequest)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.user.supabaseUserId").value(newSupabaseId));
         }
     }
 

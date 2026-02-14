@@ -121,7 +121,8 @@ public class SecurityConfig {
                 "Content-Type",
                 "Idempotency-Key",
                 "Idempotent-Key",
-                "X-Razorpay-Signature"));
+                "X-Razorpay-Signature",
+                "X-Webhook-Secret"));
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",

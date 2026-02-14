@@ -1,10 +1,10 @@
 spring:
   application:
     name: creatorx-backend
-  
+
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
-  
+
   # Database Configuration (Supabase Postgres)
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/creatorx}
@@ -17,7 +17,7 @@ spring:
       connection-timeout: 30000
       idle-timeout: 300000
       max-lifetime: 900000
-  
+
   # JPA Configuration
   jpa:
     hibernate:
@@ -31,7 +31,7 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
-  
+
   # Flyway Migration
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
@@ -39,7 +39,7 @@ spring:
     out-of-order: true
     locations: classpath:db/migration
     schemas: public
-  
+
   # Redis Configuration
   data:
     redis:
@@ -52,7 +52,7 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
-  
+
   # Jackson Configuration
   jackson:
     serialization:
@@ -86,7 +86,7 @@ razorpay:
   key-secret: ${RAZORPAY_KEY_SECRET:}
   webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
   payout:
-    mode: ${RAZORPAY_PAYOUT_MODE:test}  # test or live
+    mode: ${RAZORPAY_PAYOUT_MODE:test} # test or live
     account-number: ${RAZORPAY_ACCOUNT_NUMBER:}
 
 # Server Configuration
@@ -129,7 +129,7 @@ management:
         enabled: ${PROMETHEUS_ENABLED:true}
     tags:
       application: ${spring.application.name}
-      
+
 # OpenTelemetry Configuration (optional)
 otel:
   enabled: ${OTEL_ENABLED:false}
@@ -138,7 +138,7 @@ otel:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
   service:
     name: ${spring.application.name}
-    
+
 # CreatorX Application Configuration
 creatorx:
   email:
@@ -168,44 +168,45 @@ creatorx:
       cron: ${SOCIAL_REFRESH_CRON:0 0 */6 * * ?}
   # Webhook Retry Scheduler
   webhook:
+    internal-secret: ${WEBHOOK_INTERNAL_SECRET:}
     retry:
       enabled: ${WEBHOOK_RETRY_ENABLED:true}
       max-retries: ${WEBHOOK_RETRY_MAX:3}
-      cron: ${WEBHOOK_RETRY_CRON:0 */15 * * * *}  # Every 15 minutes
+      cron: ${WEBHOOK_RETRY_CRON:0 */15 * * * *} # Every 15 minutes
   # Campaign Completion & Auto-Refund Scheduler
   campaign:
     completion:
       enabled: ${CAMPAIGN_COMPLETION_ENABLED:true}
-      cron: ${CAMPAIGN_COMPLETION_CRON:0 0 1 * * *}  # 1 AM daily
+      cron: ${CAMPAIGN_COMPLETION_CRON:0 0 1 * * *} # 1 AM daily
   # Phase 4.2: Payout Scheduler Configuration
   payout:
     scheduler:
       enabled: ${PAYOUT_SCHEDULER_ENABLED:true}
       batch-size: ${PAYOUT_BATCH_SIZE:10}
       rate-limit-per-minute: ${PAYOUT_RATE_LIMIT:20}
-      cron: ${PAYOUT_SCHEDULER_CRON:0 */5 * * * *}  # Every 5 minutes
+      cron: ${PAYOUT_SCHEDULER_CRON:0 */5 * * * *} # Every 5 minutes
   # Phase 4.2: Reconciliation Configuration
   reconciliation:
     enabled: ${RECONCILIATION_ENABLED:true}
-    cron: ${RECONCILIATION_CRON:0 0 2 * * *}  # 2 AM daily
-    retry-cron: ${RECONCILIATION_RETRY_CRON:0 0 6 * * *}  # 6 AM daily
+    cron: ${RECONCILIATION_CRON:0 0 2 * * *} # 2 AM daily
+    retry-cron: ${RECONCILIATION_RETRY_CRON:0 0 6 * * *} # 6 AM daily
     alert-threshold: ${RECONCILIATION_ALERT_THRESHOLD:0.01}
   # Referral System Configuration
   referral:
-    referrer-reward: ${REFERRAL_REFERRER_REWARD:100.00}  # Amount credited to referrer (INR)
-    referee-reward: ${REFERRAL_REFEREE_REWARD:50.00}     # Amount credited to referee (INR)
+    referrer-reward: ${REFERRAL_REFERRER_REWARD:100.00} # Amount credited to referrer (INR)
+    referee-reward: ${REFERRAL_REFEREE_REWARD:50.00} # Amount credited to referee (INR)
   # Withdrawal Limits Configuration
   withdrawal:
-    min-amount: ${WITHDRAWAL_MIN_AMOUNT:100.00}              # Minimum withdrawal amount (INR)
-    max-per-transaction: ${WITHDRAWAL_MAX_PER_TX:50000.00}   # Max per single withdrawal (INR)
-    max-per-month: ${WITHDRAWAL_MAX_PER_MONTH:200000.00}     # Max total per month per creator (INR)
+    min-amount: ${WITHDRAWAL_MIN_AMOUNT:100.00} # Minimum withdrawal amount (INR)
+    max-per-transaction: ${WITHDRAWAL_MAX_PER_TX:50000.00} # Max per single withdrawal (INR)
+    max-per-month: ${WITHDRAWAL_MAX_PER_MONTH:200000.00} # Max total per month per creator (INR)
   # Rate Limiting Configuration
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}
-    general-limit: ${RATE_LIMIT_GENERAL:100}      # requests per minute for general APIs
-    auth-limit: ${RATE_LIMIT_AUTH:5}              # requests per minute for login/register
-    payment-limit: ${RATE_LIMIT_PAYMENT:10}       # requests per minute for payment operations
-    window-seconds: ${RATE_LIMIT_WINDOW:60}       # time window in seconds
+    general-limit: ${RATE_LIMIT_GENERAL:100} # requests per minute for general APIs
+    auth-limit: ${RATE_LIMIT_AUTH:5} # requests per minute for login/register
+    payment-limit: ${RATE_LIMIT_PAYMENT:10} # requests per minute for payment operations
+    window-seconds: ${RATE_LIMIT_WINDOW:60} # time window in seconds
     key-prefix: "rate_limit:"
 
 # OpenAPI Configuration
@@ -225,6 +226,6 @@ springdoc:
     show-common-extensions: true
   show-actuator: false
   group-configs:
-    - group: 'all'
-      display-name: 'All APIs'
-      paths-to-match: '/api/v1/**'
+    - group: "all"
+      display-name: "All APIs"
+      paths-to-match: "/api/v1/**"

@@ -177,9 +177,17 @@ public class AuthService {
                     .build();
             user = userRepository.save(user);
         } else {
-            // Update existing user with Supabase ID
-            user.setSupabaseId(supabaseUserId);
-            user = userRepository.save(user);
+            // Prevent rebinding: only set supabaseId if not already linked
+            String existingId = user.getSupabaseId();
+            if (existingId != null && !existingId.isBlank() && !existingId.startsWith("temp_")) {
+                if (!existingId.equals(supabaseUserId)) {
+                    throw new BusinessException("User is already linked to a different Supabase account");
+                }
+                // Already linked to this same Supabase ID — no-op
+            } else {
+                user.setSupabaseId(supabaseUserId);
+                user = userRepository.save(user);
+            }
         }
 
         // Create role-specific profile if it doesn't exist
