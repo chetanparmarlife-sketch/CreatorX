@@ -94,13 +94,30 @@ export default function CreatorsDiscoveryView({
     size: pageSize,
   })
 
-  const creatorsResponse = data as { items?: CreatorCard[]; total?: number } | CreatorCard[] | undefined
-  const creators: CreatorCard[] = Array.isArray(creatorsResponse)
+  // Normalize Spring Page response: { content, totalElements, ... }
+  // and map backend field names to frontend CreatorCard type
+  const creatorsResponse = data as
+    | { content?: any[]; totalElements?: number; items?: CreatorCard[]; total?: number }
+    | CreatorCard[]
+    | undefined
+  const rawItems = Array.isArray(creatorsResponse)
     ? creatorsResponse
-    : creatorsResponse?.items ?? []
+    : creatorsResponse?.content ?? creatorsResponse?.items ?? []
+  const creators: CreatorCard[] = rawItems.map((item: any) => ({
+    id: item.id,
+    name: item.username ?? item.name ?? '',
+    category: item.category,
+    followers: item.followerCount ?? item.followers,
+    engagementRate: item.engagementRate,
+    avatarUrl: item.avatarUrl,
+    portfolio: item.portfolio,
+    platforms: item.platforms,
+    location: item.location,
+    bio: item.bio,
+  }))
   const totalCreators = Array.isArray(creatorsResponse)
     ? creatorsResponse.length
-    : creatorsResponse?.total ?? creators.length
+    : creatorsResponse?.totalElements ?? creatorsResponse?.total ?? creators.length
   const { data: campaignsData } = useCampaigns({}, 0)
   const inviteMutation = useInviteCreator()
   const campaigns = campaignsData?.items ?? []
