@@ -30,6 +30,8 @@ export function useTransactions(params: {
     queryKey: ['transactions', params],
     queryFn: () => paymentService.getTransactions(params),
     select: normalizeTransactions,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }
 

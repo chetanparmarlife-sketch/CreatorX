@@ -64,6 +64,8 @@ export default function DashboardPage() {
   const { data: deliverablesData, isLoading: deliverablesLoading } = useQuery({
     queryKey: ['brand-deliverables-summary'],
     queryFn: () => deliverableService.getBrandDeliverables({ page: 0, size: 50 }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 
   const campaigns = campaignsData?.items ?? []
@@ -213,33 +215,10 @@ export default function DashboardPage() {
     track,
     walletData?.balance,
   ])
-
-  const isLoading = campaignsLoading || creatorsLoading || transactionsLoading || deliverablesLoading
-
-  if (isLoading) {
-    return (
-      <div>
-        <PageHeader
-          title="Dashboard"
-          subtitle="Operational summary with the next best actions."
-        />
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-          <div className="section-card space-y-3">
-            <Skeleton className="h-5 w-44" />
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-11 w-full rounded-lg" />
-            ))}
-          </div>
-          <div className="section-card space-y-3">
-            <Skeleton className="h-5 w-32" />
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-9 w-full rounded-lg" />
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const priorityLoading = campaignsLoading || deliverablesLoading
+  const healthLoading = campaignsLoading || creatorsLoading || transactionsLoading
+  const lifecycleLoading = campaignsLoading || transactionsLoading
+  const tasksLoading = deliverablesLoading
 
   return (
     <div className="space-y-6">
@@ -284,48 +263,56 @@ export default function DashboardPage() {
             </StatusChip>
           </ActionBar>
 
-          <div className="space-y-2">
-            {priorityItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{item.label}</p>
-                  <p className="text-xs text-slate-500">{item.value} pending</p>
+          {priorityLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {priorityItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                    <p className="text-xs text-slate-500">{item.value} pending</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StatusChip
+                      tone={
+                        item.severity === 'blocked'
+                          ? 'blocked'
+                          : item.severity === 'needs_action'
+                          ? 'needs_action'
+                          : 'approved'
+                      }
+                      size="compact"
+                    >
+                      {item.value}
+                    </StatusChip>
+                    <button
+                      className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:border-primary/40 hover:text-primary"
+                      onClick={() => {
+                        track('priority_card_clicked', {
+                          priority_id: item.id,
+                          priority_label: item.label,
+                          severity: item.severity,
+                          pending_items: item.value,
+                          destination: item.href,
+                        })
+                        router.push(item.href)
+                      }}
+                    >
+                      {item.ctaLabel}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <StatusChip
-                    tone={
-                      item.severity === 'blocked'
-                        ? 'blocked'
-                        : item.severity === 'needs_action'
-                        ? 'needs_action'
-                        : 'approved'
-                    }
-                    size="compact"
-                  >
-                    {item.value}
-                  </StatusChip>
-                  <button
-                    className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:border-primary/40 hover:text-primary"
-                    onClick={() => {
-                      track('priority_card_clicked', {
-                        priority_id: item.id,
-                        priority_label: item.label,
-                        severity: item.severity,
-                        pending_items: item.value,
-                        destination: item.href,
-                      })
-                      router.push(item.href)
-                    }}
-                  >
-                    {item.ctaLabel}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="border-t border-slate-200 pt-4">
             <p className="mb-2 text-xs uppercase tracking-[0.16em] text-slate-500">Quick actions</p>
@@ -369,28 +356,38 @@ export default function DashboardPage() {
             </StatusChip>
           </div>
 
-          <ContextPanel title="Active campaigns" description={String(activeCampaigns.length)} />
-          <ContextPanel title="Review queue" description={String(reviewQueue)} />
-          <ContextPanel title="Deliverables queue" description={String(deliverablesQueue)} />
+          {healthLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <ContextPanel title="Active campaigns" description={String(activeCampaigns.length)} />
+              <ContextPanel title="Review queue" description={String(reviewQueue)} />
+              <ContextPanel title="Deliverables queue" description={String(deliverablesQueue)} />
 
-          <div className="rounded-lg border border-slate-200 bg-white p-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">Budget utilization</span>
-              <span className="font-semibold text-slate-900">{budgetUtilization}%</span>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between text-sm">
-              <span className="text-slate-600">Creator engagement</span>
-              <span className="font-semibold text-slate-900">{averageEngagement}%</span>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between text-sm">
-              <span className="text-slate-600">Total creators</span>
-              <span className="font-semibold text-slate-900">{creatorsTotal}</span>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between text-sm">
-              <span className="text-slate-600">Wallet balance</span>
-              <span className="font-semibold text-slate-900">{formatCurrency(walletData?.balance ?? 0)}</span>
-            </div>
-          </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Budget utilization</span>
+                  <span className="font-semibold text-slate-900">{budgetUtilization}%</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Creator engagement</span>
+                  <span className="font-semibold text-slate-900">{averageEngagement}%</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Total creators</span>
+                  <span className="font-semibold text-slate-900">{creatorsTotal}</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Wallet balance</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency(walletData?.balance ?? 0)}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -415,33 +412,42 @@ export default function DashboardPage() {
             </button>
           </ActionBar>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <ContextPanel title="Draft" description={String(draftCampaigns.length)} />
-            <ContextPanel title="In Review" description={String(reviewCampaigns.length)} />
-            <ContextPanel title="Active" description={String(activeCampaigns.length)} />
-            <ContextPanel title="Completed" description={String(completedCampaigns.length)} />
-          </div>
+          {lifecycleLoading ? (
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-20 w-full rounded-lg" />
+              <Skeleton className="h-14 w-full rounded-lg" />
+            </div>
+          ) : (
+            <>
+              <div className="mt-4 grid gap-3 md:grid-cols-4">
+                <ContextPanel title="Draft" description={String(draftCampaigns.length)} />
+                <ContextPanel title="In Review" description={String(reviewCampaigns.length)} />
+                <ContextPanel title="Active" description={String(activeCampaigns.length)} />
+                <ContextPanel title="Completed" description={String(completedCampaigns.length)} />
+              </div>
 
-          <div className="mt-4">
-            <div className="h-2 w-full rounded-full bg-slate-100">
-              <div className="h-2 rounded-full bg-primary" style={{ width: `${lifecycleProgress}%` }} />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span>Completion ratio</span>
-              <span>{lifecycleProgress}%</span>
-            </div>
-          </div>
+              <div className="mt-4">
+                <div className="h-2 w-full rounded-full bg-slate-100">
+                  <div className="h-2 rounded-full bg-primary" style={{ width: `${lifecycleProgress}%` }} />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                  <span>Completion ratio</span>
+                  <span>{lifecycleProgress}%</span>
+                </div>
+              </div>
 
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600">Total budget</span>
-              <span className="font-semibold text-slate-900">{formatCurrency(totalBudget)}</span>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between">
-              <span className="text-slate-600">Total spend</span>
-              <span className="font-semibold text-slate-900">{formatCurrency(totalSpend)}</span>
-            </div>
-          </div>
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Total budget</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency(totalBudget)}</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <span className="text-slate-600">Total spend</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency(totalSpend)}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="section-card">
@@ -450,7 +456,13 @@ export default function DashboardPage() {
             description="Creator deliverables that need action now."
           />
 
-          {inProgressTasks.length === 0 ? (
+          {tasksLoading ? (
+            <div className="mt-3 space-y-2.5">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : inProgressTasks.length === 0 ? (
             <EmptyState
               title="No active tasks"
               description="Pending deliverables will appear here."

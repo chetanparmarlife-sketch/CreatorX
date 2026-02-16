@@ -24,6 +24,8 @@ export function useCreators(filters: CreatorFilters) {
         page: filters.page ?? 0,
         size: filters.size ?? 20,
       }),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }
 

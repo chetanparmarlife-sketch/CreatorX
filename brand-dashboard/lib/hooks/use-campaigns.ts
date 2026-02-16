@@ -10,6 +10,8 @@ export function useCampaigns(filters: Record<string, unknown> = {}, page = 0) {
   return useQuery({
     queryKey: ['campaigns', filters, page],
     queryFn: () => campaignService.getCampaigns(filters, page),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }
 
