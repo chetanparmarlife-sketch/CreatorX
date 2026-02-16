@@ -1144,7 +1144,7 @@ export default function NewCampaignPage() {
                     <AlertDescription>
                       After submission, your campaign may appear as{' '}
                       <span className="font-semibold text-slate-900">PENDING_REVIEW</span> until
-                      it is approved. We'll notify you as soon as it's live.
+                      it is approved. We will notify you as soon as it is live.
                     </AlertDescription>
                   </Alert>
                 </CardContent>

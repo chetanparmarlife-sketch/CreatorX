@@ -277,7 +277,7 @@ export default function ProfilePage() {
               <p className="font-semibold text-slate-900">What happens next</p>
               <ul className="mt-2 space-y-1 text-slate-600">
                 <li>We validate your GST document and business details.</li>
-                <li>If anything is missing, you'll see a rejection reason here.</li>
+                <li>If anything is missing, you will see a rejection reason here.</li>
                 <li>Once approved, you can launch campaigns without verification prompts.</li>
               </ul>
             </div>
