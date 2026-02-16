@@ -1,5 +1,6 @@
 package com.creatorx.api.controller;
 
+import com.creatorx.api.dto.PageResponse;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.CreatorDiscoveryService;
 import com.creatorx.service.dto.CreatorDTO;
@@ -37,7 +38,7 @@ public class CreatorController {
     @GetMapping
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Search creators", description = "Search and filter creators (Brand only)")
-    public ResponseEntity<Page<CreatorDTO>> searchCreators(
+    public ResponseEntity<PageResponse<CreatorDTO>> searchCreators(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> categories,
             @RequestParam(required = false) String category, // Support comma-separated string
@@ -85,7 +86,7 @@ public class CreatorController {
                 search, normalizedCategories, normalizedPlatform, minFollowers, maxFollowers, pageable
         );
         
-        return ResponseEntity.ok(creators);
+        return ResponseEntity.ok(PageResponse.from(creators));
     }
     
     /**

@@ -43,11 +43,12 @@ export interface AllocationRequest {
 }
 
 export interface PageResponse<T> {
-  content: T[]
-  totalElements: number
+  items: T[]
+  total: number
   totalPages: number
+  page: number
   size: number
-  number: number
+  hasMore: boolean
 }
 
 /**

@@ -66,13 +66,16 @@ export default function DashboardPage() {
   })
 
   const campaigns = campaignsData?.items ?? []
-  const creatorsResponse = creatorsData as { items?: any[]; total?: number } | any[] | undefined
+  const creatorsResponse = creatorsData as
+    | { content?: any[]; items?: any[]; totalElements?: number; total?: number }
+    | any[]
+    | undefined
   const creators = Array.isArray(creatorsResponse)
     ? creatorsResponse
-    : creatorsResponse?.items ?? []
-  const creatorsTotal =
-    (Array.isArray(creatorsResponse) ? creatorsResponse.length : creatorsResponse?.total) ??
-    creators.length
+    : creatorsResponse?.items ?? creatorsResponse?.content ?? []
+  const creatorsTotal = Array.isArray(creatorsResponse)
+    ? creatorsResponse.length
+    : creatorsResponse?.total ?? creatorsResponse?.totalElements ?? creators.length
 
   const totalSpend = walletData?.totalAllocated ?? 0
   const totalBudget = campaigns.reduce((sum, campaign) => sum + (campaign.budget ?? 0), 0)

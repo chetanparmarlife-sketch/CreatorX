@@ -96,7 +96,7 @@ export default function PaymentsPage() {
     }
   }, [searchParams])
 
-  const transactions = transactionsPage?.content ?? []
+  const transactions = transactionsPage?.items ?? transactionsPage?.content ?? []
   const campaigns = campaignsData?.items ?? []
   const activeCommitment = useMemo(
     () =>

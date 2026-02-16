@@ -7,10 +7,32 @@ type ConversationResponse =
   | Conversation[]
   | { conversations?: Conversation[] }
 
+/** Map backend ConversationResponse (UserSummary, MessagePreview) to frontend Conversation */
+const normalizeConversation = (raw: any): Conversation => ({
+  ...raw,
+  // Backend UserSummary has { id, name, avatarUrl }, frontend expects { id, email, profile }
+  creator: raw.creator
+    ? {
+        id: raw.creator.id,
+        email: raw.creator.email ?? '',
+        profile: raw.creator.profile ?? {
+          fullName: raw.creator.name,
+          avatarUrl: raw.creator.avatarUrl,
+        },
+      }
+    : raw.creator,
+  // Backend MessagePreview uses `text`, frontend Message uses `content`
+  lastMessage: raw.lastMessage
+    ? { ...raw.lastMessage, content: raw.lastMessage.content ?? raw.lastMessage.text ?? '' }
+    : raw.lastMessage,
+  // Backend uses `unreadCount`, frontend uses `brandUnreadCount`
+  brandUnreadCount: raw.brandUnreadCount ?? raw.unreadCount ?? 0,
+})
+
 const normalizeConversations = (data: ConversationResponse | undefined): Conversation[] => {
   if (!data) return []
-  if (Array.isArray(data)) return data
-  return data.conversations ?? []
+  const list = Array.isArray(data) ? data : (data.conversations ?? [])
+  return list.map(normalizeConversation)
 }
 
 export function useConversations() {
@@ -64,8 +86,14 @@ export function useMarkConversationRead() {
   })
 }
 
+/** Normalize backend MessageResponse (text) to frontend Message (content) */
+const normalizeMessage = (raw: any): Message => ({
+  ...raw,
+  content: raw.content ?? raw.text ?? '',
+})
+
 export const extractMessages = (data?: Page<Message> | Message[]): Message[] => {
   if (!data) return []
-  if (Array.isArray(data)) return data
-  return data.items ?? []
+  const raw = Array.isArray(data) ? data : (data.items ?? [])
+  return raw.map(normalizeMessage)
 }

@@ -1,5 +1,6 @@
 package com.creatorx.api.controller;
 
+import com.creatorx.api.dto.PageResponse;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.exception.UnauthorizedException;
 import com.creatorx.repository.entity.User;
@@ -74,7 +75,7 @@ public class BrandWalletController {
     @GetMapping("/transactions")
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Get transaction history", description = "Get brand wallet transaction history")
-    public ResponseEntity<Page<EscrowTransactionDTO>> getTransactions(
+    public ResponseEntity<PageResponse<EscrowTransactionDTO>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication authentication) {
@@ -82,7 +83,7 @@ public class BrandWalletController {
         User currentUser = getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
         Page<EscrowTransactionDTO> transactions = brandWalletService.getTransactions(currentUser.getId(), pageable);
-        return ResponseEntity.ok(transactions);
+        return ResponseEntity.ok(PageResponse.from(transactions));
     }
 
     /**
@@ -108,7 +109,7 @@ public class BrandWalletController {
     @GetMapping("/campaigns/{campaignId}/transactions")
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Get campaign transactions", description = "Get transaction history for a specific campaign")
-    public ResponseEntity<Page<EscrowTransactionDTO>> getCampaignTransactions(
+    public ResponseEntity<PageResponse<EscrowTransactionDTO>> getCampaignTransactions(
             @PathVariable String campaignId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -117,7 +118,7 @@ public class BrandWalletController {
         User currentUser = getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
         Page<EscrowTransactionDTO> transactions = brandWalletService.getCampaignTransactions(campaignId, currentUser.getId(), pageable);
-        return ResponseEntity.ok(transactions);
+        return ResponseEntity.ok(PageResponse.from(transactions));
     }
 
     // Helper method
