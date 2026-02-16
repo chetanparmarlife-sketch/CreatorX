@@ -133,7 +133,7 @@ export default function CampaignsPage() {
         } catch {
           failedCount += 1
         }
-      )
+      })
     )
     setSelectedCampaignIds([])
     setBulkResult({
