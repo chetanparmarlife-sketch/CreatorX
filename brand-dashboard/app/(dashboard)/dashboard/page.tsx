@@ -21,7 +21,7 @@ interface StatCard {
   icon: React.ComponentType<{ className?: string }>
   label: string
   value: string
-  change: string
+  helper: string
   changeType: 'positive' | 'negative'
   color: string
 }
@@ -110,12 +110,19 @@ export default function DashboardPage() {
   const inProgressTasks = deliverables
     .filter((item: any) => item.status === 'PENDING' || item.status === 'REVISION_REQUESTED')
     .slice(0, 4)
+  const pendingApprovals = deliverableCounts.PENDING || 0
+  const revisionsRequested = deliverableCounts.REVISION_REQUESTED || 0
+  const deliverablesQueue = pendingApprovals + revisionsRequested
+  const reviewQueue = draftCampaigns.length + reviewCampaigns.length
+  const lifecycleProgress = campaigns.length
+    ? Math.round(((activeCampaigns.length + completedCampaigns.length) / campaigns.length) * 100)
+    : 0
 
   const recentActivities = useMemo(() => {
     const campaignActivities: RecentActivity[] = campaigns
       .slice(0, 4)
       .map((campaign) => ({
-        id: String(campaign.id),
+        id: `campaign-${campaign.id}`,
         title: `Campaign ${campaign.status === CampaignStatus.COMPLETED ? 'completed' : 'updated'}`,
         description: campaign.title,
         time: formatRelativeTime(campaign.updatedAt || campaign.createdAt),
@@ -125,7 +132,7 @@ export default function DashboardPage() {
     const paymentActivities: RecentActivity[] = (transactionsData ?? [])
       .slice(0, 2)
       .map((transaction: Transaction) => ({
-        id: String(transaction.id),
+        id: `payment-${transaction.id}`,
         title: 'Payment processed',
         description: `${formatCurrency(transaction.amount ?? 0)} - ${transaction.description || 'Transaction'}`,
         time: formatRelativeTime(transaction.createdAt),
@@ -138,34 +145,36 @@ export default function DashboardPage() {
   const stats: StatCard[] = [
     {
       icon: Calendar,
-      label: 'Active Campaigns',
-      value: String(activeCampaigns.length),
-      change: `${campaigns.length} total`,
+      label: 'Campaign Portfolio',
+      value: String(campaigns.length),
+      helper: `${activeCampaigns.length} live, ${reviewQueue} in queue`,
       changeType: 'positive',
       color: 'bg-blue-100 text-blue-700',
     },
     {
       icon: Users,
-      label: 'Total Creators',
+      label: 'Creator Network',
       value: String(creatorsTotal),
-      change: creators.length ? `${creators.length} listed` : 'No creators yet',
+      helper: creators.length ? `${averageEngagement}% avg engagement` : 'No creators yet',
       changeType: 'positive',
       color: 'bg-emerald-100 text-emerald-700',
     },
     {
       icon: TrendingUp,
-      label: 'Avg. Engagement',
-      value: `${averageEngagement}%`,
-      change: creators.length ? 'Across listed creators' : 'No data yet',
-      changeType: 'positive',
+      label: 'Deliverables Queue',
+      value: String(deliverablesQueue),
+      helper: revisionsRequested ? `${revisionsRequested} require revision` : 'No blocked items',
+      changeType: revisionsRequested ? 'negative' : 'positive',
       color: 'bg-teal-100 text-teal-700',
     },
     {
       icon: IndianRupee,
-      label: 'Total Spend',
-      value: formatCurrency(totalSpend),
-      change: transactionsData?.length ? 'Wallet transactions' : 'No transactions yet',
-      changeType: 'negative',
+      label: 'Budget Utilization',
+      value: `${budgetUtilization}%`,
+      helper: totalBudget
+        ? `${formatCurrency(totalSpend)} / ${formatCurrency(totalBudget)}`
+        : 'Set campaign budgets to track pacing',
+      changeType: budgetUtilization > 80 ? 'negative' : 'positive',
       color: 'bg-slate-900 text-slate-100',
     },
   ]
@@ -251,14 +260,14 @@ export default function DashboardPage() {
                 <p className="text-xs text-slate-500">Spend vs total budget</p>
               </div>
               <div className="insight-pill">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Active campaigns</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-900">{activeCampaigns.length}</p>
-                <p className="text-xs text-slate-500">{campaigns.length} campaigns total</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Review queue</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">{reviewQueue}</p>
+                <p className="text-xs text-slate-500">Draft + in review campaigns</p>
               </div>
               <div className="insight-pill">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Avg engagement</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-900">{averageEngagement}%</p>
-                <p className="text-xs text-slate-500">Across listed creators</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Deliverables queue</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">{deliverablesQueue}</p>
+                <p className="text-xs text-slate-500">Awaiting approval or revisions</p>
               </div>
             </div>
           </div>
@@ -275,31 +284,36 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="rounded-xl border border-slate-200/70 bg-white/90 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Campaign mix</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Immediate priorities</p>
               <div className="mt-3 grid gap-3 text-sm text-slate-600">
                 <div className="flex items-center justify-between">
-                  <span>In review</span>
+                  <span>Review campaigns</span>
                   <span className="font-semibold text-slate-900">{reviewCampaigns.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Active now</span>
-                  <span className="font-semibold text-slate-900">{activeCampaigns.length}</span>
+                  <span>Approve deliverables</span>
+                  <span className="font-semibold text-slate-900">{pendingApprovals}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Completed</span>
-                  <span className="font-semibold text-slate-900">{completedCampaigns.length}</span>
+                  <span>Resolve revisions</span>
+                  <span className="font-semibold text-slate-900">{revisionsRequested}</span>
                 </div>
               </div>
             </div>
             <div className="rounded-xl border border-slate-200/70 bg-white/90 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Deliverables signal</p>
-              <div className="mt-3 flex items-center gap-2">
-                <StatusChip tone={deliverableCounts.REVISION_REQUESTED ? 'needs_action' : 'approved'} size="compact">
-                  {deliverableCounts.REVISION_REQUESTED ? 'Needs attention' : 'On track'}
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Creator momentum</p>
+              <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
+                <span>Listed creators</span>
+                <span className="font-semibold text-slate-900">{creatorsTotal}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
+                <span>Average engagement</span>
+                <span className="font-semibold text-slate-900">{averageEngagement}%</span>
+              </div>
+              <div className="mt-3">
+                <StatusChip tone={averageEngagement >= 3 ? 'approved' : 'pending'} size="compact">
+                  {averageEngagement >= 3 ? 'Healthy creator mix' : 'Expand creator shortlist'}
                 </StatusChip>
-                <span className="text-xs text-slate-500">
-                  {deliverableCounts.PENDING || 0} pending approvals
-                </span>
               </div>
             </div>
           </div>
@@ -324,7 +338,7 @@ export default function DashboardPage() {
                   stat.changeType === 'positive' ? 'text-emerald-600' : 'text-rose-600'
                 }`}
               >
-                {stat.change}
+                {stat.helper}
               </div>
             </div>
           )
@@ -335,7 +349,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 section-card">
           <ActionBar
             title="Lifecycle progress"
-            description="Track campaigns across their stages."
+            description="Track how quickly campaigns move from planning to completion."
           >
             <button
               className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:border-amber-200/80"
@@ -354,12 +368,12 @@ export default function DashboardPage() {
             <div className="h-2 w-full rounded-full bg-slate-100">
               <div
                 className="h-2 rounded-full bg-primary"
-                style={{ width: `${budgetUtilization}%` }}
+                style={{ width: `${lifecycleProgress}%` }}
               />
             </div>
             <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span>Spend vs budget</span>
-              <span>{budgetUtilization}% utilized</span>
+              <span>Live + completed campaigns</span>
+              <span>{lifecycleProgress}% of portfolio</span>
             </div>
           </div>
         </div>
