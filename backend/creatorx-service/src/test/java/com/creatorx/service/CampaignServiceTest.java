@@ -112,8 +112,8 @@ class CampaignServiceTest {
                 Pageable pageable = PageRequest.of(0, 20);
                 Page<Campaign> campaignPage = new PageImpl<>(List.of(campaign));
 
-                when(campaignRepository.findActiveCampaignsByFilters(
-                                any(), any(), any(), any(), any(Pageable.class))).thenReturn(campaignPage);
+                when(campaignRepository.findCampaignsByFilters(
+                                any(), any(), any(), any(), any(), any(Pageable.class))).thenReturn(campaignPage);
 
                 when(savedCampaignRepository.existsByCreatorIdAndCampaignId(anyString(), anyString()))
                                 .thenReturn(false);
@@ -130,8 +130,8 @@ class CampaignServiceTest {
                 // Then
                 assertNotNull(result);
                 assertEquals(1, result.getContent().size());
-                verify(campaignRepository).findActiveCampaignsByFilters(
-                                any(), any(), any(), any(), any(Pageable.class));
+                verify(campaignRepository).findCampaignsByFilters(
+                                eq(CampaignStatus.ACTIVE), any(), any(), any(), any(), any(Pageable.class));
         }
 
         @Test
@@ -339,7 +339,8 @@ class CampaignServiceTest {
                 Pageable pageable = PageRequest.of(0, 20);
                 Page<Campaign> campaignPage = new PageImpl<>(List.of(campaign));
 
-                when(campaignRepository.findActiveCampaignsByFilters(
+                when(campaignRepository.findCampaignsByFilters(
+                                eq(CampaignStatus.ACTIVE),
                                 eq("Fashion"),
                                 eq(CampaignPlatform.INSTAGRAM),
                                 any(),
@@ -368,7 +369,8 @@ class CampaignServiceTest {
 
                 // Then
                 assertNotNull(result);
-                verify(campaignRepository).findActiveCampaignsByFilters(
+                verify(campaignRepository).findCampaignsByFilters(
+                                eq(CampaignStatus.ACTIVE),
                                 eq("Fashion"),
                                 eq(CampaignPlatform.INSTAGRAM),
                                 any(),
@@ -498,7 +500,8 @@ class CampaignServiceTest {
                 Pageable pageable = PageRequest.of(0, 20);
                 Page<Campaign> campaignPage = new PageImpl<>(List.of(campaign));
 
-                when(campaignRepository.findActiveCampaignsByFilters(
+                when(campaignRepository.findCampaignsByFilters(
+                                eq(CampaignStatus.ACTIVE),
                                 eq("Fashion"),
                                 eq(CampaignPlatform.INSTAGRAM),
                                 eq(new BigDecimal("1000")),
@@ -516,7 +519,8 @@ class CampaignServiceTest {
 
                 // Then
                 assertNotNull(result);
-                verify(campaignRepository).findActiveCampaignsByFilters(
+                verify(campaignRepository).findCampaignsByFilters(
+                                eq(CampaignStatus.ACTIVE),
                                 eq("Fashion"),
                                 eq(CampaignPlatform.INSTAGRAM),
                                 eq(new BigDecimal("1000")),

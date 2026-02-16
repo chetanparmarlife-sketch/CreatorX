@@ -146,7 +146,8 @@ public class CampaignService {
             if (sanitizedSearch == null || sanitizedSearch.isEmpty()) {
                 log.warn("Search query was invalid or empty after sanitization: {}", search);
                 // Fall back to regular filter query without search
-                campaigns = campaignRepository.findActiveCampaignsByFilters(
+                campaigns = campaignRepository.findCampaignsByFilters(
+                        filterStatus,
                         category,
                         platform,
                         budgetMin,
@@ -172,8 +173,9 @@ public class CampaignService {
                 }
             }
         } else {
-            // Use regular filter query
-            campaigns = campaignRepository.findActiveCampaignsByFilters(
+            // Use regular filter query with status from role-based filter
+            campaigns = campaignRepository.findCampaignsByFilters(
+                    filterStatus,
                     category,
                     platform,
                     budgetMin,
@@ -341,6 +343,13 @@ public class CampaignService {
                 } else {
                     campaign.setStatus(CampaignStatus.ACTIVE);
                 }
+            } else if (campaignDTO.getStatus() == CampaignStatus.PENDING_REVIEW
+                    && campaign.getStatus() == CampaignStatus.DRAFT) {
+                // Explicit submit-for-review from DRAFT
+                campaign.setStatus(CampaignStatus.PENDING_REVIEW);
+                campaign.setReviewReason(null);
+                campaign.setReviewedBy(null);
+                campaign.setReviewedAt(null);
             } else if (campaignDTO.getStatus() != CampaignStatus.PENDING_REVIEW) {
                 campaign.setStatus(campaignDTO.getStatus());
             }

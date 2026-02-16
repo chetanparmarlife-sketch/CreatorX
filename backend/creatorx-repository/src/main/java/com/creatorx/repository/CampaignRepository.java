@@ -27,13 +27,15 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
     @Query("SELECT c FROM Campaign c WHERE c.brand.id = :brandId AND c.status = :status")
     Page<Campaign> findByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") CampaignStatus status, Pageable pageable);
     
-    // Find active campaigns by filters
-    @Query("SELECT c FROM Campaign c WHERE c.status = 'ACTIVE' AND " +
+    // Find campaigns by filters with optional status
+    @Query("SELECT c FROM Campaign c WHERE " +
+           "(:status IS NULL OR c.status = :status) AND " +
            "(:category IS NULL OR c.category = :category) AND " +
            "(:platform IS NULL OR c.platform = :platform) AND " +
            "(:minBudget IS NULL OR c.budget >= :minBudget) AND " +
            "(:maxBudget IS NULL OR c.budget <= :maxBudget)")
-    Page<Campaign> findActiveCampaignsByFilters(
+    Page<Campaign> findCampaignsByFilters(
+        @Param("status") CampaignStatus status,
         @Param("category") String category,
         @Param("platform") CampaignPlatform platform,
         @Param("minBudget") BigDecimal minBudget,
