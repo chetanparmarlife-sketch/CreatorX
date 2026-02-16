@@ -16,14 +16,13 @@ import { PageHeader } from '@/components/shared/page-header'
 import { Skeleton } from '@/components/shared/skeleton'
 import { useCampaigns } from '@/lib/hooks/use-campaigns'
 import { useCreators } from '@/lib/hooks/use-creators'
-import { useTransactions } from '@/lib/hooks/use-payments'
 import { useBrandWallet } from '@/lib/hooks/use-wallet'
 import { deliverableService } from '@/lib/api/deliverables'
 import { ActionBar } from '@/components/shared/action-bar'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusChip } from '@/components/shared/status-chip'
-import { CampaignStatus, Transaction } from '@/lib/types'
+import { CampaignStatus } from '@/lib/types'
 import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 
 type PriorityItem = {
@@ -57,15 +56,13 @@ export default function DashboardPage() {
   const { data: walletData } = useBrandWallet()
   const { data: campaignsData, isLoading: campaignsLoading } = useCampaigns({}, 0)
   const { data: creatorsData, isLoading: creatorsLoading } = useCreators({ page: 0, size: 20 })
-  const { data: transactionsData, isLoading: transactionsLoading } = useTransactions({
-    page: 0,
-    size: 20,
-  })
   const { data: deliverablesData, isLoading: deliverablesLoading } = useQuery({
     queryKey: ['brand-deliverables-summary'],
-    queryFn: () => deliverableService.getBrandDeliverables({ page: 0, size: 50 }),
+    queryFn: () => deliverableService.getBrandDeliverables({ page: 0, size: 20 }),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
   })
 
   const campaigns = campaignsData?.items ?? []
@@ -77,10 +74,7 @@ export default function DashboardPage() {
     (Array.isArray(creatorsResponse) ? creatorsResponse.length : creatorsResponse?.total) ??
     creators.length
 
-  const totalSpend = (transactionsData ?? []).reduce(
-    (sum: number, transaction: Transaction) => sum + (transaction.amount ?? 0),
-    0
-  )
+  const totalSpend = walletData?.totalAllocated ?? 0
   const totalBudget = campaigns.reduce((sum, campaign) => sum + (campaign.budget ?? 0), 0)
   const budgetUtilization = totalBudget
     ? Math.min(100, Math.round((totalSpend / totalBudget) * 100))
@@ -216,8 +210,8 @@ export default function DashboardPage() {
     walletData?.balance,
   ])
   const priorityLoading = campaignsLoading || deliverablesLoading
-  const healthLoading = campaignsLoading || creatorsLoading || transactionsLoading
-  const lifecycleLoading = campaignsLoading || transactionsLoading
+  const healthLoading = campaignsLoading
+  const lifecycleLoading = campaignsLoading
   const tasksLoading = deliverablesLoading
 
   return (
@@ -375,11 +369,15 @@ export default function DashboardPage() {
                 </div>
                 <div className="mt-1.5 flex items-center justify-between text-sm">
                   <span className="text-slate-600">Creator engagement</span>
-                  <span className="font-semibold text-slate-900">{averageEngagement}%</span>
+                  <span className="font-semibold text-slate-900">
+                    {creatorsLoading ? '--' : `${averageEngagement}%`}
+                  </span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between text-sm">
                   <span className="text-slate-600">Total creators</span>
-                  <span className="font-semibold text-slate-900">{creatorsTotal}</span>
+                  <span className="font-semibold text-slate-900">
+                    {creatorsLoading ? '--' : creatorsTotal}
+                  </span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between text-sm">
                   <span className="text-slate-600">Wallet balance</span>
