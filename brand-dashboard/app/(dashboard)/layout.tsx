@@ -1,18 +1,26 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/auth-store'
 import { Sidebar } from '@/components/layout/sidebar'
+import { getDashboardRouteTitle } from '@/components/layout/brand-nav'
+import { Menu, X, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
   const router = useRouter()
-  const { user } = useAuthStore()
   const [hasToken, setHasToken] = useState<boolean | null>(null)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -25,7 +33,7 @@ export default function DashboardLayout({
         return
       }
 
-      // Check Supabase session (async — getSession returns a Promise)
+      // Check Supabase session (async -- getSession returns a Promise)
       if (typeof window !== 'undefined' && (window as any).supabase) {
         try {
           const { data } = await (window as any).supabase.auth.getSession()
@@ -66,11 +74,57 @@ export default function DashboardLayout({
     return null
   }
 
+  const pageTitle = getDashboardRouteTitle(pathname)
+
   return (
     <div className="min-h-screen dashboard-shell">
       <Sidebar />
-      <main className="ml-64 px-6 py-8 lg:px-10 lg:py-10 page-fade">
-        <div className="max-w-[1480px] mx-auto">
+      <div className="lg:hidden sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700"
+            aria-label="Open navigation menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="text-center">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Brand Workspace</p>
+            <p className="text-sm font-semibold text-slate-900">{pageTitle}</p>
+          </div>
+          <Button size="sm" onClick={() => router.push('/campaigns/new')}>
+            <Plus className="mr-1 h-4 w-4" />
+            New
+          </Button>
+        </div>
+      </div>
+
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            className="absolute inset-0 bg-slate-950/45"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Close navigation menu"
+          />
+          <div className="absolute inset-y-0 left-0 w-[84vw] max-w-[320px]">
+            <div className="h-full bg-slate-950">
+              <div className="flex justify-end p-3">
+                <button
+                  onClick={() => setMobileNavOpen(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-200"
+                  aria-label="Close navigation menu"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <Sidebar mobile onNavigate={() => setMobileNavOpen(false)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="px-4 py-6 md:px-6 md:py-8 lg:ml-64 lg:px-10 lg:py-10 page-fade">
+        <div className="mx-auto max-w-[1520px]">
           {children}
         </div>
       </main>

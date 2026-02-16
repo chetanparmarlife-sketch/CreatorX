@@ -31,7 +31,10 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Settings" />
+      <PageHeader
+        title="Settings"
+        subtitle="Manage team access, notifications, security, and workspace preferences."
+      />
 
       <div className="max-w-4xl space-y-6">
         <div className="bg-white rounded-lg border border-gray-200">
@@ -82,7 +85,7 @@ export default function SettingsPage() {
                     <div>
                       <div className="font-medium text-gray-900">{member.email}</div>
                       <div className="text-xs text-gray-500">
-                        {member.role} · {member.status}
+                        {member.role} | {member.status}
                       </div>
                     </div>
                     <Button

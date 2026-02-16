@@ -256,7 +256,10 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div>
-        <PageHeader title="Dashboard" />
+        <PageHeader
+          title="Dashboard"
+          subtitle="Monitor campaign health, spend, and delivery momentum in one view."
+        />
         <StatCardsSkeleton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           <div className="lg:col-span-2 surface-card">
@@ -285,7 +288,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Dashboard" />
+      <PageHeader
+        title="Dashboard"
+        subtitle="Monitor campaign health, spend, and delivery momentum in one view."
+      />
 
       {walletData && walletData.balance < LOW_BALANCE_THRESHOLD && (
         <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -669,6 +675,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-
-

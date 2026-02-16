@@ -131,6 +131,7 @@ export default function CampaignsPage() {
     <div>
       <PageHeader
         title="Campaigns"
+        subtitle="Plan, launch, and optimize campaigns across each lifecycle stage."
         ctaLabel="Create Campaign"
         onCtaClick={() => router.push('/campaigns/new')}
       />
@@ -321,8 +322,8 @@ export default function CampaignsPage() {
                         <div className="text-xs text-gray-600">
                           <span className="font-medium text-gray-900">{campaign.selectedCreatorsCount ?? 0}</span> creators
                         </div>
-                        <div className="text-xs text-gray-500">Window: {campaign.startDate} → {campaign.endDate}</div>
-                        <div className="text-xs text-gray-400">Performance: — · Spend: —</div>
+                        <div className="text-xs text-gray-500">Window: {campaign.startDate} to {campaign.endDate}</div>
+                        <div className="text-xs text-gray-400">Performance: N/A | Spend: N/A</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-2">

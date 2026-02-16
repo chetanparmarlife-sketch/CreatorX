@@ -97,7 +97,10 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <PageHeader title="Profile" />
+      <PageHeader
+        title="Profile"
+        subtitle="Manage your brand identity, business details, and verification status."
+      />
 
       <div className="max-w-2xl space-y-6">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -225,7 +228,7 @@ export default function ProfilePage() {
                 <span>Submitted</span>
                 <span className="font-medium text-gray-900">
                   {new Date(verificationStatus.submittedAt).toLocaleDateString()}
-                  {verificationAgeDays !== null ? ` · ${verificationAgeDays}d ago` : ''}
+                  {verificationAgeDays !== null ? ` | ${verificationAgeDays}d ago` : ''}
                 </span>
               </div>
             )}
@@ -274,7 +277,7 @@ export default function ProfilePage() {
               <p className="font-semibold text-slate-900">What happens next</p>
               <ul className="mt-2 space-y-1 text-slate-600">
                 <li>We validate your GST document and business details.</li>
-                <li>If anything is missing, you’ll see a rejection reason here.</li>
+                <li>If anything is missing, you'll see a rejection reason here.</li>
                 <li>Once approved, you can launch campaigns without verification prompts.</li>
               </ul>
             </div>

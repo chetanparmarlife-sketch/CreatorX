@@ -385,7 +385,7 @@ export default function CampaignDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Category</span>
-                <span className="font-medium text-slate-900">{campaign.category || '—'}</span>
+                <span className="font-medium text-slate-900">{campaign.category || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Start Date</span>

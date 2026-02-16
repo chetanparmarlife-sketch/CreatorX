@@ -47,6 +47,7 @@ export default function InfluencerListsPage() {
     <div>
       <PageHeader
         title="Influencer Lists"
+        subtitle="Organize and reuse creator shortlists by campaign goals and niche."
         ctaLabel="Create List"
         onCtaClick={() => console.log('Create list')}
       />

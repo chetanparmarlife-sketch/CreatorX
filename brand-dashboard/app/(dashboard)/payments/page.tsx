@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, TrendingUp, TrendingDown, CreditCard, Wallet, Download } from 'lucide-react'
+import { TrendingUp, TrendingDown, CreditCard, Wallet, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PageHeader } from '@/components/shared/page-header'
 import {
   useBrandWallet,
   useWalletTransactions,
@@ -115,7 +116,7 @@ export default function PaymentsPage() {
 
   const handleAddFunds = async () => {
     if (amount < 1000) {
-      setError('Minimum deposit: ₹1,000')
+      setError('Minimum deposit: INR 1,000')
       return
     }
 
@@ -155,7 +156,7 @@ export default function PaymentsPage() {
           },
         },
         theme: {
-          color: '#7c3aed',
+          color: '#2563eb',
         },
       }
 
@@ -177,31 +178,16 @@ export default function PaymentsPage() {
       />
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="space-y-1 mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-            Wallet & Payments
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your campaign funds and transactions
-          </p>
-          <div className="h-1 w-12 rounded-full bg-primary/70" />
-        </div>
-
-        {/* Add Funds Button */}
-        <div className="flex justify-end">
-          <Button
-            onClick={() => setShowAddFunds(!showAddFunds)}
-            disabled={isProcessing}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Funds
-          </Button>
-        </div>
+        <PageHeader
+          title="Wallet & Payments"
+          subtitle="Manage wallet balance, campaign allocations, and payout transactions."
+          ctaLabel={showAddFunds ? 'Hide Form' : 'Add Funds'}
+          onCtaClick={() => setShowAddFunds(!showAddFunds)}
+        />
 
         {/* Add Funds Form */}
         {showAddFunds && (
-          <Card className="p-6 border-purple-200 bg-purple-50">
+          <Card className="border-slate-200 bg-blue-50/50 p-6">
             <h3 className="text-lg font-semibold mb-4">Add Funds to Wallet</h3>
             {error && (
               <Alert variant="destructive" className="mb-4">
@@ -225,12 +211,11 @@ export default function PaymentsPage() {
                   placeholder="10000"
                   disabled={isProcessing}
                 />
-                <p className="text-xs text-gray-500 mt-1">Minimum: ₹1,000</p>
+                <p className="text-xs text-gray-500 mt-1">Minimum: INR 1,000</p>
               </div>
               <Button
                 onClick={handleAddFunds}
                 disabled={isProcessing}
-                className="bg-purple-600 hover:bg-purple-700"
               >
                 {isProcessing
                   ? 'Processing...'
@@ -252,18 +237,18 @@ export default function PaymentsPage() {
 
         {/* Wallet Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card className="p-6 border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-white">
+          <Card className="border-2 border-primary/50 bg-gradient-to-br from-blue-50 to-white p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-600">
                   Available Balance
                 </p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {wallet ? formatCurrency(wallet.balance) : '—'}
+                  {wallet ? formatCurrency(wallet.balance) : '--'}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Ready to allocate</p>
               </div>
-              <Wallet className="h-8 w-8 text-purple-500" />
+              <Wallet className="h-8 w-8 text-primary" />
             </div>
           </Card>
 
@@ -272,7 +257,7 @@ export default function PaymentsPage() {
               Total Deposited
             </p>
             <p className="text-2xl font-semibold text-gray-900 mt-2">
-              {wallet ? formatCurrency(wallet.totalDeposited) : '—'}
+              {wallet ? formatCurrency(wallet.totalDeposited) : '--'}
             </p>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-green-500" />
@@ -285,7 +270,7 @@ export default function PaymentsPage() {
               Allocated to Campaigns
             </p>
             <p className="text-2xl font-semibold text-gray-900 mt-2">
-              {wallet ? formatCurrency(wallet.totalAllocated) : '—'}
+              {wallet ? formatCurrency(wallet.totalAllocated) : '--'}
             </p>
             <p className="text-xs text-gray-500 mt-1">In active campaigns</p>
           </Card>
@@ -295,7 +280,7 @@ export default function PaymentsPage() {
               Released to Creators
             </p>
             <p className="text-2xl font-semibold text-gray-900 mt-2">
-              {wallet ? formatCurrency(wallet.totalReleased) : '—'}
+              {wallet ? formatCurrency(wallet.totalReleased) : '--'}
             </p>
             <div className="flex items-center gap-1 mt-1">
               <TrendingDown className="h-3 w-3 text-orange-500" />
@@ -373,7 +358,7 @@ export default function PaymentsPage() {
         </Card>
 
         {/* Info Card */}
-        <Card className="p-6 bg-blue-50 border-blue-200">
+        <Card className="border-sky-200 bg-sky-50 p-6">
           <div className="flex items-start gap-3">
             <CreditCard className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
@@ -381,13 +366,13 @@ export default function PaymentsPage() {
                 How the wallet works
               </h4>
               <ul className="text-sm text-blue-800 mt-2 space-y-1">
-                <li>• Add funds to your wallet via Razorpay (UPI, Card, Net Banking)</li>
-                <li>• Allocate funds to campaigns when creating or funding them</li>
+                <li>Add funds to your wallet via Razorpay (UPI, Card, Net Banking)</li>
+                <li>Allocate funds to campaigns when creating or funding them</li>
                 <li>
-                  • Funds are automatically released to creators when deliverables
+                  Funds are automatically released to creators when deliverables
                   are approved
                 </li>
-                <li>• Unused campaign funds are refunded to your wallet when campaigns end</li>
+                <li>Unused campaign funds are refunded to your wallet when campaigns end</li>
               </ul>
             </div>
           </div>

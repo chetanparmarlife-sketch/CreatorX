@@ -6,21 +6,14 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils/cn'
 import { useAuthStore } from '@/lib/store/auth-store'
 import { deliverableService } from '@/lib/api/deliverables'
+import { brandNavSections } from '@/components/layout/brand-nav'
 import {
-  Home,
-  Instagram,
-  Facebook,
-  Youtube,
-  Calendar,
-  MessageSquare,
-  List,
-  CreditCard,
   Settings,
   User,
   LogOut,
   ChevronUp,
   HelpCircle,
-  ClipboardCheck,
+  Flame,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -30,50 +23,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-interface NavItem {
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  href: string
-}
-
-interface NavSection {
-  title?: string
-  items: NavItem[]
-}
-
-const navSections: NavSection[] = [
-  {
-    items: [
-      { label: 'Home', icon: Home, href: '/dashboard' },
-    ],
-  },
-  {
-    title: 'INFLUENCER DISCOVERY',
-    items: [
-      { label: 'Instagram', icon: Instagram, href: '/instagram' },
-      { label: 'Facebook', icon: Facebook, href: '/facebook' },
-      { label: 'YouTube', icon: Youtube, href: '/youtube' },
-    ],
-  },
-  {
-    title: 'CAMPAIGN MANAGEMENT',
-    items: [
-      { label: 'Campaigns', icon: Calendar, href: '/campaigns' },
-      { label: 'Applications', icon: ClipboardCheck, href: '/applications' },
-      { label: 'Deliverables', icon: ClipboardCheck, href: '/deliverables' },
-      { label: 'Messages', icon: MessageSquare, href: '/messages' },
-      { label: 'Influencer Lists', icon: List, href: '/lists' },
-    ],
-  },
-  {
-    title: 'FINANCE',
-    items: [
-      { label: 'Payments', icon: CreditCard, href: '/payments' },
-    ],
-  },
-]
-
-export function Sidebar() {
+export function Sidebar({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean
+  onNavigate?: () => void
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuthStore()
@@ -97,14 +53,35 @@ export function Sidebar() {
   }
 
   return (
-    <div className="w-64 h-screen bg-slate-950 border-r border-slate-800/70 text-slate-100 flex flex-col fixed left-0 top-0 shadow-[0_0_40px_rgba(15,23,42,0.35)]">
+    <aside
+      className={cn(
+        'bg-slate-950 border-r border-slate-800/70 text-slate-100 flex flex-col shadow-[0_0_40px_rgba(15,23,42,0.35)]',
+        mobile ? 'h-full w-full' : 'fixed left-0 top-0 h-screen w-64 hidden lg:flex'
+      )}
+    >
       <div className="px-6 py-6">
         <p className="text-xs uppercase tracking-[0.32em] text-slate-500">Premium Suite</p>
         <h2 className="text-xl font-semibold text-white">CreatorX</h2>
+        <div className="mt-4 rounded-xl border border-slate-700/70 bg-white/5 p-3">
+          <div className="flex items-center justify-between text-xs text-slate-300">
+            <span>Pending approvals</span>
+            <span className="font-semibold text-white">{pendingCount}</span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${Math.min(100, pendingCount * 12)}%` }}
+            />
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
+            <Flame className="h-3.5 w-3.5" />
+            Keep turnaround under 48 hours.
+          </div>
+        </div>
       </div>
 
       <nav className="flex-1 px-3 pr-2 overflow-y-auto sidebar-scroll">
-        {navSections.map((section, sectionIdx) => (
+        {brandNavSections.map((section, sectionIdx) => (
           <div key={sectionIdx} className="mb-6">
             {section.title && (
               <div className="px-3 mb-2">
@@ -121,6 +98,7 @@ export function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={onNavigate}
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-transparent transition-all',
                       isActive
@@ -188,6 +166,6 @@ export function Sidebar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </div>
+    </aside>
   )
 }

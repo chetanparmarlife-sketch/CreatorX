@@ -87,39 +87,39 @@ const budgetGuidanceByPlatform: Record<
   { starter: string; growth: string; launch: string; note: string }
 > = {
   [CampaignPlatform.INSTAGRAM]: {
-    starter: '₹10k–25k',
-    growth: '₹25k–75k',
-    launch: '₹75k+',
+    starter: 'INR 10k-25k',
+    growth: 'INR 25k-75k',
+    launch: 'INR 75k+',
     note: 'Strong for reels + stories with mid-tier creators.',
   },
   [CampaignPlatform.YOUTUBE]: {
-    starter: '₹20k–50k',
-    growth: '₹50k–150k',
-    launch: '₹150k+',
+    starter: 'INR 20k-50k',
+    growth: 'INR 50k-150k',
+    launch: 'INR 150k+',
     note: 'Allocate extra budget for long-form production time.',
   },
   [CampaignPlatform.TWITTER]: {
-    starter: '₹5k–15k',
-    growth: '₹15k–40k',
-    launch: '₹40k+',
+    starter: 'INR 5k-15k',
+    growth: 'INR 15k-40k',
+    launch: 'INR 40k+',
     note: 'Great for fast engagement and announcements.',
   },
   [CampaignPlatform.TIKTOK]: {
-    starter: '₹10k–30k',
-    growth: '₹30k–80k',
-    launch: '₹80k+',
+    starter: 'INR 10k-30k',
+    growth: 'INR 30k-80k',
+    launch: 'INR 80k+',
     note: 'Prioritize creators with high short-form velocity.',
   },
   [CampaignPlatform.FACEBOOK]: {
-    starter: '₹8k–20k',
-    growth: '₹20k–60k',
-    launch: '₹60k+',
+    starter: 'INR 8k-20k',
+    growth: 'INR 20k-60k',
+    launch: 'INR 60k+',
     note: 'Works best with community-driven deliverables.',
   },
   [CampaignPlatform.LINKEDIN]: {
-    starter: '₹15k–40k',
-    growth: '₹40k–100k',
-    launch: '₹100k+',
+    starter: 'INR 15k-40k',
+    growth: 'INR 40k-100k',
+    launch: 'INR 100k+',
     note: 'B2B creators typically require higher CPM.',
   },
 }
@@ -146,7 +146,7 @@ const campaignSchema = z
     category: z.enum(categories, {
       required_error: 'Please select a category',
     }),
-    budget: z.number().min(1000, 'Budget must be at least ₹1,000'),
+    budget: z.number().min(1000, 'Budget must be at least INR 1,000'),
 
     // Step 2: Requirements & Deliverables
     requirements: z.string().optional(),
@@ -208,7 +208,7 @@ export default function NewCampaignPage() {
     if (err.details && typeof err.details === 'object') {
       const detailText = Object.entries(err.details)
         .map(([key, value]) => `${key}: ${value}`)
-        .join(' • ')
+        .join(' - ')
       return detailText ? `${message}. ${detailText}` : message
     }
     return message
@@ -504,7 +504,7 @@ export default function NewCampaignPage() {
                     }
                   `}
                 >
-                  {currentStep > step.id ? '✓' : step.id}
+                  {currentStep > step.id ? <CheckCircle2 className="h-4 w-4" /> : step.id}
                 </div>
                 {index < STEPS.length - 1 && (
                   <div
@@ -682,7 +682,7 @@ export default function NewCampaignPage() {
                         />
                       </FormControl>
                       <FormDescription>
-                        Minimum budget: ₹1,000
+                        Minimum budget: INR 1,000
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1088,7 +1088,7 @@ export default function NewCampaignPage() {
                     <div>
                       <p className="text-sm font-medium text-slate-500">Budget</p>
                       <p className="text-sm text-slate-900">
-                        ₹{form.watch('budget')?.toLocaleString() || '0'}
+                        INR {form.watch('budget')?.toLocaleString() || '0'}
                       </p>
                     </div>
                     <div>
@@ -1144,7 +1144,7 @@ export default function NewCampaignPage() {
                     <AlertDescription>
                       After submission, your campaign may appear as{' '}
                       <span className="font-semibold text-slate-900">PENDING_REVIEW</span> until
-                      it is approved. We’ll notify you as soon as it’s live.
+                      it is approved. We'll notify you as soon as it's live.
                     </AlertDescription>
                   </Alert>
                 </CardContent>

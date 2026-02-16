@@ -263,7 +263,7 @@ export default function ApplicationsPage() {
                     <div>
                       <span className="text-green-600">Status:</span>
                       <Badge className="bg-green-100 text-green-800 border-green-300">
-                        ✓ Funded
+                        Funded
                       </Badge>
                     </div>
                   </div>

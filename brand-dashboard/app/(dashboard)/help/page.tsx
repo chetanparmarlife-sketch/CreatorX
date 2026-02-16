@@ -53,7 +53,10 @@ const helpCategories = [
 export default function HelpPage() {
   return (
     <div>
-      <PageHeader title="Help & Support" />
+      <PageHeader
+        title="Help & Support"
+        subtitle="Find guides, answers, and direct support for your team."
+      />
 
       <div className="max-w-4xl space-y-6">
         <div className="bg-white rounded-lg border border-gray-200 p-6">

@@ -8,6 +8,7 @@ import {
   Send,
   Paperclip,
   Smile,
+  ArrowLeft,
   ExternalLink,
   Phone,
   Video,
@@ -17,7 +18,9 @@ import {
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/shared/page-header'
 import { useAuthStore } from '@/lib/store/auth-store'
+import { cn } from '@/lib/utils/cn'
 import { messageService } from '@/lib/api/messages'
 import {
   extractMessages,
@@ -44,11 +47,6 @@ const getConversationCreatorName = (conversation: Conversation) =>
 
 const getConversationCreatorHandle = (conversation: Conversation) =>
   conversation.creator?.email ? `@${conversation.creator.email.split('@')[0]}` : '@creator'
-
-const getConversationCreatorAvatar = (conversation: Conversation) =>
-  conversation.creator?.profile?.avatarUrl ||
-  (conversation.creator as any)?.avatarUrl ||
-  ''
 
 const getCampaignTitle = (conversation: Conversation) =>
   conversation.campaign?.title || (conversation.campaign as any)?.name || 'Campaign'
@@ -137,7 +135,7 @@ function ConversationList({
   })
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+    <div className="w-full bg-white border-r border-gray-200 flex flex-col h-full md:w-80">
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
@@ -219,12 +217,14 @@ function ChatWindow({
   isLoading,
   currentUserId,
   onSendMessage,
+  onBack,
 }: {
   conversation: Conversation | null
   messages: Message[]
   isLoading: boolean
   currentUserId?: string
   onSendMessage: (text: string) => void
+  onBack: () => void
 }) {
   const [messageText, setMessageText] = useState('')
 
@@ -262,6 +262,12 @@ function ChatWindow({
     <div className="flex-1 flex flex-col bg-white">
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 md:hidden"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
           <div className="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center text-white">
             <span className="text-sm font-medium">
               {getConversationCreatorName(conversation).slice(0, 2).toUpperCase()}
@@ -545,26 +551,42 @@ export default function MessagesPage() {
     markReadMutation.mutate(activeConversationId)
   }, [activeConversationId, markReadMutation])
 
+  const showConversationListMobile = !activeConversationId
+
   return (
-    <div className="w-full bg-[#F7F9FC] border border-slate-200/70 rounded-2xl overflow-hidden shadow-sm flex h-[calc(100vh-8rem)]">
-      <ConversationList
-        conversations={conversations}
-        activeId={activeConversationId}
-        onSelect={setActiveConversationId}
-        onNewConversation={() => setShowNewConversationModal(true)}
-        isLoading={isLoading}
-        error={isError}
+    <div className="space-y-4">
+      <PageHeader
+        title="Messages"
+        subtitle="Coordinate with creators and keep campaign conversations moving."
       />
-      
-      <ChatWindow
-        conversation={activeConversation}
-        messages={messages}
-        isLoading={messagesLoading}
-        currentUserId={user?.userId}
-        onSendMessage={handleSendMessage}
-      />
-      
-      <ContextPanel conversation={activeConversation} />
+
+      <div className="flex h-[calc(100vh-14rem)] w-full overflow-hidden rounded-2xl border border-slate-200/70 bg-[#F7F9FC] shadow-sm">
+        <div className={cn(showConversationListMobile ? 'flex w-full' : 'hidden md:flex')}>
+          <ConversationList
+            conversations={conversations}
+            activeId={activeConversationId}
+            onSelect={setActiveConversationId}
+            onNewConversation={() => setShowNewConversationModal(true)}
+            isLoading={isLoading}
+            error={isError}
+          />
+        </div>
+
+        <div className={cn('flex-1', showConversationListMobile ? 'hidden md:flex' : 'flex')}>
+          <ChatWindow
+            conversation={activeConversation}
+            messages={messages}
+            isLoading={messagesLoading}
+            currentUserId={user?.userId}
+            onSendMessage={handleSendMessage}
+            onBack={() => setActiveConversationId(null)}
+          />
+        </div>
+
+        <div className="hidden xl:block">
+          <ContextPanel conversation={activeConversation} />
+        </div>
+      </div>
 
       <NewConversationModal
         isOpen={showNewConversationModal}

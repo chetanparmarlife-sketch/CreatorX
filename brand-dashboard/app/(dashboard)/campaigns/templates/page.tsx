@@ -85,7 +85,12 @@ export default function CampaignTemplatesPage() {
 
   return (
     <div>
-      <PageHeader title="Campaign Templates" ctaLabel="Create Campaign" onCtaClick={() => router.push('/campaigns/new')} />
+      <PageHeader
+        title="Campaign Templates"
+        subtitle="Save and reuse proven campaign structures for faster launches."
+        ctaLabel="Create Campaign"
+        onCtaClick={() => router.push('/campaigns/new')}
+      />
 
       {isLoading ? (
         <div className="rounded-lg border bg-white p-6 text-sm text-slate-500">Loading templates...</div>
@@ -102,7 +107,7 @@ export default function CampaignTemplatesPage() {
             >
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">{template.title}</h3>
-                <p className="text-sm text-slate-500">{template.category} · {template.platform}</p>
+                <p className="text-sm text-slate-500">{template.category} | {template.platform}</p>
                 <p className="text-sm text-slate-600 mt-2 line-clamp-2">{template.description}</p>
               </div>
               <div className="flex items-center gap-2">

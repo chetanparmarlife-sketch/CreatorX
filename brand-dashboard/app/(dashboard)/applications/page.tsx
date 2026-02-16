@@ -66,10 +66,10 @@ export default function BrandApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Applications" />
-      <p className="text-sm text-slate-500">
-        Review applications across all of your campaigns in one queue.
-      </p>
+      <PageHeader
+        title="Applications"
+        subtitle="Review creator applications across all campaigns in one queue."
+      />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -120,7 +120,7 @@ export default function BrandApplicationsPage() {
                         </StatusChip>
                       </td>
                       <td className="py-3 pr-4">
-                        {application.appliedAt ? new Date(application.appliedAt).toLocaleDateString() : '—'}
+                        {application.appliedAt ? new Date(application.appliedAt).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="py-3 pr-4 text-right space-x-2">
                         <Button

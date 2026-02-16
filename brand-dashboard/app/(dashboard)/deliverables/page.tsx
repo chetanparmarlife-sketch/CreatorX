@@ -178,7 +178,10 @@ export default function DeliverablesOverviewPage() {
 
   return (
     <div>
-      <PageHeader title={`Deliverables${pendingCount > 0 ? ` (${pendingCount} pending)` : ''}`} />
+      <PageHeader
+        title={`Deliverables${pendingCount > 0 ? ` (${pendingCount} pending)` : ''}`}
+        subtitle="Review submissions, clear backlog, and keep campaign timelines on track."
+      />
 
       <QueueToolbar
         title="Deliverable queue"
@@ -187,7 +190,7 @@ export default function DeliverablesOverviewPage() {
         totalCount={deliverables.length}
         slaSummary={{
           label: 'Due soon',
-          value: `${dueSummary.dueSoon} · Overdue ${dueSummary.overdue}`,
+          value: `${dueSummary.dueSoon} | Overdue ${dueSummary.overdue}`,
           tone: dueSummary.overdue > 0 ? 'blocked' : dueSummary.dueSoon > 0 ? 'needs_action' : 'approved',
         }}
         actions={
@@ -315,7 +318,7 @@ export default function DeliverablesOverviewPage() {
                   {deliverable.campaignDeliverable?.title || 'Deliverable'}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {deliverable.campaignTitle || 'Campaign'} ·{' '}
+                  {deliverable.campaignTitle || 'Campaign'} |{' '}
                   {deliverable.creatorName || 'Creator'}
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -338,13 +341,13 @@ export default function DeliverablesOverviewPage() {
                   )}
                 </div>
                 <div className="mt-2 text-xs text-slate-400">
-                  Campaign progress: — · Milestones: —
+                  Campaign progress: N/A | Milestones: N/A
                 </div>
               </div>
               <div className="text-xs text-slate-500">
                 {deliverable.submittedAt
                   ? new Date(deliverable.submittedAt).toLocaleDateString()
-                  : '—'}
+                  : 'N/A'}
               </div>
               <Badge className={statusStyles[deliverable.status || 'PENDING']}>
                 {deliverable.status || 'PENDING'}
@@ -426,7 +429,7 @@ export default function DeliverablesOverviewPage() {
           <DialogHeader>
             <DialogTitle>Review Deliverable</DialogTitle>
             <DialogDescription>
-              {reviewDeliverable?.campaignDeliverable?.title || 'Deliverable'} ·{' '}
+              {reviewDeliverable?.campaignDeliverable?.title || 'Deliverable'} |{' '}
               {reviewDeliverable?.creatorName || 'Creator'}
             </DialogDescription>
           </DialogHeader>

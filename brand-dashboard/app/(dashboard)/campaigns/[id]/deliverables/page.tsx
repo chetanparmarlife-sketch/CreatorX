@@ -272,7 +272,7 @@ export default function DeliverablesPage() {
                       Submitted{' '}
                       {deliverable.submittedAt
                         ? new Date(deliverable.submittedAt).toLocaleDateString()
-                        : '—'}
+                        : 'N/A'}
                     </span>
                     <Badge className={statusStyles[statusKey] ?? 'bg-slate-200 text-slate-700'}>
                       {statusKey.replace('_', ' ')}
@@ -421,7 +421,7 @@ export default function DeliverablesPage() {
                   <div className="flex items-center justify-between text-sm text-slate-600">
                     <span>Version {item.versionNumber ?? index + 1}</span>
                     <span>
-                      {item.submittedAt ? new Date(item.submittedAt).toLocaleDateString() : '—'}
+                      {item.submittedAt ? new Date(item.submittedAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-slate-700">
