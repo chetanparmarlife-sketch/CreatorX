@@ -1,3 +1,8 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Zap } from "lucide-react";
+
 const props = [
   { text: "Starting at just ₹2900*" },
   { text: "Setup takes 30 seconds" },
@@ -8,19 +13,23 @@ const props = [
 
 export default function ValueProps() {
   return (
-    <section className="py-4 sm:py-6 bg-gradient-to-r from-gray-900 via-black to-gray-900 border-y border-white/10">
+    <section className="py-6 bg-black border-y border-white/10 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-10">
+        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
           {props.map((prop, index) => (
-            <div 
-              key={index} 
-              className="flex items-center gap-2 sm:gap-3 text-white group cursor-default"
+            <motion.div 
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+              className="flex items-center gap-3 text-white group cursor-default"
             >
-              <span className="text-violet-400 text-sm sm:text-lg group-hover:scale-125 transition-transform duration-300">✦</span>
-              <span className="font-medium text-xs sm:text-sm md:text-base group-hover:text-[#c8ff00] transition-colors duration-300 whitespace-nowrap">
+              <Zap className="w-5 h-5 text-yellow-400 group-hover:scale-110 transition-transform" />
+              <span className="font-space-grotesk font-medium text-sm md:text-base text-gray-300 group-hover:text-white transition-colors">
                 {prop.text}
               </span>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

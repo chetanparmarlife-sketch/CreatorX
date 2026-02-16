@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -15,67 +19,88 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-black/95 backdrop-blur-lg border-b border-white/10 shadow-lg' : 'bg-transparent'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 sm:h-16">
-          <div className="flex items-center">
-            <a href="/" className="flex items-center gap-2 group">
-              <span className="text-xl sm:text-2xl font-bold text-white group-hover:text-[#c8ff00] transition-colors duration-300 font-display">CreatorX</span>
-            </a>
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        scrolled ? "bg-black/80 backdrop-blur-md border-b border-white/5 py-4" : "bg-transparent py-6"
+      )}
+    >
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="text-2xl font-bold text-white tracking-tighter font-space-grotesk group-hover:text-pink-500 transition-colors duration-300">
+              Creator<span className="text-blue-500 group-hover:text-blue-400">X</span>
+            </span>
+          </Link>
+
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center gap-8">
+            <Link href="/about" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              About
+            </Link>
+            <Link href="/marketplace" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              Marketplace
+            </Link>
+            <Link href="/success-stories" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              Stories
+            </Link>
           </div>
 
-          <div className="hidden lg:flex items-center gap-6 xl:gap-8">
-            <a href="/creator-signup" className="text-gray-300 hover:text-white transition-colors duration-300 text-sm">Sign up as a creator</a>
-            <a href="/blogs" className="text-gray-300 hover:text-white transition-colors duration-300 text-sm">Blogs & case studies</a>
-            <a href="/book-demo" className="text-[#c8ff00] hover:text-white transition-colors duration-300 flex items-center gap-2 font-medium text-sm">
-              Book a demo
-              <span className="animate-pulse">✦</span>
-            </a>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-2 sm:gap-3">
-            <a
+          <div className="hidden md:flex items-center gap-4">
+            <Link
               href="/login"
-              className="px-4 py-2 sm:px-5 sm:py-2.5 text-white border border-white/30 rounded-full hover:bg-white hover:text-black transition-all duration-300 font-medium text-sm"
+              className="text-sm font-medium text-white hover:text-pink-400 transition-colors"
             >
               Login
-            </a>
-            <a
+            </Link>
+            <Link
               href="/signup"
-              className="px-4 py-2 sm:px-5 sm:py-2.5 bg-white text-black rounded-full hover:bg-[#c8ff00] transition-all duration-300 font-medium text-sm hover:shadow-lg hover:shadow-[#c8ff00]/20"
+              className="group relative px-6 py-2.5 rounded-full overflow-hidden bg-white text-black text-sm font-bold transition-transform hover:scale-105"
             >
-              Sign Up
-            </a>
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-blue-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+              <span>Get Started</span>
+            </Link>
           </div>
 
+          {/* Mobile Menu Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="sm:hidden p-2 text-white"
+            className="md:hidden p-2 text-white hover:bg-white/10 rounded-full transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
+      </div>
 
+      {/* Mobile Menu */}
+      <AnimatePresence>
         {mobileMenuOpen && (
-          <div className="sm:hidden bg-black/95 backdrop-blur-lg border-t border-white/10 py-4">
-            <div className="flex flex-col gap-4">
-              <a href="/creator-signup" className="text-gray-300 hover:text-white px-4 py-2 text-sm">Sign up as a creator</a>
-              <a href="/blogs" className="text-gray-300 hover:text-white px-4 py-2 text-sm">Blogs & case studies</a>
-              <a href="/book-demo" className="text-[#c8ff00] px-4 py-2 text-sm font-medium">Book a demo ✦</a>
-              <div className="flex gap-2 px-4 pt-2">
-                <a href="/login" className="flex-1 text-center py-2.5 border border-white/30 rounded-full text-white text-sm">Login</a>
-                <a href="/signup" className="flex-1 text-center py-2.5 bg-white text-black rounded-full text-sm font-medium">Sign Up</a>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-black/95 backdrop-blur-xl border-t border-white/10 overflow-hidden"
+          >
+            <div className="flex flex-col gap-4 p-6">
+              <Link href="/about" className="text-lg font-medium text-gray-300 hover:text-white">About</Link>
+              <Link href="/marketplace" className="text-lg font-medium text-gray-300 hover:text-white">Marketplace</Link>
+              <Link href="/success-stories" className="text-lg font-medium text-gray-300 hover:text-white">Stories</Link>
+              <hr className="border-white/10 my-2" />
+              <div className="flex flex-col gap-3">
+                <Link href="/login" className="text-center py-3 border border-white/20 rounded-full text-white font-medium hover:bg-white/5">
+                  Login
+                </Link>
+                <Link href="/signup" className="text-center py-3 bg-white text-black rounded-full font-bold hover:bg-gray-100">
+                  Get Started
+                </Link>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
-      </div>
-    </nav>
+      </AnimatePresence>
+    </motion.nav>
   );
 }

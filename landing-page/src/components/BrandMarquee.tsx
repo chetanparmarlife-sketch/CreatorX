@@ -1,3 +1,7 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 const brands = [
   { name: "GrowFi", color: "text-green-400" },
   { name: "GLPL", color: "text-white" },
@@ -14,23 +18,32 @@ const brands = [
 
 export default function BrandMarquee() {
   return (
-    <section className="py-6 sm:py-10 bg-black overflow-hidden">
-      <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-32 bg-gradient-to-r from-black to-transparent z-10"></div>
-        <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-32 bg-gradient-to-l from-black to-transparent z-10"></div>
+    <section className="py-10 bg-black overflow-hidden border-y border-white/5">
+      <div className="relative flex">
+        <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-black to-transparent z-10" />
+        <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-black to-transparent z-10" />
         
-        <div className="flex animate-marquee">
-          {[...brands, ...brands, ...brands].map((brand, index) => (
+        <motion.div 
+          className="flex items-center gap-12 px-12"
+          animate={{ x: ["0%", "-50%"] }}
+          transition={{ 
+            duration: 20, 
+            repeat: Infinity, 
+            ease: "linear",
+            repeatType: "loop"
+          }}
+        >
+          {[...brands, ...brands, ...brands, ...brands].map((brand, index) => (
             <div
               key={index}
-              className="flex-shrink-0 mx-4 sm:mx-8 md:mx-12 group cursor-pointer"
+              className="flex-shrink-0 group cursor-pointer"
             >
-              <span className={`text-base sm:text-xl md:text-2xl font-bold ${brand.color} opacity-60 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap font-display`}>
+              <span className={`text-2xl md:text-4xl font-bold ${brand.color} opacity-40 group-hover:opacity-100 transition-all duration-300 font-space-grotesk whitespace-nowrap`}>
                 {brand.name}
               </span>
             </div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
