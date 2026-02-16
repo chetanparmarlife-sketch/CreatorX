@@ -69,6 +69,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/verify-phone",
                                 "/api/v1/auth/refresh-token")
                         .permitAll()
+                        // OAuth callback is public — provider redirects via browser GET
+                        // without Authorization header; user identity comes from signed state token
+                        .requestMatchers(HttpMethod.GET, "/api/v1/social/connect/*/callback").permitAll()
                         // Other public endpoints
                         .requestMatchers(
                                 "/api/v1/health",

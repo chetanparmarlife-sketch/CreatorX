@@ -2,12 +2,15 @@ package com.creatorx.api.controller;
 
 import com.creatorx.common.enums.SocialProvider;
 import com.creatorx.common.exception.BusinessException;
+import com.creatorx.repository.entity.User;
 import com.creatorx.service.SocialAccountService;
 import com.creatorx.service.social.SocialOAuthService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpSession;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -15,45 +18,61 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.SecretKey;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.UUID;
 
 /**
  * OAuth connect endpoints for social providers.
  * Mobile opens /start URL and receives deep link callback.
  * Tokens are stored server-side only (encrypted).
+ *
+ * Uses stateless OAuth: the OAuth state parameter carries a signed JWT
+ * containing the user ID and provider, eliminating the need for HTTP sessions.
+ * The /callback endpoint is public (no auth required) since the provider
+ * redirects via browser GET without an Authorization header.
  */
 @RestController
 @RequestMapping("/api/v1/social/connect")
 @Tag(name = "Social Connect", description = "OAuth connection flow for social providers")
-@RequiredArgsConstructor
 @Slf4j
 public class SocialConnectController {
 
     private final SocialOAuthService socialOAuthService;
     private final SocialAccountService socialAccountService;
+    private final String deepLinkScheme;
+    private final SecretKey stateSigningKey;
 
-    @Value("${creatorx.mobile.deep-link-scheme:creatorx}")
-    private String deepLinkScheme;
+    /** OAuth state token validity — 15 minutes is enough for an OAuth round-trip */
+    private static final long STATE_TOKEN_VALIDITY_MS = 15 * 60 * 1000;
 
-    private static final String SESSION_OAUTH_STATE = "oauth_state";
-    private static final String SESSION_USER_ID = "oauth_user_id";
-    private static final String SESSION_PROVIDER = "oauth_provider";
+    public SocialConnectController(
+            SocialOAuthService socialOAuthService,
+            SocialAccountService socialAccountService,
+            @Value("${creatorx.mobile.deep-link-scheme:creatorx}") String deepLinkScheme,
+            @Value("${creatorx.social.token-secret:change-this-in-production-minimum-32-characters}") String socialTokenSecret
+    ) {
+        this.socialOAuthService = socialOAuthService;
+        this.socialAccountService = socialAccountService;
+        this.deepLinkScheme = deepLinkScheme;
+        this.stateSigningKey = Keys.hmacShaKeyFor(socialTokenSecret.getBytes(StandardCharsets.UTF_8));
+    }
 
     /**
      * Start OAuth flow for a provider.
-     * Returns 302 redirect to provider's authorization page.
+     * Requires authentication (JWT). Returns 302 redirect to provider's
+     * authorization page with a signed state token.
      */
     @GetMapping("/{provider}/start")
     @Operation(summary = "Start OAuth flow", description = "Redirects to provider authorization page")
     public ResponseEntity<Void> startOAuth(
             @PathVariable String provider,
-            Authentication authentication,
-            HttpSession session
+            Authentication authentication
     ) {
         SocialProvider socialProvider = resolveProvider(provider);
 
-        // LinkedIn returns 501 Not Implemented
         if (socialProvider == SocialProvider.LINKEDIN) {
             return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
                     .header("X-Error-Code", "SOCIAL_LINKEDIN_NOT_AVAILABLE")
@@ -61,26 +80,22 @@ public class SocialConnectController {
                     .build();
         }
 
-        // Check if provider is configured
         if (!socialOAuthService.isProviderEnabled(socialProvider)) {
             throw new BusinessException("Provider not configured", "SOCIAL_CONFIG_MISSING");
         }
 
-        // Generate state parameter for CSRF protection
-        String state = UUID.randomUUID().toString();
+        // Extract user ID from the JWT-authenticated principal
+        User user = (User) authentication.getPrincipal();
+        String userId = user.getId();
 
-        // Store state and user info in session for callback validation
-        String userId = authentication.getName();
-        session.setAttribute(SESSION_OAUTH_STATE, state);
-        session.setAttribute(SESSION_USER_ID, userId);
-        session.setAttribute(SESSION_PROVIDER, socialProvider.name());
+        // Build a signed state token carrying userId + provider + nonce
+        String stateToken = createOAuthStateToken(userId, socialProvider);
 
-        // Get authorization URL
-        String authUrl = socialOAuthService.getAuthorizationUrl(socialProvider, state);
+        // Pass the signed token as the OAuth state parameter
+        String authUrl = socialOAuthService.getAuthorizationUrl(socialProvider, stateToken);
 
-        log.info("Starting OAuth flow for provider {} user {}", socialProvider, userId);
+        log.info("Starting OAuth flow: provider={}, user={}", socialProvider, userId);
 
-        // Redirect to provider authorization page
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(authUrl))
                 .build();
@@ -88,7 +103,9 @@ public class SocialConnectController {
 
     /**
      * OAuth callback from provider.
-     * Exchanges code for token, stores encrypted, redirects to mobile deep link.
+     * This endpoint is public (permitAll) because the provider redirects here
+     * via browser GET with no Authorization header. The user identity is
+     * recovered from the signed state token.
      */
     @GetMapping("/{provider}/callback")
     @Operation(summary = "OAuth callback", description = "Handles provider callback and redirects to mobile")
@@ -97,8 +114,7 @@ public class SocialConnectController {
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String error,
-            @RequestParam(name = "error_description", required = false) String errorDescription,
-            HttpSession session
+            @RequestParam(name = "error_description", required = false) String errorDescription
     ) {
         SocialProvider socialProvider = resolveProvider(provider);
 
@@ -108,31 +124,22 @@ public class SocialConnectController {
             return redirectToMobile(socialProvider, false, errorDescription != null ? errorDescription : error);
         }
 
-        // Validate state parameter
-        String storedState = (String) session.getAttribute(SESSION_OAUTH_STATE);
-        if (storedState == null || !storedState.equals(state)) {
-            log.warn("OAuth state mismatch for {}", provider);
-            return redirectToMobile(socialProvider, false, "Invalid OAuth state");
+        // Parse and validate the signed state token
+        OAuthState oauthState;
+        try {
+            oauthState = parseOAuthStateToken(state);
+        } catch (Exception e) {
+            log.warn("Invalid OAuth state token for {}: {}", provider, e.getMessage());
+            return redirectToMobile(socialProvider, false, "Invalid or expired OAuth state");
         }
 
-        // Get user ID from session
-        String userId = (String) session.getAttribute(SESSION_USER_ID);
-        if (userId == null) {
-            log.warn("No user ID in session for {} callback", provider);
-            return redirectToMobile(socialProvider, false, "Session expired");
-        }
-
-        // Validate provider matches
-        String storedProvider = (String) session.getAttribute(SESSION_PROVIDER);
-        if (!socialProvider.name().equals(storedProvider)) {
-            log.warn("OAuth provider mismatch: expected {} got {}", storedProvider, socialProvider);
+        // Validate provider matches what was requested
+        if (oauthState.provider != socialProvider) {
+            log.warn("OAuth provider mismatch: state has {} but callback is for {}", oauthState.provider, socialProvider);
             return redirectToMobile(socialProvider, false, "Provider mismatch");
         }
 
-        // Clear session OAuth data
-        session.removeAttribute(SESSION_OAUTH_STATE);
-        session.removeAttribute(SESSION_USER_ID);
-        session.removeAttribute(SESSION_PROVIDER);
+        String userId = oauthState.userId;
 
         try {
             // Exchange code for token
@@ -159,9 +166,48 @@ public class SocialConnectController {
         }
     }
 
+    // --- OAuth state token helpers (stateless CSRF protection) ---
+
     /**
-     * Build mobile deep link redirect for callback result.
+     * Create a short-lived signed JWT carrying the OAuth flow context.
+     * This replaces HttpSession for state management.
      */
+    private String createOAuthStateToken(String userId, SocialProvider provider) {
+        return Jwts.builder()
+                .subject(userId)
+                .claim("provider", provider.name())
+                .claim("nonce", UUID.randomUUID().toString())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + STATE_TOKEN_VALIDITY_MS))
+                .signWith(stateSigningKey)
+                .compact();
+    }
+
+    /**
+     * Parse and validate a state token returned from the OAuth provider redirect.
+     * Verifies signature, expiry, and extracts userId + provider.
+     */
+    private OAuthState parseOAuthStateToken(String stateToken) {
+        if (stateToken == null || stateToken.isBlank()) {
+            throw new JwtException("Missing state token");
+        }
+
+        Claims claims = Jwts.parser()
+                .verifyWith(stateSigningKey)
+                .build()
+                .parseSignedClaims(stateToken)
+                .getPayload();
+
+        String userId = claims.getSubject();
+        SocialProvider provider = SocialProvider.valueOf(claims.get("provider", String.class));
+
+        return new OAuthState(userId, provider);
+    }
+
+    private record OAuthState(String userId, SocialProvider provider) {}
+
+    // --- Helpers ---
+
     private ResponseEntity<Void> redirectToMobile(SocialProvider provider, boolean success, String errorMessage) {
         StringBuilder deepLink = new StringBuilder()
                 .append(deepLinkScheme)
