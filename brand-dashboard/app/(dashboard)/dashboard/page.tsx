@@ -145,7 +145,6 @@ export default function DashboardPage() {
     ? (deliverablesQueue / deliverables.length) * 100
     : 0
   const creatorCoveragePercent = creatorsTotal ? (creatorsTotal / 24) * 100 : 0
-  const engagementHealthPercent = averageEngagement ? (averageEngagement / 6) * 100 : 0
 
   const priorityItems = [
     { label: 'Review campaigns', value: reviewCampaigns.length, tone: 'bg-amber-500' },
@@ -307,10 +306,10 @@ export default function DashboardPage() {
 
       <div className="hero-surface">
         <div className="hero-grid">
-          <div className="space-y-6">
-            <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="space-y-2">
               <span className="hero-chip">Live brand pulse</span>
-              <h2 className="text-3xl font-semibold text-slate-900 md:text-4xl">
+              <h2 className="max-w-2xl text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
                 Keep every campaign moving with clarity and momentum.
               </h2>
               <p className="text-sm text-slate-600">
@@ -331,9 +330,9 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Budget utilization</p>
-                    <p className="mt-2 text-2xl font-semibold text-slate-900">{budgetUtilization}%</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{budgetUtilization}%</p>
                   </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
                     <IndianRupee className="h-4 w-4" />
                   </div>
                 </div>
@@ -351,9 +350,9 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Review queue</p>
-                    <p className="mt-2 text-2xl font-semibold text-slate-900">{reviewQueue}</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{reviewQueue}</p>
                   </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
                     <Calendar className="h-4 w-4" />
                   </div>
                 </div>
@@ -369,9 +368,9 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Deliverables queue</p>
-                    <p className="mt-2 text-2xl font-semibold text-slate-900">{deliverablesQueue}</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{deliverablesQueue}</p>
                   </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
                     <TrendingUp className="h-4 w-4" />
                   </div>
                 </div>
@@ -387,16 +386,16 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <div className="hero-panel space-y-4">
+          <div className="hero-panel space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Wallet health</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-900">
+                <p className="mt-1 text-xl font-semibold text-slate-900">
                   {formatCurrency(walletData?.balance ?? 0)}
                 </p>
               </div>
               <div
-                className="relative h-14 w-14 rounded-full p-1"
+                className="relative h-11 w-11 rounded-full p-1"
                 style={{
                   background: `conic-gradient(${
                     budgetUtilization > 80
@@ -408,15 +407,15 @@ export default function DashboardPage() {
                 }}
               >
                 <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                  <Wallet className="h-5 w-5 text-primary" />
+                  <Wallet className="h-4 w-4 text-primary" />
                 </div>
               </div>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/90 p-4">
+            <div className="rounded-xl border border-slate-200/70 bg-white/90 p-3">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Immediate priorities</p>
-              <div className="mt-3 space-y-3 text-sm text-slate-600">
+              <div className="mt-2 space-y-2 text-sm text-slate-600">
                 {priorityItems.map((item) => (
-                  <div key={item.label} className="space-y-1.5">
+                  <div key={item.label} className="space-y-1">
                     <div className="flex items-center justify-between">
                       <span>{item.label}</span>
                       <span className="font-semibold text-slate-900">{item.value}</span>
@@ -433,49 +432,28 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-3">
+              <div className="mt-2">
                 <StatusChip tone={totalPriorityItems > 0 ? 'needs_action' : 'approved'} size="compact">
                   {totalPriorityItems > 0 ? `${totalPriorityItems} items need follow-up` : 'No urgent blockers'}
                 </StatusChip>
               </div>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/90 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Creator momentum</p>
-              <div className="mt-3 space-y-3">
-                <div>
-                  <div className="flex items-center justify-between text-sm text-slate-600">
-                    <span>Listed creators</span>
-                    <span className="font-semibold text-slate-900">{creatorsTotal}</span>
-                  </div>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-full rounded-full bg-emerald-500"
-                      style={{ width: `${visualPercent(creatorCoveragePercent)}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between text-sm text-slate-600">
-                    <span>Average engagement</span>
-                    <span className="font-semibold text-slate-900">{averageEngagement}%</span>
-                  </div>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full ${
-                        averageEngagement >= 3 ? 'bg-blue-500' : 'bg-slate-400'
-                      }`}
-                      style={{ width: `${visualPercent(engagementHealthPercent)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2">
+            <div className="rounded-xl border border-slate-200/70 bg-white/90 p-3">
+              <div className="flex items-center justify-between text-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Creator momentum</p>
                 <StatusChip tone={averageEngagement >= 3 ? 'approved' : 'pending'} size="compact">
-                  {averageEngagement >= 3 ? 'Healthy creator mix' : 'Expand creator shortlist'}
+                  {averageEngagement >= 3 ? 'Healthy' : 'Needs boost'}
                 </StatusChip>
-                <span className="text-xs text-slate-500">
-                  {creatorsTotal ? 'Keep refreshing top performers weekly.' : 'Shortlist your first creator batch.'}
-                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
+                <span>Listed creators</span>
+                <span className="font-semibold text-slate-900">{creatorsTotal}</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${visualPercent(creatorCoveragePercent)}%` }}
+                />
               </div>
             </div>
           </div>
