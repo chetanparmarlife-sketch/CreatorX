@@ -70,7 +70,28 @@ export default function CreatorProfilePage() {
     }
   }, [inviteMutation.isSuccess])
 
-  const creator = data as CreatorProfile | undefined
+  // Map backend CreatorDTO fields to frontend CreatorProfile shape
+  const creator = useMemo((): CreatorProfile | undefined => {
+    if (!data) return undefined
+    const raw = data as any
+    return {
+      id: raw.id,
+      name: raw.username ?? raw.name ?? '',
+      bio: raw.bio,
+      avatarUrl: raw.avatarUrl,
+      category: raw.category,
+      followers: raw.followerCount ?? raw.followers,
+      engagementRate: raw.engagementRate,
+      campaignsCompleted: raw.stats?.completedCampaigns ?? raw.campaignsCompleted,
+      social: raw.social ?? {
+        instagram: raw.instagramUrl,
+        youtube: raw.youtubeUrl,
+        tiktok: raw.tiktokUrl,
+      },
+      portfolio: raw.portfolio,
+      recentCampaigns: raw.recentCampaigns,
+    }
+  }, [data])
   const initials = creator?.name?.slice(0, 2).toUpperCase() || 'CR'
 
   const portfolioItems = useMemo(() => creator?.portfolio ?? [], [creator?.portfolio])

@@ -65,7 +65,7 @@ export const campaignService = {
     size: number = 20
   ): Promise<Page<Campaign>> {
     return await apiClient.get<Page<Campaign>>('/campaigns', {
-      params: { query, page, size },
+      params: { search: query, page, size },
     });
   },
 

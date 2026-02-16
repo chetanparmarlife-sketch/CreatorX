@@ -353,13 +353,13 @@ public class AuthenticationIntegrationTest extends BaseIntegrationTest {
             Map<String, String> request = new HashMap<>();
             request.put("refreshToken", refreshToken);
 
-            MvcResult result = mockMvc.perform(post("/api/v1/auth/refresh")
+            MvcResult result = mockMvc.perform(post("/api/v1/auth/refresh-token")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
                     .andReturn();
             int status = result.getResponse().getStatus();
-            // Any of these statuses is acceptable for a non-implemented refresh endpoint
-            assertThat(status).isIn(200, 400, 401, 404, 405, 500);
+            // Refresh endpoint is public (permitAll); expects a valid refresh token
+            assertThat(status).isIn(200, 400, 401, 500);
         }
     }
 

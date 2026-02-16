@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus, TrendingUp, TrendingDown, CreditCard, Wallet, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -62,6 +63,7 @@ function EmptyState({ title, description }: { title: string; description: string
 }
 
 export default function PaymentsPage() {
+  const searchParams = useSearchParams()
   const { data: wallet, refetch: refetchWallet } = useBrandWallet()
   const { data: transactionsPage } = useWalletTransactions({ page: 0, size: 20 })
   const createDeposit = useCreateDepositOrder()
@@ -70,6 +72,21 @@ export default function PaymentsPage() {
   const [amount, setAmount] = useState<number>(10000)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Pre-fill deposit form from URL params (e.g., /payments?action=fund&amount=50000)
+  useEffect(() => {
+    const action = searchParams.get('action')
+    const urlAmount = searchParams.get('amount')
+    if (action === 'fund') {
+      setShowAddFunds(true)
+      if (urlAmount) {
+        const parsed = Number(urlAmount)
+        if (!isNaN(parsed) && parsed >= 1000) {
+          setAmount(parsed)
+        }
+      }
+    }
+  }, [searchParams])
 
   const transactions = transactionsPage?.content ?? []
 

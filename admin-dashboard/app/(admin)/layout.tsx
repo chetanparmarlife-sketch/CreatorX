@@ -19,6 +19,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         localStorage.getItem('creatorx_access_token')
 
       if (token) {
+        // Decode JWT payload and verify ADMIN role
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          const role =
+            payload.role ||
+            payload.user_metadata?.role ||
+            user?.role
+          if (role !== 'ADMIN') {
+            setHasToken(false)
+            router.push('/login')
+            return
+          }
+        } catch {
+          // Malformed token — reject
+          setHasToken(false)
+          router.push('/login')
+          return
+        }
         setHasToken(true)
         return
       }
@@ -28,6 +46,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         try {
           const { data } = await (window as any).supabase.auth.getSession()
           if (data?.session) {
+            const payload = JSON.parse(atob(data.session.access_token.split('.')[1]))
+            const role = payload.role || payload.user_metadata?.role
+            if (role !== 'ADMIN') {
+              setHasToken(false)
+              router.push('/login')
+              return
+            }
             setHasToken(true)
             return
           }

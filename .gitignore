@@ -14,3 +14,6 @@ gradle-8.5/
 gradle-8.5-bin.zip
 gradle-wrapper-tmp/
 *.zip
+
+# Windows device name artifacts
+nul
