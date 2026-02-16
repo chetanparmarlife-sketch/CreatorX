@@ -94,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'creatorx-auth-storage',
+      name: 'creatorx-admin-auth-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state: AuthState) => ({
         user: state.user,

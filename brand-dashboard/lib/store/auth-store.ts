@@ -118,7 +118,7 @@ export const useAuthStore = create<AuthState>()(
       )
 
       return {
-        name: 'creatorx-auth-storage',
+        name: 'creatorx-brand-auth-storage',
         storage,
         partialize: (state: AuthState) => ({
           user: state.user,

@@ -37,7 +37,7 @@ public class AuthController {
     private String webhookInternalSecret;
 
     /**
-     * Register a new user.
+     * Register a new user and return tokens for immediate login.
      * In production, registration happens on client via Supabase SDK.
      * This endpoint is used for admin user creation or webhook callbacks.
      */
@@ -51,10 +51,21 @@ public class AuthController {
                 request.getName(),
                 request.getPhone());
 
-        return ResponseEntity.ok(AuthResponse.builder()
+        // Generate token so frontends can log in immediately after registration
+        AuthService.LoginResult loginResult = authService.loginAfterRegister(user);
+
+        AuthResponse response = AuthResponse.builder()
+                .accessToken(loginResult.getAccessToken())
+                .refreshToken(loginResult.getRefreshToken())
                 .user(toAuthUserInfo(user))
-                .message("User registered. Please complete Supabase registration on client.")
-                .build());
+                .message("Registration successful")
+                .build();
+
+        // Backwards compatibility fields for brand/admin dashboards
+        response.setToken(loginResult.getAccessToken());
+        response.setExpiresIn(86400); // 24 hours
+
+        return ResponseEntity.ok(response);
     }
 
     /**

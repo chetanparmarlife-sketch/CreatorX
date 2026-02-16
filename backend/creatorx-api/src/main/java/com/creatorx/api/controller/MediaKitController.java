@@ -1,5 +1,6 @@
 package com.creatorx.api.controller;
 
+import com.creatorx.repository.entity.User;
 import com.creatorx.service.MediaKitService;
 import com.creatorx.service.dto.MediaKitDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -7,8 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -28,9 +28,8 @@ public class MediaKitController {
      */
     @GetMapping("/creators/media-kit")
     @Operation(summary = "Get current user's media kit")
-    public ResponseEntity<MediaKitDTO> getMyMediaKit(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String userId = userDetails.getUsername();
+    public ResponseEntity<MediaKitDTO> getMyMediaKit(Authentication authentication) {
+        String userId = getAuthenticatedUserId(authentication);
         log.debug("Getting media kit for user: {}", userId);
 
         return mediaKitService.getMediaKit(userId)
@@ -44,9 +43,9 @@ public class MediaKitController {
     @PutMapping("/creators/media-kit")
     @Operation(summary = "Create or update media kit")
     public ResponseEntity<MediaKitDTO> saveMediaKit(
-            @AuthenticationPrincipal UserDetails userDetails,
+            Authentication authentication,
             @RequestBody MediaKitDTO dto) {
-        String userId = userDetails.getUsername();
+        String userId = getAuthenticatedUserId(authentication);
         log.debug("Saving media kit for user: {}", userId);
 
         MediaKitDTO saved = mediaKitService.saveMediaKit(userId, dto);
@@ -59,9 +58,9 @@ public class MediaKitController {
     @PatchMapping("/creators/media-kit/pricing")
     @Operation(summary = "Update pricing rates")
     public ResponseEntity<MediaKitDTO> updatePricing(
-            @AuthenticationPrincipal UserDetails userDetails,
+            Authentication authentication,
             @RequestBody MediaKitDTO dto) {
-        String userId = userDetails.getUsername();
+        String userId = getAuthenticatedUserId(authentication);
         log.debug("Updating pricing for user: {}", userId);
 
         MediaKitDTO updated = mediaKitService.updatePricing(userId, dto);
@@ -73,9 +72,8 @@ public class MediaKitController {
      */
     @PostMapping("/creators/media-kit/refresh-stats")
     @Operation(summary = "Refresh social stats")
-    public ResponseEntity<MediaKitDTO> refreshSocialStats(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String userId = userDetails.getUsername();
+    public ResponseEntity<MediaKitDTO> refreshSocialStats(Authentication authentication) {
+        String userId = getAuthenticatedUserId(authentication);
         log.debug("Refreshing social stats for user: {}", userId);
 
         MediaKitDTO refreshed = mediaKitService.refreshSocialStats(userId);
@@ -88,9 +86,9 @@ public class MediaKitController {
     @PatchMapping("/creators/media-kit/visibility")
     @Operation(summary = "Toggle visibility")
     public ResponseEntity<MediaKitDTO> toggleVisibility(
-            @AuthenticationPrincipal UserDetails userDetails,
+            Authentication authentication,
             @RequestParam boolean isPublic) {
-        String userId = userDetails.getUsername();
+        String userId = getAuthenticatedUserId(authentication);
         log.debug("Setting visibility to {} for user: {}", isPublic, userId);
 
         MediaKitDTO updated = mediaKitService.toggleVisibility(userId, isPublic);
@@ -116,12 +114,16 @@ public class MediaKitController {
      */
     @DeleteMapping("/creators/media-kit")
     @Operation(summary = "Delete media kit")
-    public ResponseEntity<Void> deleteMediaKit(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String userId = userDetails.getUsername();
+    public ResponseEntity<Void> deleteMediaKit(Authentication authentication) {
+        String userId = getAuthenticatedUserId(authentication);
         log.debug("Deleting media kit for user: {}", userId);
 
         mediaKitService.deleteMediaKit(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    private String getAuthenticatedUserId(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return user.getId();
     }
 }

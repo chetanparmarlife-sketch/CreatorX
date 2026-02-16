@@ -130,6 +130,16 @@ public class AuthService {
     }
 
     /**
+     * Generate a token and return a LoginResult for a newly registered user.
+     * Allows frontends to log in immediately after registration.
+     */
+    public LoginResult loginAfterRegister(User user) {
+        String token = generateSimpleToken(user);
+        log.info("Generated post-registration token for user: {}", user.getEmail());
+        return new LoginResult(user, token, null);
+    }
+
+    /**
      * Generate a JWT token for direct login
      */
     private String generateSimpleToken(User user) {
