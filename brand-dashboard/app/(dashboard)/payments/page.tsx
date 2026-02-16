@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TrendingUp, TrendingDown, CreditCard, Wallet, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,8 +16,6 @@ import {
 } from '@/lib/hooks/use-wallet'
 import Script from 'next/script'
 import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
-import { useCampaigns } from '@/lib/hooks/use-campaigns'
-import { CampaignStatus } from '@/lib/types'
 
 declare global {
   interface Window {
@@ -71,7 +69,6 @@ export default function PaymentsPage() {
   const searchParams = useSearchParams()
   const { data: wallet, refetch: refetchWallet } = useBrandWallet()
   const { data: transactionsPage } = useWalletTransactions({ page: 0, size: 20 })
-  const { data: campaignsData } = useCampaigns({}, 0)
   const createDeposit = useCreateDepositOrder()
   const { track } = useBrandEventTracker({
     walletBalance: wallet?.balance ?? null,
@@ -97,22 +94,6 @@ export default function PaymentsPage() {
   }, [searchParams])
 
   const transactions = transactionsPage?.items ?? []
-  const campaigns = campaignsData?.items ?? []
-  const activeCommitment = useMemo(
-    () =>
-      campaigns
-        .filter(
-          (campaign) =>
-            campaign.status === CampaignStatus.ACTIVE ||
-            campaign.status === CampaignStatus.PENDING_REVIEW
-        )
-        .reduce((sum, campaign) => sum + (campaign.budget ?? 0), 0),
-    [campaigns]
-  )
-  const reserveTarget = Math.round(activeCommitment * 0.2)
-  const currentBalance = wallet?.balance ?? 0
-  const recommendedTopUp = Math.max(0, activeCommitment + reserveTarget - currentBalance)
-  const roundedRecommendedTopUp = Math.ceil(recommendedTopUp / 1000) * 1000
 
   const exportTransactionsCsv = useCallback(() => {
     if (!transactions.length) return
@@ -209,6 +190,7 @@ export default function PaymentsPage() {
       <DashboardPageShell
         title="Wallet & Payments"
         subtitle="Manage wallet balance, campaign allocations, and payout transactions."
+        contentClassName="space-y-5 lg:space-y-6"
         actionBar={
           <ActionBar
             title="Funding controls"
@@ -243,7 +225,7 @@ export default function PaymentsPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <div className="flex gap-4 items-end">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
               <div className="flex-1">
                 <label className="text-sm text-gray-600 mb-2 block">Amount (INR)</label>
                 <Input
@@ -260,7 +242,7 @@ export default function PaymentsPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">Minimum: INR 1,000</p>
               </div>
-              <Button onClick={handleAddFunds} disabled={isProcessing}>
+              <Button onClick={handleAddFunds} disabled={isProcessing} className="sm:shrink-0">
                 {isProcessing ? 'Processing...' : `Pay ${formatCurrency(amount)}`}
               </Button>
               <Button
@@ -270,40 +252,13 @@ export default function PaymentsPage() {
                   setError(null)
                 }}
                 disabled={isProcessing}
+                className="sm:shrink-0"
               >
                 Cancel
               </Button>
             </div>
           </Card>
         )}
-
-        <Card className="border-amber-200 bg-amber-50 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-amber-700">Funding recommendation</p>
-              <h3 className="mt-1 text-lg font-semibold text-amber-900">
-                {roundedRecommendedTopUp > 0
-                  ? `Add ${formatCurrency(roundedRecommendedTopUp)} to avoid campaign blockers`
-                  : 'Wallet coverage is healthy for current campaign commitments'}
-              </h3>
-              <p className="mt-1 text-sm text-amber-800">
-                Active + in-review commitments: {formatCurrency(activeCommitment)} | Reserve target:{' '}
-                {formatCurrency(reserveTarget)}
-              </p>
-            </div>
-            {roundedRecommendedTopUp > 0 ? (
-              <Button
-                onClick={() => {
-                  setAmount(roundedRecommendedTopUp)
-                  setShowAddFunds(true)
-                  setError(null)
-                }}
-              >
-                Fund recommended amount
-              </Button>
-            ) : null}
-          </div>
-        </Card>
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="border-2 border-primary/50 bg-gradient-to-br from-blue-50 to-white p-6">
