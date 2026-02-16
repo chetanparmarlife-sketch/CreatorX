@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   TrendingUp,
@@ -27,6 +27,7 @@ import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusChip } from '@/components/shared/status-chip'
 import { CampaignStatus, Transaction } from '@/lib/types'
+import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 
 interface StatCard {
   icon: React.ComponentType<{ className?: string }>
@@ -48,11 +49,22 @@ interface RecentActivity {
 }
 
 interface QuickActionItem {
+  id: string
   title: string
   description: string
   href: string
   icon: React.ComponentType<{ className?: string }>
   className?: string
+}
+
+interface PriorityItem {
+  id: string
+  label: string
+  value: number
+  tone: string
+  severity: 'blocked' | 'needs_action' | 'on_track'
+  ctaLabel: string
+  href: string
 }
 
 const formatCurrency = (value: number) =>
@@ -140,47 +152,104 @@ export default function DashboardPage() {
   const lifecycleProgress = campaigns.length
     ? Math.round(((activeCampaigns.length + completedCampaigns.length) / campaigns.length) * 100)
     : 0
-  const reviewLoadPercent = campaigns.length ? (reviewQueue / campaigns.length) * 100 : 0
-  const deliverableLoadPercent = deliverables.length
-    ? (deliverablesQueue / deliverables.length) * 100
-    : 0
   const creatorCoveragePercent = creatorsTotal ? (creatorsTotal / 24) * 100 : 0
 
-  const priorityItems = [
-    { label: 'Review campaigns', value: reviewCampaigns.length, tone: 'bg-amber-500' },
-    { label: 'Approve deliverables', value: pendingApprovals, tone: 'bg-blue-500' },
-    { label: 'Resolve revisions', value: revisionsRequested, tone: 'bg-rose-500' },
+  const approvedDeliverables = deliverableCounts.APPROVED || 0
+  const reviewResolutionPercent = deliverables.length
+    ? Math.round((approvedDeliverables / deliverables.length) * 100)
+    : 0
+
+  const priorityItems: PriorityItem[] = [
+    {
+      id: 'review_campaigns',
+      label: 'Review campaigns',
+      value: reviewCampaigns.length,
+      tone: 'bg-amber-500',
+      severity: reviewCampaigns.length > 0 ? 'needs_action' : 'on_track',
+      ctaLabel: reviewCampaigns.length > 0 ? 'Review now' : 'Open campaigns',
+      href: '/campaigns',
+    },
+    {
+      id: 'approve_deliverables',
+      label: 'Approve deliverables',
+      value: pendingApprovals,
+      tone: 'bg-blue-500',
+      severity: pendingApprovals > 0 ? 'needs_action' : 'on_track',
+      ctaLabel: pendingApprovals > 0 ? 'Approve now' : 'Open queue',
+      href: '/deliverables',
+    },
+    {
+      id: 'resolve_revisions',
+      label: 'Resolve revisions',
+      value: revisionsRequested,
+      tone: 'bg-rose-500',
+      severity: revisionsRequested > 0 ? 'blocked' : 'on_track',
+      ctaLabel: revisionsRequested > 0 ? 'Resolve now' : 'View queue',
+      href: '/deliverables',
+    },
   ]
   const topPriorityValue = Math.max(...priorityItems.map((item) => item.value), 1)
   const totalPriorityItems = priorityItems.reduce((sum, item) => sum + item.value, 0)
+  const portfolioHealthTone =
+    totalPriorityItems > 0 || budgetUtilization > 85 ? 'needs_action' : 'approved'
+
+  const { track } = useBrandEventTracker({
+    pendingDeliverablesCount: pendingApprovals,
+    walletBalance: walletData?.balance ?? null,
+  })
+  const hasTrackedDashboardView = useRef(false)
 
   const quickActions: QuickActionItem[] = [
     {
+      id: 'create_campaign',
       title: 'Create campaign',
       description: 'Launch a new brief, budget, and creator scope.',
-      href: '/campaigns/new',
+      href: '/campaigns/new?source=dashboard',
       icon: Rocket,
       className: 'border-emerald-200/70 bg-emerald-50 text-emerald-900',
     },
     {
+      id: 'find_creators',
       title: 'Find creators',
       description: 'Source vetted creators for your next campaign.',
       href: '/creators',
       icon: Search,
     },
     {
+      id: 'process_payments',
       title: 'Process payments',
       description: 'Fund wallet and release creator payouts.',
       href: '/payments',
       icon: CreditCard,
     },
     {
+      id: 'view_reports',
       title: 'View reports',
       description: 'Check campaign performance and spend health.',
       href: '/campaigns',
       icon: BarChart3,
     },
   ]
+
+  useEffect(() => {
+    if (hasTrackedDashboardView.current) return
+    hasTrackedDashboardView.current = true
+
+    track('dashboard_viewed', {
+      total_campaigns: campaigns.length,
+      active_campaigns: activeCampaigns.length,
+      review_queue: reviewQueue,
+      deliverables_queue: deliverablesQueue,
+      wallet_balance: walletData?.balance ?? null,
+    })
+  }, [
+    activeCampaigns.length,
+    campaigns.length,
+    deliverablesQueue,
+    reviewQueue,
+    track,
+    walletData?.balance,
+  ])
 
   const recentActivities = useMemo(() => {
     const campaignActivities: RecentActivity[] = campaigns
@@ -229,25 +298,23 @@ export default function DashboardPage() {
     },
     {
       icon: TrendingUp,
-      label: 'Deliverables Queue',
-      value: String(deliverablesQueue),
-      helper: revisionsRequested ? `${revisionsRequested} require revision` : 'No blocked items',
-      changeType: revisionsRequested ? 'negative' : 'positive',
+      label: 'Review Throughput',
+      value: `${reviewResolutionPercent}%`,
+      helper: `${approvedDeliverables} approved deliverables`,
+      changeType: reviewResolutionPercent >= 50 ? 'positive' : 'negative',
       color: 'bg-teal-100 text-teal-700',
-      meterPercent: deliverableLoadPercent,
-      meterTone: revisionsRequested ? 'bg-rose-500' : 'bg-teal-500',
+      meterPercent: reviewResolutionPercent,
+      meterTone: reviewResolutionPercent >= 50 ? 'bg-teal-500' : 'bg-rose-500',
     },
     {
-      icon: IndianRupee,
-      label: 'Budget Utilization',
-      value: `${budgetUtilization}%`,
-      helper: totalBudget
-        ? `${formatCurrency(totalSpend)} / ${formatCurrency(totalBudget)}`
-        : 'Set campaign budgets to track pacing',
-      changeType: budgetUtilization > 80 ? 'negative' : 'positive',
+      icon: Calendar,
+      label: 'Completion Pace',
+      value: `${lifecycleProgress}%`,
+      helper: `${completedCampaigns.length} campaigns completed`,
+      changeType: lifecycleProgress >= 50 ? 'positive' : 'negative',
       color: 'bg-slate-900 text-slate-100',
-      meterPercent: budgetUtilization,
-      meterTone: budgetUtilization > 80 ? 'bg-rose-500' : 'bg-blue-500',
+      meterPercent: lifecycleProgress,
+      meterTone: lifecycleProgress >= 50 ? 'bg-blue-500' : 'bg-amber-500',
     },
   ]
 
@@ -301,7 +368,15 @@ export default function DashboardPage() {
             {formatCurrency(walletData.balance)} remaining.{' '}
             <button
               className="underline underline-offset-2 font-medium hover:text-amber-900"
-              onClick={() => router.push('/payments')}
+              onClick={() => {
+                track('priority_card_clicked', {
+                  priority_id: 'low_wallet_balance',
+                  priority_label: 'Low wallet balance',
+                  severity: 'blocked',
+                  destination: '/payments',
+                })
+                router.push('/payments')
+              }}
             >
               Add funds
             </button>
@@ -315,118 +390,83 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <span className="hero-chip">Live brand pulse</span>
-              <h2 className="max-w-2xl text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
-                Keep every campaign moving with clarity and momentum.
+              <h2 className="max-w-xl text-xl font-semibold leading-tight text-slate-900 md:text-2xl">
+                Focus only on what needs action today.
               </h2>
               <p className="text-sm text-slate-600">
-                A fast read on spend, creator activity, and deliverables so you can act before
-                the week gets busy.
+                Priority queue, wallet status, and campaign health in one compact control panel.
               </p>
             </div>
+
             <div className="hero-actions">
-              <button className="hero-primary" onClick={() => router.push('/campaigns/new')}>
+              <button
+                className="hero-primary"
+                onClick={() => {
+                  track('quick_action_clicked', {
+                    action_id: 'launch_campaign_hero',
+                    action_title: 'Launch campaign',
+                    destination: '/campaigns/new?source=dashboard',
+                  })
+                  router.push('/campaigns/new?source=dashboard')
+                }}
+              >
                 Launch campaign
               </button>
-              <button className="hero-secondary" onClick={() => router.push('/campaigns')}>
+              <button
+                className="hero-secondary"
+                onClick={() => {
+                  track('quick_action_clicked', {
+                    action_id: 'view_performance_hero',
+                    action_title: 'View performance',
+                    destination: '/campaigns',
+                  })
+                  router.push('/campaigns')
+                }}
+              >
                 View performance
               </button>
             </div>
-            <div className="insight-strip">
-              <div className="insight-pill">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Budget utilization</p>
-                    <p className="mt-1 text-xl font-semibold text-slate-900">{budgetUtilization}%</p>
-                  </div>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                    <IndianRupee className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className={`h-full rounded-full ${
-                      budgetUtilization > 80 ? 'bg-rose-500' : 'bg-blue-500'
-                    }`}
-                    style={{ width: `${visualPercent(budgetUtilization)}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-slate-500">Spend vs total budget</p>
-              </div>
-              <div className="insight-pill">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Review queue</p>
-                    <p className="mt-1 text-xl font-semibold text-slate-900">{reviewQueue}</p>
-                  </div>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                    <Calendar className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-amber-500"
-                    style={{ width: `${visualPercent(reviewLoadPercent)}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-slate-500">Draft + in review campaigns</p>
-              </div>
-              <div className="insight-pill">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Deliverables queue</p>
-                    <p className="mt-1 text-xl font-semibold text-slate-900">{deliverablesQueue}</p>
-                  </div>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
-                    <TrendingUp className="h-4 w-4" />
-                  </div>
-                </div>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className={`h-full rounded-full ${
-                      revisionsRequested ? 'bg-rose-500' : 'bg-teal-500'
-                    }`}
-                    style={{ width: `${visualPercent(deliverableLoadPercent)}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-slate-500">Awaiting approval or revisions</p>
-              </div>
-            </div>
-          </div>
-          <div className="hero-panel space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Wallet health</p>
-                <p className="mt-1 text-xl font-semibold text-slate-900">
-                  {formatCurrency(walletData?.balance ?? 0)}
-                </p>
-              </div>
-              <div
-                className="relative h-11 w-11 rounded-full p-1"
-                style={{
-                  background: `conic-gradient(${
-                    budgetUtilization > 80
-                      ? 'rgba(244, 63, 94, 0.9)'
-                      : budgetUtilization > 55
-                        ? 'rgba(245, 158, 11, 0.9)'
-                        : 'rgba(37, 99, 235, 0.9)'
-                  } ${budgetUtilization}%, rgba(226, 232, 240, 0.95) ${budgetUtilization}% 100%)`,
-                }}
-              >
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                  <Wallet className="h-4 w-4 text-primary" />
-                </div>
-              </div>
-            </div>
+
             <div className="rounded-xl border border-slate-200/70 bg-white/90 p-3">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Immediate priorities</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Priority queue</p>
+                <StatusChip
+                  tone={totalPriorityItems > 0 ? 'needs_action' : 'approved'}
+                  size="compact"
+                >
+                  {totalPriorityItems > 0 ? `${totalPriorityItems} open` : 'All clear'}
+                </StatusChip>
+              </div>
               <div className="mt-2 space-y-2 text-sm text-slate-600">
                 {priorityItems.map((item) => (
-                  <div key={item.label} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span>{item.label}</span>
-                      <span className="font-semibold text-slate-900">{item.value}</span>
+                  <div key={item.id} className="rounded-lg border border-slate-200/70 bg-white p-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-slate-900">{item.label}</div>
+                        <div className="mt-0.5 text-xs text-slate-500">
+                          {item.value > 0 ? `${item.value} pending` : 'No pending items'}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-semibold text-slate-900">{item.value}</span>
+                        <button
+                          className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:border-primary/40 hover:text-primary"
+                          onClick={() => {
+                            track('priority_card_clicked', {
+                              priority_id: item.id,
+                              priority_label: item.label,
+                              severity: item.severity,
+                              pending_items: item.value,
+                              destination: item.href,
+                            })
+                            router.push(item.href)
+                          }}
+                        >
+                          {item.ctaLabel}
+                        </button>
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                       <div
                         className={`h-full rounded-full ${item.tone}`}
                         style={{
@@ -438,29 +478,59 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-2">
-                <StatusChip tone={totalPriorityItems > 0 ? 'needs_action' : 'approved'} size="compact">
-                  {totalPriorityItems > 0 ? `${totalPriorityItems} items need follow-up` : 'No urgent blockers'}
-                </StatusChip>
+            </div>
+          </div>
+
+          <div className="hero-panel space-y-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Portfolio health</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Campaign execution, budget pacing, and liquidity readiness.
+                </p>
+              </div>
+              <StatusChip tone={portfolioHealthTone} size="compact">
+                {portfolioHealthTone === 'approved' ? 'On track' : 'Needs attention'}
+              </StatusChip>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-slate-200/70 bg-white p-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Live campaigns</p>
+                <p className="mt-1 text-xl font-semibold text-slate-900">{activeCampaigns.length}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Wallet</p>
+                <p className="mt-1 text-xl font-semibold text-slate-900">
+                  {formatCurrency(walletData?.balance ?? 0)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Budget used</p>
+                <p className="mt-1 text-xl font-semibold text-slate-900">{budgetUtilization}%</p>
+              </div>
+              <div className="rounded-lg border border-slate-200/70 bg-white p-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Avg engagement</p>
+                <p className="mt-1 text-xl font-semibold text-slate-900">{averageEngagement}%</p>
               </div>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/90 p-3">
-              <div className="flex items-center justify-between text-sm">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Creator momentum</p>
-                <StatusChip tone={averageEngagement >= 3 ? 'approved' : 'pending'} size="compact">
-                  {averageEngagement >= 3 ? 'Healthy' : 'Needs boost'}
-                </StatusChip>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
-                <span>Listed creators</span>
-                <span className="font-semibold text-slate-900">{creatorsTotal}</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-emerald-500"
-                  style={{ width: `${visualPercent(creatorCoveragePercent)}%` }}
-                />
-              </div>
+
+            <div className="flex items-center justify-between rounded-lg border border-slate-200/70 bg-white p-3 text-sm">
+              <span className="text-slate-600">Funding readiness</span>
+              <button
+                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-primary/40 hover:text-primary"
+                onClick={() => {
+                  track('priority_card_clicked', {
+                    priority_id: 'funding_readiness',
+                    priority_label: 'Funding readiness',
+                    severity: walletData && walletData.balance < LOW_BALANCE_THRESHOLD ? 'blocked' : 'on_track',
+                    destination: '/payments',
+                  })
+                  router.push('/payments')
+                }}
+              >
+                {walletData && walletData.balance < LOW_BALANCE_THRESHOLD ? 'Fund wallet' : 'View wallet'}
+              </button>
             </div>
           </div>
         </div>
@@ -505,7 +575,14 @@ export default function DashboardPage() {
           >
             <button
               className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:border-amber-200/80"
-              onClick={() => router.push('/campaigns')}
+              onClick={() => {
+                track('quick_action_clicked', {
+                  action_id: 'view_campaigns_lifecycle',
+                  action_title: 'View campaigns',
+                  destination: '/campaigns',
+                })
+                router.push('/campaigns')
+              }}
             >
               View campaigns
             </button>
@@ -604,7 +681,14 @@ export default function DashboardPage() {
                 <button
                   key={action.title}
                   className={`quick-action ${action.className ?? ''}`}
-                  onClick={() => router.push(action.href)}
+                  onClick={() => {
+                    track('quick_action_clicked', {
+                      action_id: action.id,
+                      action_title: action.title,
+                      destination: action.href,
+                    })
+                    router.push(action.href)
+                  }}
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">

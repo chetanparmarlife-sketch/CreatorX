@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -42,6 +42,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useBrandWallet, useAllocateToCampaign } from '@/lib/hooks/use-wallet'
+import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 
 // Categories
 const categories = [
@@ -189,6 +190,7 @@ const STEPS = [
 
 export default function NewCampaignPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -200,6 +202,10 @@ export default function NewCampaignPage() {
   const { data: templates = [] } = useTemplates()
   const { data: wallet, refetch: refetchWallet } = useBrandWallet()
   const allocateMutation = useAllocateToCampaign()
+  const { track } = useBrandEventTracker({
+    walletBalance: wallet?.balance ?? null,
+  })
+  const source = searchParams.get('source')
 
   const formatApiError = (error: unknown, fallback: string) => {
     if (!error || typeof error !== 'object') return fallback
@@ -388,6 +394,15 @@ export default function NewCampaignPage() {
 
       const created = await createCampaign.mutateAsync(campaignData)
       setCreatedCampaign(created)
+
+      if (source === 'dashboard') {
+        track('campaign_created_from_dashboard', {
+          campaign_id: created.id,
+          campaign_budget: created.budget,
+          campaign_platform: created.platform,
+          deliverables_count: deliverables.length,
+        })
+      }
 
       // Campaign created successfully - now check wallet balance
       // Fetch latest wallet balance

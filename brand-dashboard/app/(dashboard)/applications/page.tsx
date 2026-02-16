@@ -6,6 +6,8 @@ import { applicationService } from '@/lib/api/applications'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusChip } from '@/components/shared/status-chip'
+import { ActionBar } from '@/components/shared/action-bar'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { PageHeader } from '@/components/shared/page-header'
 import { TableSkeleton } from '@/components/shared/skeleton'
 
 const statusToneMap: Record<string, 'approved' | 'needs_action' | 'blocked' | 'pending' | 'info'> = {
@@ -34,7 +35,7 @@ export default function BrandApplicationsPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [rejectApplicationId, setRejectApplicationId] = useState<string | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['brand-applications', page],
     queryFn: () => applicationService.getBrandApplications(page, 20),
   })
@@ -65,14 +66,14 @@ export default function BrandApplicationsPage() {
   })
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Applications"
-        subtitle="Review creator applications across all campaigns in one queue."
-      />
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
+    <DashboardPageShell
+      title="Applications"
+      subtitle="Review, shortlist, and resolve creator applications in one operational queue."
+      actionBar={
+        <ActionBar
+          title="Queue controls"
+          description="Filter by status and process decisions without leaving this screen."
+        >
           <select
             className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
             value={status}
@@ -84,83 +85,84 @@ export default function BrandApplicationsPage() {
               </option>
             ))}
           </select>
-        </div>
-
-        {isLoading ? (
-          <TableSkeleton rows={6} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="py-2 pr-4">Creator</th>
-                  <th className="py-2 pr-4">Campaign</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Applied</th>
-                  <th className="py-2 pr-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="text-slate-700">
-                {filteredItems.length ? (
-                  filteredItems.map((application: any) => (
-                    <tr key={application.id} className="border-t border-slate-100">
-                      <td className="py-3 pr-4">
-                        <p className="font-medium text-slate-900">
-                          {application.creator?.profile?.fullName || application.creator?.email || 'Creator'}
-                        </p>
-                        <p className="text-xs text-slate-500">{application.creator?.email || application.creatorId}</p>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <p className="text-sm text-slate-900">{application.campaign?.title || 'Campaign'}</p>
-                        <p className="text-xs text-slate-500">{application.campaignId}</p>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <StatusChip tone={statusToneMap[application.status] || 'info'} size="compact">
-                          {application.status}
-                        </StatusChip>
-                      </td>
-                      <td className="py-3 pr-4">
-                        {application.appliedAt ? new Date(application.appliedAt).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td className="py-3 pr-4 text-right space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => statusMutation.mutate({ id: application.id, nextStatus: 'SHORTLISTED' })}
-                        >
-                          Shortlist
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => statusMutation.mutate({ id: application.id, nextStatus: 'SELECTED' })}
-                        >
-                          Select
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setRejectApplicationId(application.id)
-                            setRejectDialogOpen(true)
-                          }}
-                        >
-                          Reject
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500">
-                      No applications found for this status.
+        </ActionBar>
+      }
+      loading={isLoading}
+      loadingFallback={<TableSkeleton rows={6} />}
+      errorMessage={isError ? 'Failed to load applications. Please try again.' : undefined}
+    >
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase text-slate-500">
+              <tr>
+                <th className="py-2 pr-4">Creator</th>
+                <th className="py-2 pr-4">Campaign</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Applied</th>
+                <th className="py-2 pr-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-700">
+              {filteredItems.length ? (
+                filteredItems.map((application: any) => (
+                  <tr key={application.id} className="border-t border-slate-100">
+                    <td className="py-3 pr-4">
+                      <p className="font-medium text-slate-900">
+                        {application.creator?.profile?.fullName || application.creator?.email || 'Creator'}
+                      </p>
+                      <p className="text-xs text-slate-500">{application.creator?.email || application.creatorId}</p>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <p className="text-sm text-slate-900">{application.campaign?.title || 'Campaign'}</p>
+                      <p className="text-xs text-slate-500">{application.campaignId}</p>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <StatusChip tone={statusToneMap[application.status] || 'info'} size="compact">
+                        {application.status}
+                      </StatusChip>
+                    </td>
+                    <td className="py-3 pr-4">
+                      {application.appliedAt ? new Date(application.appliedAt).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="py-3 pr-4 text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => statusMutation.mutate({ id: application.id, nextStatus: 'SHORTLISTED' })}
+                      >
+                        Shortlist
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => statusMutation.mutate({ id: application.id, nextStatus: 'SELECTED' })}
+                      >
+                        Select
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRejectApplicationId(application.id)
+                          setRejectDialogOpen(true)
+                        }}
+                      >
+                        Reject
+                      </Button>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-slate-500">
+                    No applications found for this status.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         <div className="flex items-center justify-between text-sm text-slate-500">
           <span>Page {page + 1} of {totalPages}</span>
@@ -197,6 +199,6 @@ export default function BrandApplicationsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   )
 }

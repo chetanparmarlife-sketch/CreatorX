@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus } from 'lucide-react'
-import { PageHeader } from '@/components/shared/page-header'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { TableSkeleton } from '@/components/shared/skeleton'
@@ -12,6 +11,8 @@ import { useCreateTemplateFromCampaign } from '@/lib/hooks/use-templates'
 import { QueueToolbar } from '@/components/shared/queue-toolbar'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
+import { ActionBar } from '@/components/shared/action-bar'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { Campaign, CampaignStatus, CampaignPlatform } from '@/lib/types'
 import { FundingStatusBadge } from '@/components/campaigns/funding-status-badge'
 
@@ -32,12 +33,12 @@ const lifecycleTabs: LifecycleTab[] = [
 ]
 
 const nextActionByStatus: Record<CampaignStatus, string> = {
-  DRAFT: 'Finish details and submit',
-  PENDING_REVIEW: 'Awaiting approval',
+  DRAFT: 'Submit for review',
+  PENDING_REVIEW: 'Review in progress',
   ACTIVE: 'Review deliverables',
-  PAUSED: 'Resume or update settings',
+  PAUSED: 'Resume campaign',
   COMPLETED: 'Review performance',
-  CANCELLED: 'Archived',
+  CANCELLED: 'Archive',
 }
 
 const formatCurrency = (value: number) =>
@@ -75,6 +76,7 @@ export default function CampaignsPage() {
     useState<(typeof platformOptions)[number]>('All')
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([])
   const [previewCampaign, setPreviewCampaign] = useState<Campaign | null>(null)
+  const [bulkResult, setBulkResult] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const updateCampaign = useUpdateCampaign()
   const createTemplate = useCreateTemplateFromCampaign()
 
@@ -87,7 +89,10 @@ export default function CampaignsPage() {
   )
 
   const campaigns = useMemo(() => data?.items ?? [], [data?.items])
-  const lifecycleStatuses: readonly CampaignStatus[] = lifecycleTabs.find((tab) => tab.id === activeLifecycleTab)?.statuses ?? []
+  const lifecycleStatuses = useMemo<readonly CampaignStatus[]>(
+    () => lifecycleTabs.find((tab) => tab.id === activeLifecycleTab)?.statuses ?? [],
+    [activeLifecycleTab]
+  )
   const filteredCampaigns = useMemo(
     () => campaigns.filter((campaign) => lifecycleStatuses.includes(campaign.status)),
     [campaigns, lifecycleStatuses]
@@ -107,87 +112,126 @@ export default function CampaignsPage() {
   }
 
   const handleBulkSubmit = async () => {
+    setBulkResult(null)
     const draftCampaigns = selectedCampaigns.filter((campaign) => campaign.status === CampaignStatus.DRAFT)
+    if (draftCampaigns.length === 0) return
+    const shouldContinue = window.confirm(
+      `Submit ${draftCampaigns.length} draft campaign(s) for review?`
+    )
+    if (!shouldContinue) return
+
+    let successCount = 0
+    let failedCount = 0
     await Promise.all(
-      draftCampaigns.map((campaign) =>
-        updateCampaign.mutateAsync({
-          id: String(campaign.id),
-          data: { status: CampaignStatus.PENDING_REVIEW },
-        })
+      draftCampaigns.map(async (campaign) => {
+        try {
+          await updateCampaign.mutateAsync({
+            id: String(campaign.id),
+            data: { status: CampaignStatus.PENDING_REVIEW },
+          })
+          successCount += 1
+        } catch {
+          failedCount += 1
+        }
       )
     )
     setSelectedCampaignIds([])
+    setBulkResult({
+      tone: failedCount > 0 ? 'error' : 'success',
+      message:
+        failedCount > 0
+          ? `Submitted ${successCount} draft(s), ${failedCount} failed.`
+          : `Submitted ${successCount} draft(s) for review.`,
+    })
   }
 
   const handleBulkTemplate = async () => {
+    setBulkResult(null)
     const templateCampaigns = selectedCampaigns.filter((campaign) => campaign.status !== CampaignStatus.DRAFT)
+    if (templateCampaigns.length === 0) return
+    const shouldContinue = window.confirm(
+      `Save ${templateCampaigns.length} campaign(s) as reusable templates?`
+    )
+    if (!shouldContinue) return
+
+    let successCount = 0
+    let failedCount = 0
     await Promise.all(
-      templateCampaigns.map((campaign) => createTemplate.mutateAsync(String(campaign.id)))
+      templateCampaigns.map(async (campaign) => {
+        try {
+          await createTemplate.mutateAsync(String(campaign.id))
+          successCount += 1
+        } catch {
+          failedCount += 1
+        }
+      })
     )
     setSelectedCampaignIds([])
+    setBulkResult({
+      tone: failedCount > 0 ? 'error' : 'success',
+      message:
+        failedCount > 0
+          ? `Saved ${successCount} template(s), ${failedCount} failed.`
+          : `Saved ${successCount} campaign template(s).`,
+    })
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Campaigns"
-        subtitle="Plan, launch, and optimize campaigns across each lifecycle stage."
-        ctaLabel="Create Campaign"
-        onCtaClick={() => router.push('/campaigns/new')}
-      />
-
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
-        <div>
-          <p className="text-sm font-medium text-slate-900">Quick actions</p>
-          <p className="text-xs text-slate-500">Jump to the next step in your campaign lifecycle.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => router.push('/campaigns/new')}>
-            <Plus className="mr-2 h-4 w-4" />
-            New campaign
-          </Button>
-          <Button variant="outline" onClick={() => router.push('/deliverables')}>
-            Review deliverables
-          </Button>
-          <Button variant="outline" onClick={() => router.push('/campaigns/templates')}>
-            Templates
-          </Button>
-        </div>
-      </div>
-
-      <div className="mb-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search campaigns..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11 bg-white border-gray-300 w-full"
-            />
-          </div>
-          <Button variant="outline" onClick={() => router.push('/campaigns/templates')}>
-            Manage Templates
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={platformFilter}
-            onChange={(event) =>
-              setPlatformFilter(event.target.value as typeof platformFilter)
-            }
-            className="h-11 rounded-lg border border-input bg-white px-3 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+    <DashboardPageShell
+      title="Campaigns"
+      subtitle="Plan, launch, and optimize campaigns across each lifecycle stage."
+      ctaLabel="Create Campaign"
+      onCtaClick={() => router.push('/campaigns/new')}
+      actionBar={
+        <div className="space-y-3">
+          <ActionBar
+            title="Quick actions"
+            description="Move campaigns faster with direct operation shortcuts."
           >
-            {platformOptions.map((platform) => (
-              <option key={platform} value={platform}>
-                {platform === 'All' ? 'All Platforms' : platform}
-              </option>
-            ))}
-          </select>
+            <Button onClick={() => router.push('/campaigns/new')}>
+              <Plus className="mr-2 h-4 w-4" />
+              New campaign
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/deliverables')}>
+              Review deliverables
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/campaigns/templates')}>
+              Templates
+            </Button>
+          </ActionBar>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search campaigns..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-11 bg-white border-gray-300 w-full"
+              />
+            </div>
+            <Button variant="outline" onClick={() => router.push('/campaigns/templates')}>
+              Manage Templates
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <select
+              value={platformFilter}
+              onChange={(event) =>
+                setPlatformFilter(event.target.value as typeof platformFilter)
+              }
+              className="h-11 rounded-lg border border-input bg-white px-3 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {platformOptions.map((platform) => (
+                <option key={platform} value={platform}>
+                  {platform === 'All' ? 'All Platforms' : platform}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      }
+    >
 
       <div className="mb-6 flex flex-wrap gap-2">
         {lifecycleTabs.map((tab) => {
@@ -211,9 +255,21 @@ export default function CampaignsPage() {
         })}
       </div>
 
+      {bulkResult ? (
+        <div
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            bulkResult.tone === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          {bulkResult.message}
+        </div>
+      ) : null}
+
       <QueueToolbar
         title="Campaign queue"
-        description="Select campaigns to apply bulk actions."
+        description="Use bulk actions to submit, template, and move campaigns faster."
         selectedCount={selectedCampaignIds.length}
         totalCount={filteredCampaigns.length}
         actions={
@@ -396,6 +452,19 @@ export default function CampaignsPage() {
                             Save Template
                           </Button>
                         )}
+                        {campaign.status !== CampaignStatus.DRAFT && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              router.push(`/campaigns/${campaign.id}/analytics`)
+                            }}
+                            className="ml-2"
+                          >
+                            Analytics
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -457,6 +526,6 @@ export default function CampaignsPage() {
           </aside>
         </div>
       )}
-    </div>
+    </DashboardPageShell>
   )
 }

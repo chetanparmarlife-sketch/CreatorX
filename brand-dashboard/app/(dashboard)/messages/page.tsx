@@ -18,7 +18,8 @@ import {
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/shared/page-header'
+import { ActionBar } from '@/components/shared/action-bar'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { useAuthStore } from '@/lib/store/auth-store'
 import { cn } from '@/lib/utils/cn'
 import { messageService } from '@/lib/api/messages'
@@ -151,7 +152,7 @@ function ConversationList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search influencer or campaign..."
+            placeholder="Search creator or campaign..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-10 bg-gray-50 border-gray-200"
@@ -554,12 +555,28 @@ export default function MessagesPage() {
   const showConversationListMobile = !activeConversationId
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Messages"
-        subtitle="Coordinate with creators and keep campaign conversations moving."
-      />
-
+    <DashboardPageShell
+      title="Messages"
+      subtitle="Coordinate with creators and keep campaign conversations moving."
+      actionBar={
+        <ActionBar
+          title="Conversation operations"
+          description="Keep response time low and resolve creator blockers quickly."
+        >
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+              isConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+            }`}
+          >
+            {isConnected ? 'Live sync connected' : 'Reconnecting...'}
+          </span>
+          <Button size="sm" onClick={() => setShowNewConversationModal(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            New conversation
+          </Button>
+        </ActionBar>
+      }
+    >
       <div className="flex h-[calc(100vh-14rem)] w-full overflow-hidden rounded-2xl border border-slate-200/70 bg-[#F7F9FC] shadow-sm">
         <div className={cn(showConversationListMobile ? 'flex w-full' : 'hidden md:flex')}>
           <ConversationList
@@ -592,6 +609,6 @@ export default function MessagesPage() {
         isOpen={showNewConversationModal}
         onClose={() => setShowNewConversationModal(false)}
       />
-    </div>
+    </DashboardPageShell>
   )
 }

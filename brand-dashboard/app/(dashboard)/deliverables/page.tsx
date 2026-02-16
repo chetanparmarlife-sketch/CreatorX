@@ -12,6 +12,7 @@ import { QueueToolbar } from '@/components/shared/queue-toolbar'
 import { EmptyState } from '@/components/shared/empty-state'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { File } from 'lucide-react'
+import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 import {
   Dialog,
   DialogContent,
@@ -88,11 +89,13 @@ const getDueStatus = (deliverable: DeliverableItem) => {
 
 export default function DeliverablesOverviewPage() {
   const [statusFilter, setStatusFilter] = useState<DeliverableReviewStatus | 'ALL'>('ALL')
+  const [dueFilter, setDueFilter] = useState<'ALL' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'NO_DUE_DATE'>('ALL')
   const [reviewDeliverable, setReviewDeliverable] = useState<DeliverableItem | null>(null)
   const [reviewStatus, setReviewStatus] = useState<DeliverableReviewStatus>('APPROVED')
   const [feedback, setFeedback] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isBulkReviewing, setIsBulkReviewing] = useState(false)
+  const [bulkResult, setBulkResult] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading, error } = useQuery({
@@ -116,6 +119,9 @@ export default function DeliverablesOverviewPage() {
     () => pendingPage?.total ?? pendingPage?.items?.length ?? 0,
     [pendingPage]
   )
+  const { track } = useBrandEventTracker({
+    pendingDeliverablesCount: pendingCount,
+  })
   const dueSummary = useMemo(() => {
     return deliverables.reduce(
       (acc, deliverable) => {
@@ -127,9 +133,44 @@ export default function DeliverablesOverviewPage() {
       { overdue: 0, dueSoon: 0 }
     )
   }, [deliverables])
+  const visibleDeliverables = useMemo(() => {
+    if (dueFilter === 'ALL') return deliverables
+    return deliverables.filter((deliverable) => {
+      const dueStatus = getDueStatus(deliverable)
+      if (dueFilter === 'OVERDUE') return dueStatus === 'overdue'
+      if (dueFilter === 'DUE_SOON') return dueStatus === 'due_soon'
+      if (dueFilter === 'ON_TRACK') return dueStatus === 'on_track'
+      return dueStatus === 'none'
+    })
+  }, [deliverables, dueFilter])
+  const groupedDeliverables = useMemo(
+    () => [
+      {
+        id: 'overdue',
+        label: 'Overdue',
+        items: visibleDeliverables.filter((deliverable) => getDueStatus(deliverable) === 'overdue'),
+      },
+      {
+        id: 'due_soon',
+        label: 'Due soon',
+        items: visibleDeliverables.filter((deliverable) => getDueStatus(deliverable) === 'due_soon'),
+      },
+      {
+        id: 'on_track',
+        label: 'On track',
+        items: visibleDeliverables.filter((deliverable) => getDueStatus(deliverable) === 'on_track'),
+      },
+      {
+        id: 'none',
+        label: 'No due date',
+        items: visibleDeliverables.filter((deliverable) => getDueStatus(deliverable) === 'none'),
+      },
+    ].filter((group) => group.items.length > 0),
+    [visibleDeliverables]
+  )
   const pendingDeliverables = useMemo(
-    () => deliverables.filter((deliverable) => deliverable.status === 'PENDING'),
-    [deliverables]
+    () => visibleDeliverables.filter((deliverable) => deliverable.status === 'PENDING'),
+    [visibleDeliverables]
   )
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
@@ -158,6 +199,12 @@ export default function DeliverablesOverviewPage() {
   })
 
   const openReview = (deliverable: DeliverableItem, status: DeliverableReviewStatus) => {
+    track('deliverable_review_started', {
+      deliverable_id: deliverable.id,
+      campaign_id: deliverable.campaignId || null,
+      current_status: deliverable.status || 'PENDING',
+      review_target_status: status,
+    })
     setReviewDeliverable(deliverable)
     setReviewStatus(status)
     setFeedback('')
@@ -165,15 +212,41 @@ export default function DeliverablesOverviewPage() {
 
   const handleBulkReview = async (status: DeliverableReviewStatus) => {
     if (selectedIds.length === 0) return
+    setBulkResult(null)
     setIsBulkReviewing(true)
+    let successCount = 0
+    let failedCount = 0
     try {
       await Promise.all(
-        selectedIds.map((id) => reviewMutation.mutateAsync({ id, status, feedbackText: '' }))
+        selectedIds.map(async (id) => {
+          try {
+            await reviewMutation.mutateAsync({ id, status, feedbackText: '' })
+            successCount += 1
+          } catch {
+            failedCount += 1
+          }
+        })
       )
       setSelectedIds([])
+      setBulkResult({
+        tone: failedCount > 0 ? 'error' : 'success',
+        message:
+          failedCount > 0
+            ? `Updated ${successCount} deliverable(s), ${failedCount} failed.`
+            : `Updated ${successCount} deliverable(s).`,
+      })
     } finally {
       setIsBulkReviewing(false)
     }
+  }
+
+  const submitCurrentReview = () => {
+    if (!reviewDeliverable) return
+    reviewMutation.mutate({
+      id: reviewDeliverable.id,
+      status: reviewStatus,
+      feedbackText: feedback.trim(),
+    })
   }
 
   return (
@@ -185,9 +258,9 @@ export default function DeliverablesOverviewPage() {
 
       <QueueToolbar
         title="Deliverable queue"
-        description="Use bulk actions to clear the review backlog."
+        description="Group by due state and use bulk actions to clear backlog quickly."
         selectedCount={selectedIds.length}
-        totalCount={deliverables.length}
+        totalCount={visibleDeliverables.length}
         slaSummary={{
           label: 'Due soon',
           value: `${dueSummary.dueSoon} | Overdue ${dueSummary.overdue}`,
@@ -205,6 +278,19 @@ export default function DeliverablesOverviewPage() {
                   {option.label}
                 </option>
               ))}
+            </select>
+            <select
+              value={dueFilter}
+              onChange={(event) =>
+                setDueFilter(event.target.value as 'ALL' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'NO_DUE_DATE')
+              }
+              className="h-11 rounded-lg border border-input bg-white px-3 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="ALL">All due states</option>
+              <option value="OVERDUE">Overdue</option>
+              <option value="DUE_SOON">Due soon</option>
+              <option value="ON_TRACK">On track</option>
+              <option value="NO_DUE_DATE">No due date</option>
             </select>
             {pendingDeliverables.length > 0 && (
               <Button variant="outline" size="sm" onClick={toggleSelectAllPending}>
@@ -234,7 +320,7 @@ export default function DeliverablesOverviewPage() {
               onClick={() => handleBulkReview('REVISION_REQUESTED')}
               disabled={isBulkReviewing}
             >
-              Request changes
+              Request revisions
             </Button>
             <Button
               size="sm"
@@ -247,6 +333,17 @@ export default function DeliverablesOverviewPage() {
           </div>
         </div>
       )}
+      {bulkResult ? (
+        <div
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            bulkResult.tone === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          {bulkResult.message}
+        </div>
+      ) : null}
 
       {isLoading ? (
         <div className="rounded-lg border bg-white p-6 text-sm text-slate-500">
@@ -256,22 +353,29 @@ export default function DeliverablesOverviewPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           Failed to load deliverables. Please try again.
         </div>
-      ) : deliverables.length === 0 ? (
+      ) : visibleDeliverables.length === 0 ? (
         <EmptyState
-          title="No deliverables found"
-          description="New submissions will appear here as creators upload."
+          title="No deliverables in this view"
+          description="Adjust status or due filters to review additional items."
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="rounded-lg border bg-white divide-y">
-            {deliverables.map((deliverable) => {
-              const dueState = getDueState(deliverable)
-              return (
-              <div
-                key={deliverable.id}
-                className="flex flex-wrap items-center gap-4 p-4 cursor-pointer hover:bg-slate-50"
-                onClick={() => setReviewDeliverable(deliverable)}
-              >
+          <div className="rounded-lg border bg-white">
+            {groupedDeliverables.map((group, groupIndex) => (
+              <div key={group.id} className={groupIndex > 0 ? 'border-t border-slate-200' : ''}>
+                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs uppercase tracking-wide text-slate-500">
+                  <span>{group.label}</span>
+                  <span>{group.items.length}</span>
+                </div>
+                <div className="divide-y">
+                  {group.items.map((deliverable) => {
+                    const dueState = getDueState(deliverable)
+                    return (
+                    <div
+                      key={deliverable.id}
+                      className="flex flex-wrap items-center gap-4 p-4 cursor-pointer hover:bg-slate-50"
+                      onClick={() => setReviewDeliverable(deliverable)}
+                    >
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300"
@@ -366,7 +470,7 @@ export default function DeliverablesOverviewPage() {
                   variant="outline"
                   onClick={() => openReview(deliverable, 'REVISION_REQUESTED')}
                 >
-                  Request Changes
+                  Request revision
                 </Button>
                 <Button
                   size="sm"
@@ -381,8 +485,11 @@ export default function DeliverablesOverviewPage() {
                   </Button>
                 ) : null}
               </div>
+                    </div>
+                  )})}
+                </div>
               </div>
-            )})}
+            ))}
           </div>
 
           <aside className="space-y-3">
@@ -407,7 +514,7 @@ export default function DeliverablesOverviewPage() {
                     Approve
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => openReview(reviewDeliverable, 'REVISION_REQUESTED')}>
-                    Request Changes
+                    Request revision
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => openReview(reviewDeliverable, 'REJECTED')}>
                     Reject
@@ -439,6 +546,12 @@ export default function DeliverablesOverviewPage() {
                 value={feedback}
                 onChange={(event) => setFeedback(event.target.value)}
                 placeholder="Add feedback for the creator..."
+                onKeyDown={(event) => {
+                  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                    event.preventDefault()
+                    submitCurrentReview()
+                  }
+                }}
               />
             )}
             {reviewStatus === 'APPROVED' && (
@@ -446,20 +559,16 @@ export default function DeliverablesOverviewPage() {
                 Approving will notify the creator that the deliverable is accepted.
               </p>
             )}
+            <p className="text-xs text-slate-500">
+              Tip: Press Ctrl + Enter to submit this review.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReviewDeliverable(null)}>
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                if (!reviewDeliverable) return
-                reviewMutation.mutate({
-                  id: reviewDeliverable.id,
-                  status: reviewStatus,
-                  feedbackText: feedback.trim(),
-                })
-              }}
+              onClick={submitCurrentReview}
               disabled={reviewMutation.isPending}
             >
               {reviewMutation.isPending ? 'Submitting...' : 'Submit'}

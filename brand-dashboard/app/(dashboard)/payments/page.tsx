@@ -1,19 +1,23 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TrendingUp, TrendingDown, CreditCard, Wallet, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { PageHeader } from '@/components/shared/page-header'
+import { ActionBar } from '@/components/shared/action-bar'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   useBrandWallet,
   useWalletTransactions,
   useCreateDepositOrder,
 } from '@/lib/hooks/use-wallet'
 import Script from 'next/script'
+import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
+import { useCampaigns } from '@/lib/hooks/use-campaigns'
+import { CampaignStatus } from '@/lib/types'
 
 declare global {
   interface Window {
@@ -67,14 +71,17 @@ export default function PaymentsPage() {
   const searchParams = useSearchParams()
   const { data: wallet, refetch: refetchWallet } = useBrandWallet()
   const { data: transactionsPage } = useWalletTransactions({ page: 0, size: 20 })
+  const { data: campaignsData } = useCampaigns({}, 0)
   const createDeposit = useCreateDepositOrder()
+  const { track } = useBrandEventTracker({
+    walletBalance: wallet?.balance ?? null,
+  })
 
   const [showAddFunds, setShowAddFunds] = useState(false)
   const [amount, setAmount] = useState<number>(10000)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Pre-fill deposit form from URL params (e.g., /payments?action=fund&amount=50000)
   useEffect(() => {
     const action = searchParams.get('action')
     const urlAmount = searchParams.get('amount')
@@ -90,6 +97,22 @@ export default function PaymentsPage() {
   }, [searchParams])
 
   const transactions = transactionsPage?.content ?? []
+  const campaigns = campaignsData?.items ?? []
+  const activeCommitment = useMemo(
+    () =>
+      campaigns
+        .filter(
+          (campaign) =>
+            campaign.status === CampaignStatus.ACTIVE ||
+            campaign.status === CampaignStatus.PENDING_REVIEW
+        )
+        .reduce((sum, campaign) => sum + (campaign.budget ?? 0), 0),
+    [campaigns]
+  )
+  const reserveTarget = Math.round(activeCommitment * 0.2)
+  const currentBalance = wallet?.balance ?? 0
+  const recommendedTopUp = Math.max(0, activeCommitment + reserveTarget - currentBalance)
+  const roundedRecommendedTopUp = Math.ceil(recommendedTopUp / 1000) * 1000
 
   const exportTransactionsCsv = useCallback(() => {
     if (!transactions.length) return
@@ -120,29 +143,37 @@ export default function PaymentsPage() {
       return
     }
 
+    track('wallet_fund_initiated', {
+      amount,
+      source: searchParams.get('campaignId') ? 'campaign_flow' : 'payments_page',
+      campaign_id: searchParams.get('campaignId'),
+    })
+
     setIsProcessing(true)
     setError(null)
 
     try {
-      // 1. Create payment order
       const order = await createDeposit.mutateAsync({ amount })
 
-      // 2. Open Razorpay checkout
       if (!window.Razorpay) {
         throw new Error('Razorpay SDK not loaded')
       }
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: order.amount * 100, // Convert to paise
+        amount: order.amount * 100,
         currency: order.currency,
         name: 'CreatorX',
         description: 'Add funds to wallet',
         order_id: order.razorpayOrderId,
         handler: async function (response: any) {
-          console.log('Payment successful:', response)
+          track('wallet_fund_success', {
+            amount,
+            order_id: order.razorpayOrderId,
+            payment_id: response?.razorpay_payment_id || null,
+            campaign_id: searchParams.get('campaignId'),
+          })
 
-          // Wait for webhook to process (2-3 seconds)
           setTimeout(() => {
             refetchWallet()
             setShowAddFunds(false)
@@ -163,7 +194,6 @@ export default function PaymentsPage() {
       const rzp = new window.Razorpay(options)
       rzp.open()
     } catch (err: any) {
-      console.error('Error adding funds:', err)
       setError(err.message || 'Failed to create payment order')
       setIsProcessing(false)
     }
@@ -171,21 +201,40 @@ export default function PaymentsPage() {
 
   return (
     <>
-      {/* Load Razorpay script */}
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="lazyOnload"
       />
 
-      <div className="space-y-6">
-        <PageHeader
-          title="Wallet & Payments"
-          subtitle="Manage wallet balance, campaign allocations, and payout transactions."
-          ctaLabel={showAddFunds ? 'Hide Form' : 'Add Funds'}
-          onCtaClick={() => setShowAddFunds(!showAddFunds)}
-        />
-
-        {/* Add Funds Form */}
+      <DashboardPageShell
+        title="Wallet & Payments"
+        subtitle="Manage wallet balance, campaign allocations, and payout transactions."
+        actionBar={
+          <ActionBar
+            title="Funding controls"
+            description="Add funds, export transactions, and keep payout flow healthy."
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportTransactionsCsv}
+              disabled={transactions.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          </ActionBar>
+        }
+        ctaLabel={showAddFunds ? 'Hide Form' : 'Add Funds'}
+        onCtaClick={() => {
+          track('quick_action_clicked', {
+            action_id: showAddFunds ? 'hide_fund_form' : 'open_fund_form',
+            action_title: showAddFunds ? 'Hide Add Funds Form' : 'Open Add Funds Form',
+            destination: '/payments',
+          })
+          setShowAddFunds(!showAddFunds)
+        }}
+      >
         {showAddFunds && (
           <Card className="border-slate-200 bg-blue-50/50 p-6">
             <h3 className="text-lg font-semibold mb-4">Add Funds to Wallet</h3>
@@ -196,9 +245,7 @@ export default function PaymentsPage() {
             )}
             <div className="flex gap-4 items-end">
               <div className="flex-1">
-                <label className="text-sm text-gray-600 mb-2 block">
-                  Amount (INR)
-                </label>
+                <label className="text-sm text-gray-600 mb-2 block">Amount (INR)</label>
                 <Input
                   type="number"
                   min="1000"
@@ -213,13 +260,8 @@ export default function PaymentsPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">Minimum: INR 1,000</p>
               </div>
-              <Button
-                onClick={handleAddFunds}
-                disabled={isProcessing}
-              >
-                {isProcessing
-                  ? 'Processing...'
-                  : `Pay ${formatCurrency(amount)}`}
+              <Button onClick={handleAddFunds} disabled={isProcessing}>
+                {isProcessing ? 'Processing...' : `Pay ${formatCurrency(amount)}`}
               </Button>
               <Button
                 variant="outline"
@@ -235,14 +277,39 @@ export default function PaymentsPage() {
           </Card>
         )}
 
-        {/* Wallet Stats Cards */}
+        <Card className="border-amber-200 bg-amber-50 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-amber-700">Funding recommendation</p>
+              <h3 className="mt-1 text-lg font-semibold text-amber-900">
+                {roundedRecommendedTopUp > 0
+                  ? `Add ${formatCurrency(roundedRecommendedTopUp)} to avoid campaign blockers`
+                  : 'Wallet coverage is healthy for current campaign commitments'}
+              </h3>
+              <p className="mt-1 text-sm text-amber-800">
+                Active + in-review commitments: {formatCurrency(activeCommitment)} | Reserve target:{' '}
+                {formatCurrency(reserveTarget)}
+              </p>
+            </div>
+            {roundedRecommendedTopUp > 0 ? (
+              <Button
+                onClick={() => {
+                  setAmount(roundedRecommendedTopUp)
+                  setShowAddFunds(true)
+                  setError(null)
+                }}
+              >
+                Fund recommended amount
+              </Button>
+            ) : null}
+          </div>
+        </Card>
+
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="border-2 border-primary/50 bg-gradient-to-br from-blue-50 to-white p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-gray-600">
-                  Available Balance
-                </p>
+                <p className="text-xs uppercase tracking-wide text-gray-600">Available Balance</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {wallet ? formatCurrency(wallet.balance) : '--'}
                 </p>
@@ -253,9 +320,7 @@ export default function PaymentsPage() {
           </Card>
 
           <Card className="p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500">
-              Total Deposited
-            </p>
+            <p className="text-xs uppercase tracking-wide text-gray-500">Total Deposited</p>
             <p className="text-2xl font-semibold text-gray-900 mt-2">
               {wallet ? formatCurrency(wallet.totalDeposited) : '--'}
             </p>
@@ -266,9 +331,7 @@ export default function PaymentsPage() {
           </Card>
 
           <Card className="p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500">
-              Allocated to Campaigns
-            </p>
+            <p className="text-xs uppercase tracking-wide text-gray-500">Allocated to Campaigns</p>
             <p className="text-2xl font-semibold text-gray-900 mt-2">
               {wallet ? formatCurrency(wallet.totalAllocated) : '--'}
             </p>
@@ -276,9 +339,7 @@ export default function PaymentsPage() {
           </Card>
 
           <Card className="p-6">
-            <p className="text-xs uppercase tracking-wide text-gray-500">
-              Released to Creators
-            </p>
+            <p className="text-xs uppercase tracking-wide text-gray-500">Released to Creators</p>
             <p className="text-2xl font-semibold text-gray-900 mt-2">
               {wallet ? formatCurrency(wallet.totalReleased) : '--'}
             </p>
@@ -289,14 +350,11 @@ export default function PaymentsPage() {
           </Card>
         </div>
 
-        {/* Transaction History */}
         <Card>
           <div className="p-6 border-b flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold">Transaction History</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                All wallet deposits, allocations, and releases
-              </p>
+              <p className="text-sm text-gray-500 mt-1">All wallet deposits, allocations, and releases</p>
             </div>
             {transactions.length > 0 && (
               <Button variant="outline" size="sm" onClick={exportTransactionsCsv}>
@@ -313,15 +371,10 @@ export default function PaymentsPage() {
               />
             ) : (
               transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="p-4 flex items-center justify-between hover:bg-gray-50"
-                >
+                <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-900">
-                        {tx.description}
-                      </p>
+                      <p className="font-medium text-gray-900">{tx.description}</p>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                         {tx.type}
                       </span>
@@ -333,22 +386,16 @@ export default function PaymentsPage() {
                       })}
                     </p>
                     {tx.campaignTitle && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Campaign: {tx.campaignTitle}
-                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">Campaign: {tx.campaignTitle}</p>
                     )}
                   </div>
                   <div className="text-right">
-                    <p
-                      className={`text-lg font-semibold ${getTransactionColor(tx.type)}`}
-                    >
+                    <p className={`text-lg font-semibold ${getTransactionColor(tx.type)}`}>
                       {getTransactionSign(tx.type)}
                       {formatCurrency(tx.amount)}
                     </p>
                     {tx.balanceAfter !== null && tx.balanceAfter !== undefined && (
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Balance: {formatCurrency(tx.balanceAfter)}
-                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">Balance: {formatCurrency(tx.balanceAfter)}</p>
                     )}
                   </div>
                 </div>
@@ -357,27 +404,21 @@ export default function PaymentsPage() {
           </div>
         </Card>
 
-        {/* Info Card */}
         <Card className="border-sky-200 bg-sky-50 p-6">
           <div className="flex items-start gap-3">
             <CreditCard className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-blue-900">
-                How the wallet works
-              </h4>
+              <h4 className="font-semibold text-blue-900">How the wallet works</h4>
               <ul className="text-sm text-blue-800 mt-2 space-y-1">
                 <li>Add funds to your wallet via Razorpay (UPI, Card, Net Banking)</li>
                 <li>Allocate funds to campaigns when creating or funding them</li>
-                <li>
-                  Funds are automatically released to creators when deliverables
-                  are approved
-                </li>
+                <li>Funds are automatically released to creators when deliverables are approved</li>
                 <li>Unused campaign funds are refunded to your wallet when campaigns end</li>
               </ul>
             </div>
           </div>
         </Card>
-      </div>
+      </DashboardPageShell>
     </>
   )
 }

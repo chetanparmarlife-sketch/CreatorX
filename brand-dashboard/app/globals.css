@@ -163,15 +163,15 @@
   }
 
   .hero-surface {
-    @apply relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 p-5 md:p-6;
+    @apply relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 p-4 md:p-5;
     box-shadow: 0 24px 52px rgba(15, 23, 42, 0.1);
   }
 
   .hero-surface::before {
     content: "";
     position: absolute;
-    inset: -30% 20% auto -30%;
-    height: 220px;
+    inset: -26% 24% auto -26%;
+    height: 170px;
     background: radial-gradient(circle, rgba(59, 130, 246, 0.2), transparent 70%);
     animation: float-orb 8s ease-in-out infinite;
     pointer-events: none;
@@ -180,19 +180,19 @@
   .hero-surface::after {
     content: "";
     position: absolute;
-    inset: auto -20% -40% 30%;
-    height: 260px;
+    inset: auto -14% -34% 34%;
+    height: 200px;
     background: radial-gradient(circle, rgba(16, 185, 129, 0.2), transparent 70%);
     animation: float-orb 10s ease-in-out infinite reverse;
     pointer-events: none;
   }
 
   .hero-grid {
-    @apply relative z-10 grid gap-5 lg:grid-cols-[1.2fr_0.8fr] items-start;
+    @apply relative z-10 grid gap-4 lg:grid-cols-[1.1fr_0.9fr] items-start;
   }
 
   .hero-panel {
-    @apply rounded-xl border border-slate-200/70 bg-white/90 p-4;
+    @apply rounded-xl border border-slate-200/70 bg-white/90 p-3;
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
   }
 
@@ -205,7 +205,7 @@
   }
 
   .hero-primary {
-    @apply rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-transform duration-300;
+    @apply rounded-full bg-primary px-3.5 py-1.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-transform duration-300;
   }
 
   .hero-primary:hover {
@@ -213,7 +213,7 @@
   }
 
   .hero-secondary {
-    @apply rounded-full border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700;
+    @apply rounded-full border border-slate-200/70 bg-white/80 px-3.5 py-1.5 text-sm font-semibold text-slate-700;
   }
 
   .insight-strip {
