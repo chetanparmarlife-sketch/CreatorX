@@ -97,4 +97,9 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Stri
     @Query("SELECT COALESCE(SUM(po.amount), 0) FROM PaymentOrder po " +
            "WHERE po.campaign.id = :campaignId AND po.status = 'CAPTURED'")
     java.math.BigDecimal sumCapturedAmountByCampaignId(@Param("campaignId") String campaignId);
+
+    /**
+     * Find payment order by idempotency key (for duplicate detection)
+     */
+    Optional<PaymentOrder> findByIdempotencyKey(String idempotencyKey);
 }

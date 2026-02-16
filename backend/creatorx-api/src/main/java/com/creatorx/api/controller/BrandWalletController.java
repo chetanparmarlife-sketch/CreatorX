@@ -116,7 +116,7 @@ public class BrandWalletController {
 
         User currentUser = getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
-        Page<EscrowTransactionDTO> transactions = brandWalletService.getCampaignTransactions(campaignId, pageable);
+        Page<EscrowTransactionDTO> transactions = brandWalletService.getCampaignTransactions(campaignId, currentUser.getId(), pageable);
         return ResponseEntity.ok(transactions);
     }
 

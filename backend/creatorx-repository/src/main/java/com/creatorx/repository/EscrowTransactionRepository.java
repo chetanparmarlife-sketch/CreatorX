@@ -50,4 +50,39 @@ public interface EscrowTransactionRepository extends JpaRepository<EscrowTransac
      */
     @Query("SELECT et FROM EscrowTransaction et WHERE et.paymentOrderId = :paymentOrderId")
     List<EscrowTransaction> findByPaymentOrderId(@Param("paymentOrderId") String paymentOrderId);
+
+    /**
+     * Sum allocated amount for a brand (funds committed to campaigns)
+     */
+    @Query("SELECT COALESCE(SUM(et.amount), 0) FROM EscrowTransaction et " +
+           "WHERE et.brandId = :brandId AND et.type = 'ALLOCATION'")
+    java.math.BigDecimal sumAllocatedAmountByBrandId(@Param("brandId") String brandId);
+
+    /**
+     * Sum released amount for a brand (paid out to creators)
+     */
+    @Query("SELECT COALESCE(SUM(et.amount), 0) FROM EscrowTransaction et " +
+           "WHERE et.brandId = :brandId AND et.type = 'RELEASE'")
+    java.math.BigDecimal sumReleasedAmountByBrandId(@Param("brandId") String brandId);
+
+    /**
+     * Sum refunded amount for a brand (unused campaign funds returned)
+     */
+    @Query("SELECT COALESCE(SUM(et.amount), 0) FROM EscrowTransaction et " +
+           "WHERE et.brandId = :brandId AND et.type = 'REFUND'")
+    java.math.BigDecimal sumRefundedAmountByBrandId(@Param("brandId") String brandId);
+
+    /**
+     * Sum allocated amount for a campaign
+     */
+    @Query("SELECT COALESCE(SUM(et.amount), 0) FROM EscrowTransaction et " +
+           "WHERE et.campaignId = :campaignId AND et.type = 'ALLOCATION'")
+    java.math.BigDecimal sumAllocatedAmountByCampaignId(@Param("campaignId") String campaignId);
+
+    /**
+     * Sum released amount for a campaign (paid out to creators)
+     */
+    @Query("SELECT COALESCE(SUM(et.amount), 0) FROM EscrowTransaction et " +
+           "WHERE et.campaignId = :campaignId AND et.type = 'RELEASE'")
+    java.math.BigDecimal sumReleasedAmountByCampaignId(@Param("campaignId") String campaignId);
 }

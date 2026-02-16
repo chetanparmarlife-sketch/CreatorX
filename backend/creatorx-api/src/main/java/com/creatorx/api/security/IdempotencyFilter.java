@@ -57,6 +57,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static final Set<String> IDEMPOTENT_ENDPOINTS = Set.of(
             "/api/v1/wallet/withdraw",
             "/api/v1/wallet/bank-accounts",
+            "/api/v1/brand-wallet/deposit",
+            "/api/v1/brand-wallet/campaigns/*/allocate",
             "/api/v1/admin/payouts/*/approve"
     );
 

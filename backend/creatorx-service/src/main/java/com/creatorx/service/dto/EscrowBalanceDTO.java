@@ -18,6 +18,7 @@ public class EscrowBalanceDTO {
     private String brandId;
     private String campaignId;
     private BigDecimal totalDeposited;
+    private BigDecimal allocatedAmount;
     private BigDecimal availableBalance;
     private BigDecimal releasedAmount;
 }

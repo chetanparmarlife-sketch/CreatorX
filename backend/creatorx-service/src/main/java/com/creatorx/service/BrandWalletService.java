@@ -350,10 +350,18 @@ public class BrandWalletService {
     }
 
     /**
-     * Get transactions for a specific campaign
+     * Get transactions for a specific campaign.
+     * Verifies brand ownership before returning data.
      */
     @Transactional(readOnly = true)
-    public Page<EscrowTransactionDTO> getCampaignTransactions(String campaignId, Pageable pageable) {
+    public Page<EscrowTransactionDTO> getCampaignTransactions(String campaignId, String brandId, Pageable pageable) {
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new ResourceNotFoundException("Campaign", campaignId));
+
+        if (!campaign.getBrand().getId().equals(brandId)) {
+            throw new BusinessException("Cannot access transactions for campaigns you don't own");
+        }
+
         Page<EscrowTransaction> transactions = escrowTransactionRepository
                 .findByCampaignIdOrderByCreatedAtDesc(campaignId, pageable);
 

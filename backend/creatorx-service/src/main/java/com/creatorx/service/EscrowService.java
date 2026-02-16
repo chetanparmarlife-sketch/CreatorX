@@ -3,6 +3,7 @@ package com.creatorx.service;
 import com.creatorx.common.enums.PaymentOrderStatus;
 import com.creatorx.common.enums.TransactionType;
 import com.creatorx.common.exception.BusinessException;
+import com.creatorx.repository.EscrowTransactionRepository;
 import com.creatorx.repository.PaymentOrderRepository;
 import com.creatorx.repository.entity.PaymentOrder;
 import com.creatorx.service.dto.EscrowBalanceDTO;
@@ -19,9 +20,11 @@ import java.util.Map;
  * Service for managing brand escrow funds.
  * Escrow holds brand deposits until they're released to creators upon deliverable approval.
  *
- * Current implementation uses PaymentOrder records as the source of truth:
- * - Captured payments = deposited funds (escrow credit)
- * - Released funds are tracked via Transaction records
+ * Balance is computed from the escrow transaction audit trail:
+ * - Deposits add to total deposited
+ * - Allocations subtract from available balance (committed to campaigns)
+ * - Releases subtract from available balance (paid to creators)
+ * - Refunds add back to available balance (unused campaign funds returned)
  */
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ import java.util.Map;
 public class EscrowService {
 
     private final PaymentOrderRepository paymentOrderRepository;
+    private final EscrowTransactionRepository escrowTransactionRepository;
     private final WalletService walletService;
 
     /**
@@ -53,7 +57,8 @@ public class EscrowService {
     }
 
     /**
-     * Get escrow balance for a brand (total captured payments minus released funds).
+     * Get escrow balance for a brand.
+     * available = deposited - allocated - released + refunded
      */
     @Transactional(readOnly = true)
     public EscrowBalanceDTO getEscrowBalance(String brandId) {
@@ -62,18 +67,28 @@ public class EscrowService {
             totalDeposited = BigDecimal.ZERO;
         }
 
-        // For now, we assume all deposited funds are available (no released tracking yet)
-        // In a full implementation, we'd subtract released funds from total
+        BigDecimal allocatedAmount = escrowTransactionRepository.sumAllocatedAmountByBrandId(brandId);
+        BigDecimal releasedAmount = escrowTransactionRepository.sumReleasedAmountByBrandId(brandId);
+        BigDecimal refundedAmount = escrowTransactionRepository.sumRefundedAmountByBrandId(brandId);
+
+        // available = deposited - allocated + refunded
+        // (released funds come out of allocated, not directly from deposited)
+        BigDecimal availableBalance = totalDeposited
+                .subtract(allocatedAmount)
+                .add(refundedAmount);
+
         return EscrowBalanceDTO.builder()
                 .brandId(brandId)
                 .totalDeposited(totalDeposited)
-                .availableBalance(totalDeposited)
-                .releasedAmount(BigDecimal.ZERO)
+                .allocatedAmount(allocatedAmount)
+                .availableBalance(availableBalance)
+                .releasedAmount(releasedAmount)
                 .build();
     }
 
     /**
      * Get escrow balance for a specific campaign.
+     * available = allocated - released
      */
     @Transactional(readOnly = true)
     public EscrowBalanceDTO getCampaignEscrowBalance(String campaignId) {
@@ -82,11 +97,17 @@ public class EscrowService {
             totalDeposited = BigDecimal.ZERO;
         }
 
+        BigDecimal allocatedAmount = escrowTransactionRepository.sumAllocatedAmountByCampaignId(campaignId);
+        BigDecimal releasedAmount = escrowTransactionRepository.sumReleasedAmountByCampaignId(campaignId);
+
+        BigDecimal availableBalance = allocatedAmount.subtract(releasedAmount);
+
         return EscrowBalanceDTO.builder()
                 .campaignId(campaignId)
                 .totalDeposited(totalDeposited)
-                .availableBalance(totalDeposited)
-                .releasedAmount(BigDecimal.ZERO)
+                .allocatedAmount(allocatedAmount)
+                .availableBalance(availableBalance)
+                .releasedAmount(releasedAmount)
                 .build();
     }
 

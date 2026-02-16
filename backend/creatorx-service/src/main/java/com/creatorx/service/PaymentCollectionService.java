@@ -87,14 +87,11 @@ public class PaymentCollectionService {
 
         // Check for existing order with same idempotency key
         // This prevents duplicate orders on retry
-        PaymentOrder existingOrder = paymentOrderRepository.findAll().stream()
-                .filter(po -> idempotencyKey.equals(po.getIdempotencyKey()))
-                .findFirst()
-                .orElse(null);
+        Optional<PaymentOrder> existingOrder = paymentOrderRepository.findByIdempotencyKey(idempotencyKey);
 
-        if (existingOrder != null) {
+        if (existingOrder.isPresent()) {
             log.info("Returning existing payment order for idempotency key: {}", idempotencyKey);
-            return paymentOrderMapper.map(mapper -> mapper.toDTO(existingOrder))
+            return paymentOrderMapper.map(mapper -> mapper.toDTO(existingOrder.get()))
                     .orElseThrow(() -> new BusinessException("PaymentOrderMapper not available"));
         }
 
