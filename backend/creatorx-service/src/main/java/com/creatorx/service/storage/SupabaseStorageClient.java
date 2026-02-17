@@ -33,9 +33,18 @@ public class SupabaseStorageClient {
             @Value("${supabase.url}") String supabaseUrl,
             @Value("${supabase.service.role.key:}") String serviceRoleKey
     ) {
-        this.storageUrl = supabaseUrl.replace("/rest/v1", "/storage/v1");
+        // Build correct Storage API base URL from Supabase project URL
+        if (supabaseUrl.contains("/storage/v1")) {
+            this.storageUrl = supabaseUrl;
+        } else if (supabaseUrl.contains("/rest/v1")) {
+            this.storageUrl = supabaseUrl.replace("/rest/v1", "/storage/v1");
+        } else {
+            this.storageUrl = supabaseUrl.replaceAll("/$", "") + "/storage/v1";
+        }
         this.serviceRoleKey = serviceRoleKey;
-        
+
+        log.info("Supabase Storage URL: {}", this.storageUrl);
+
         this.webClient = WebClient.builder()
                 .baseUrl(this.storageUrl)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + serviceRoleKey)
