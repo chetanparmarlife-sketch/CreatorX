@@ -67,11 +67,17 @@ export default function OnboardingPage() {
       return
     }
 
+    const trimmedWebsite = website.trim()
+    if (trimmedWebsite && !/^https?:\/\/.+/.test(trimmedWebsite)) {
+      setStepError('Website must start with http:// or https:// (e.g. https://yourcompany.com)')
+      return
+    }
+
     try {
       await updateProfile.mutateAsync({
         companyName: companyName.trim(),
         industry,
-        website: website.trim() || undefined,
+        website: trimmedWebsite || undefined,
         gstNumber: profile?.gstNumber,
         logoUrl: profile?.logoUrl,
       })
@@ -82,7 +88,8 @@ export default function OnboardingPage() {
 
       setStep(2)
     } catch (err: any) {
-      setStepError(err.message || 'Failed to save company details.')
+      const details = err.details ? Object.values(err.details).join('. ') : ''
+      setStepError(details || err.message || 'Failed to save company details.')
     }
   }
 
@@ -120,7 +127,8 @@ export default function OnboardingPage() {
 
       setSubmitted(true)
     } catch (err: any) {
-      setStepError(err.message || 'Failed to submit verification.')
+      const details = err.details ? Object.values(err.details).join('. ') : ''
+      setStepError(details || err.message || 'Failed to submit verification.')
     }
   }
 
