@@ -53,6 +53,13 @@ spring:
           max-idle: 8
           min-idle: 0
 
+  # Multipart Upload Configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 15MB
+
   # Jackson Configuration
   jackson:
     serialization:
