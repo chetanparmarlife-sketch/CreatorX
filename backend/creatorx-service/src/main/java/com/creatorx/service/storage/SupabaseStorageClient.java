@@ -2,20 +2,15 @@ package com.creatorx.service.storage;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 
 /**
  * Supabase Storage REST API client
@@ -63,24 +58,34 @@ public class SupabaseStorageClient {
             long fileSize
     ) {
         try {
-            // Convert InputStream to Flux<DataBuffer>
-            Flux<DataBuffer> dataBufferFlux = DataBufferUtils.readInputStream(
-                    () -> fileInputStream,
-                    new org.springframework.core.io.buffer.DefaultDataBufferFactory(),
-                    4096
-            );
-            
+            // Read entire file into byte array for Content-Length support
+            byte[] fileBytes = fileInputStream.readAllBytes();
+
+            log.info("Uploading to Supabase: bucket={}, path={}, contentType={}, size={}",
+                    bucket, path, contentType, fileBytes.length);
+
             return webClient.post()
                     .uri(uriBuilder -> uriBuilder.path("/object/" + bucket + "/" + path).build())
                     .header(HttpHeaders.CONTENT_TYPE, contentType)
-                    .body(BodyInserters.fromDataBuffers(dataBufferFlux))
+                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileBytes.length))
+                    .header("x-upsert", "true")
+                    .bodyValue(fileBytes)
                     .retrieve()
+                    .onStatus(HttpStatusCode::isError, response ->
+                            response.bodyToMono(String.class)
+                                    .defaultIfEmpty("(empty body)")
+                                    .flatMap(body -> {
+                                        log.error("Supabase Storage error {}: {}", response.statusCode(), body);
+                                        return Mono.error(new IOException(
+                                                "Supabase Storage " + response.statusCode() + ": " + body));
+                                    })
+                    )
                     .bodyToMono(String.class)
                     .map(response -> buildFileUrl(bucket, path))
-                    .doOnError(error -> log.error("Failed to upload file to Supabase: {}", error.getMessage()))
-                    .onErrorMap(error -> new IOException("Failed to upload file: " + error.getMessage(), error));
-                    
+                    .doOnError(error -> log.error("Failed to upload file to Supabase: {}", error.getMessage()));
+
         } catch (Exception e) {
+            log.error("Failed to read file for upload: {}", e.getMessage());
             return Mono.error(new IOException("Failed to upload file: " + e.getMessage(), e));
         }
     }
