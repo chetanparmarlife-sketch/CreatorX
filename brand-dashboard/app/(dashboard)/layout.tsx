@@ -76,6 +76,13 @@ export default function DashboardLayout({
     return null
   }
 
+  // Hard gate: DRAFT/REJECTED brands must complete onboarding first
+  const onboardingStatus = user?.onboardingStatus
+  if (onboardingStatus === 'DRAFT' || onboardingStatus === 'REJECTED') {
+    router.push('/onboarding')
+    return null
+  }
+
   const pageTitle = getDashboardRouteTitle(pathname)
 
   return (
