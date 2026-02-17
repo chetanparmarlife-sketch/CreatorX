@@ -71,13 +71,13 @@ public class SupabaseStorageClient {
             );
             
             return webClient.post()
-                    .uri("/object/{bucket}/{path}", bucket, path)
+                    .uri(uriBuilder -> uriBuilder.path("/object/" + bucket + "/" + path).build())
                     .header(HttpHeaders.CONTENT_TYPE, contentType)
                     .body(BodyInserters.fromDataBuffers(dataBufferFlux))
                     .retrieve()
                     .bodyToMono(String.class)
                     .map(response -> buildFileUrl(bucket, path))
-                    .doOnError(error -> log.error("Failed to upload file to Supabase", error))
+                    .doOnError(error -> log.error("Failed to upload file to Supabase: {}", error.getMessage()))
                     .onErrorMap(error -> new IOException("Failed to upload file: " + error.getMessage(), error));
                     
         } catch (Exception e) {
@@ -90,10 +90,10 @@ public class SupabaseStorageClient {
      */
     public Mono<Void> deleteFile(String bucket, String path) {
         return webClient.delete()
-                .uri("/object/{bucket}/{path}", bucket, path)
+                .uri(uriBuilder -> uriBuilder.path("/object/" + bucket + "/" + path).build())
                 .retrieve()
                 .bodyToMono(Void.class)
-                .doOnError(error -> log.error("Failed to delete file from Supabase", error))
+                .doOnError(error -> log.error("Failed to delete file from Supabase: {}", error.getMessage()))
                 .onErrorMap(error -> new IOException("Failed to delete file: " + error.getMessage(), error));
     }
     
@@ -102,12 +102,12 @@ public class SupabaseStorageClient {
      */
     public Mono<String> generateSignedUrl(String bucket, String path, int expiresIn) {
         return webClient.post()
-                .uri("/object/sign/{bucket}/{path}", bucket, path)
+                .uri(uriBuilder -> uriBuilder.path("/object/sign/" + bucket + "/" + path).build())
                 .bodyValue(new SignedUrlRequest(expiresIn))
                 .retrieve()
                 .bodyToMono(SignedUrlResponse.class)
                 .map(response -> buildSignedUrl(bucket, path, response.getSignedURL()))
-                .doOnError(error -> log.error("Failed to generate signed URL", error))
+                .doOnError(error -> log.error("Failed to generate signed URL: {}", error.getMessage()))
                 .onErrorMap(error -> new IOException("Failed to generate signed URL: " + error.getMessage(), error));
     }
     
