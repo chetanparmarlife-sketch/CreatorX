@@ -48,6 +48,7 @@ const mapLoginResponse = (response: LoginResponse): AuthResponse => ({
   userId: response.user.id,
   email: response.user.email,
   role: response.user.role,
+  onboardingStatus: response.user.onboardingStatus,
   accessToken: response.token,
   refreshToken: (response as any).refreshToken,
 })
