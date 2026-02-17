@@ -69,7 +69,7 @@ export default function AdminBrandVerificationPage() {
 
   const items = (data as any)?.items ?? (data as any)?.content ?? []
   const totalPages = (data as any)?.totalPages ?? 1
-  const totalItems = (data as any)?.total ?? items.length
+  const totalItems = (data as any)?.total ?? (data as any)?.totalElements ?? items.length
   const selectedCount = useMemo(
     () => Object.values(selected).filter(Boolean).length,
     [selected]

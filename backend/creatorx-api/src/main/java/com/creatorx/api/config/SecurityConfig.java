@@ -107,22 +107,19 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> baseOrigins = Arrays.asList(
+        List<String> basePatterns = Arrays.asList(
                 "http://localhost:8081", // Expo default
                 "http://localhost:19006", // Expo web
                 "exp://localhost:8081",
                 "http://localhost:3000",
                 "https://creator-x.club",
                 "https://www.creator-x.club",
-                "https://brand-creatorx.vercel.app");
+                "https://brand-creatorx.vercel.app",
+                "https://admin-dashboard-*.vercel.app");
         List<String> extraOrigins = parseAllowedOrigins(allowedOrigins);
-        if (extraOrigins.isEmpty()) {
-            configuration.setAllowedOrigins(baseOrigins);
-        } else {
-            List<String> allOrigins = new ArrayList<>(baseOrigins);
-            allOrigins.addAll(extraOrigins);
-            configuration.setAllowedOriginPatterns(allOrigins);
-        }
+        List<String> allPatterns = new ArrayList<>(basePatterns);
+        allPatterns.addAll(extraOrigins);
+        configuration.setAllowedOriginPatterns(allPatterns);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",

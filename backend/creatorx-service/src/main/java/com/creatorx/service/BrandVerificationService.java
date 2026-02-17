@@ -153,7 +153,9 @@ public class BrandVerificationService {
                 com.creatorx.common.enums.AdminActionType.SYSTEM_UPDATE,
                 "BRAND_VERIFICATION",
                 document.getId(),
-                java.util.Map.of("status", normalized, "reason", reason),
+                reason != null
+                        ? java.util.Map.of("status", normalized, "reason", reason)
+                        : java.util.Map.of("status", normalized),
                 null,
                 null
         );
