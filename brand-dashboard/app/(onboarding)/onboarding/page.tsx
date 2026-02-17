@@ -81,16 +81,23 @@ export default function OnboardingPage() {
         gstNumber: profile?.gstNumber,
         logoUrl: profile?.logoUrl,
       })
-
-      if (logoFile) {
-        await uploadLogo.mutateAsync(logoFile)
-      }
-
-      setStep(2)
     } catch (err: any) {
       const details = err.details ? Object.values(err.details).join('. ') : ''
       setStepError(details || err.message || 'Failed to save company details.')
+      return
     }
+
+    // Logo upload is optional — don't block progress if it fails
+    if (logoFile) {
+      try {
+        await uploadLogo.mutateAsync(logoFile)
+      } catch {
+        // Logo upload failed, but continue — user can upload later from profile
+        console.warn('[Onboarding] Logo upload failed, continuing to step 2')
+      }
+    }
+
+    setStep(2)
   }
 
   const handleStep2Submit = async () => {
