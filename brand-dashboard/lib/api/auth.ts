@@ -22,6 +22,7 @@ export interface User {
   role: UserRole
   name?: string
   companyName?: string
+  onboardingStatus?: string
   createdAt?: string
 }
 

@@ -218,7 +218,18 @@ export default function ProfilePage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Verification</h3>
           <div className="space-y-3 text-sm text-gray-600">
             <div className="flex items-center justify-between">
-              <span>Status</span>
+              <span>Onboarding Status</span>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                verificationStatus?.onboardingStatus === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                verificationStatus?.onboardingStatus === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                verificationStatus?.onboardingStatus === 'SUBMITTED' || verificationStatus?.onboardingStatus === 'UNDER_REVIEW' ? 'bg-amber-100 text-amber-700' :
+                'bg-gray-100 text-gray-700'
+              }`}>
+                {verificationStatus?.onboardingStatus || user?.onboardingStatus || 'DRAFT'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Document Status</span>
               <span className="font-medium text-gray-900">
                 {verificationStatus?.status || 'NOT_SUBMITTED'}
               </span>

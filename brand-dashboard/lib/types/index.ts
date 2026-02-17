@@ -86,6 +86,14 @@ export enum CampaignFlagStatus {
   RESOLVED = 'RESOLVED',
 }
 
+export enum OnboardingStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
 export enum ModerationRuleStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
@@ -134,6 +142,7 @@ export interface User {
   supabaseId?: string
   emailVerified: boolean
   phoneVerified: boolean
+  onboardingStatus?: OnboardingStatus
   createdAt: string
   updatedAt: string
 }
@@ -154,6 +163,8 @@ export interface BrandProfile {
   industry?: string
   description?: string
   logoUrl?: string
+  onboardingStatus?: OnboardingStatus
+  verified?: boolean
 }
 
 // Campaign Types
@@ -309,6 +320,7 @@ export interface AuthResponse {
   email: string
   role: UserRole
   supabaseUserId?: string
+  onboardingStatus?: string
   message?: string
   // Token fields (optional, for direct backend auth if Supabase not available)
   accessToken?: string
@@ -368,6 +380,7 @@ export interface TeamMember {
 export interface BrandVerificationStatus {
   documentId?: string
   status: string
+  onboardingStatus?: string
   fileUrl?: string
   rejectionReason?: string
   submittedAt?: string

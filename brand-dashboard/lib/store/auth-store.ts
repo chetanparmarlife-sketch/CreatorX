@@ -34,6 +34,7 @@ const toAuthUser = (user: AuthResponse | ApiUser): AuthResponse => {
     userId: user.id,
     email: user.email,
     role: user.role,
+    onboardingStatus: user.onboardingStatus,
   }
 }
 

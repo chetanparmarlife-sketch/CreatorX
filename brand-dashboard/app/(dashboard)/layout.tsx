@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/auth-store'
 import { Sidebar } from '@/components/layout/sidebar'
+import { OnboardingBanner } from '@/components/shared/onboarding-banner'
 import { getDashboardRouteTitle } from '@/components/layout/brand-nav'
 import { Menu, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const user = useAuthStore((s) => s.user)
   const [hasToken, setHasToken] = useState<boolean | null>(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
@@ -125,6 +127,7 @@ export default function DashboardLayout({
 
       <main className="px-4 py-6 md:px-6 md:py-8 lg:ml-64 lg:px-10 lg:py-10 page-fade">
         <div className="mx-auto max-w-[1520px]">
+          <OnboardingBanner onboardingStatus={user?.onboardingStatus} />
           {children}
         </div>
       </main>
