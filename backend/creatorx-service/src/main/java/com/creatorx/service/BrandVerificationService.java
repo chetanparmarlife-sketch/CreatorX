@@ -130,6 +130,10 @@ public class BrandVerificationService {
         BrandVerificationDocument document = brandVerificationRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("BrandVerificationDocument", documentId));
 
+        // Eagerly initialize the brand to avoid lazy loading issues
+        User brand = document.getBrand();
+        org.hibernate.Hibernate.initialize(brand);
+
         String normalized = status != null ? status.trim().toUpperCase() : "";
         if (!"APPROVED".equals(normalized) && !"REJECTED".equals(normalized)) {
             throw new BusinessException("Status must be APPROVED or REJECTED");
@@ -140,30 +144,37 @@ public class BrandVerificationService {
         document.setRejectionReason("REJECTED".equals(normalized) ? reason : null);
         brandVerificationRepository.save(document);
 
-        BrandProfile profile = brandProfileRepository.findById(document.getBrand().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("BrandProfile", document.getBrand().getId()));
+        BrandProfile profile = brandProfileRepository.findById(brand.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("BrandProfile", brand.getId()));
         profile.setVerified("APPROVED".equals(normalized));
         profile.setOnboardingStatus("APPROVED".equals(normalized)
                 ? OnboardingStatus.APPROVED
                 : OnboardingStatus.REJECTED);
         brandProfileRepository.save(profile);
 
-        adminAuditService.logAction(
-                adminId,
-                com.creatorx.common.enums.AdminActionType.SYSTEM_UPDATE,
-                "BRAND_VERIFICATION",
-                document.getId(),
-                reason != null
-                        ? java.util.Map.of("status", normalized, "reason", reason)
-                        : java.util.Map.of("status", normalized),
-                null,
-                null
-        );
+        try {
+            java.util.Map<String, Object> details = new java.util.HashMap<>();
+            details.put("status", normalized);
+            if (reason != null) {
+                details.put("reason", reason);
+            }
+            adminAuditService.logAction(
+                    adminId,
+                    com.creatorx.common.enums.AdminActionType.SYSTEM_UPDATE,
+                    "BRAND_VERIFICATION",
+                    document.getId(),
+                    details,
+                    null,
+                    null
+            );
+        } catch (Exception e) {
+            log.warn("Failed to log audit action for brand verification review: {}", e.getMessage());
+        }
 
         return BrandVerificationStatusDTO.builder()
                 .documentId(document.getId())
-                .brandId(document.getBrand().getId())
-                .brandEmail(document.getBrand().getEmail())
+                .brandId(brand.getId())
+                .brandEmail(brand.getEmail())
                 .status(document.getStatus())
                 .onboardingStatus(profile.getOnboardingStatus() != null
                         ? profile.getOnboardingStatus().name() : null)
@@ -188,10 +199,12 @@ public class BrandVerificationService {
     public BrandVerificationDetailDTO getAdminDetail(String documentId) {
         BrandVerificationDocument document = brandVerificationRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("BrandVerificationDocument", documentId));
-        User brand = document.getBrand();
 
-        BrandProfile profile = brandProfileRepository.findById(brand.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("BrandProfile", brand.getId()));
+        // Eagerly initialize the brand to avoid lazy loading issues
+        User brand = document.getBrand();
+        org.hibernate.Hibernate.initialize(brand);
+
+        BrandProfile profile = brandProfileRepository.findById(brand.getId()).orElse(null);
 
         List<BrandVerificationHistoryDTO> history = brandVerificationRepository
                 .findTop5ByBrandIdOrderBySubmittedAtDesc(brand.getId())
@@ -207,24 +220,36 @@ public class BrandVerificationService {
                 .toList();
 
         long priorRejections = brandVerificationRepository.countByBrandIdAndStatus(brand.getId(), "REJECTED");
-        long openDisputes = disputeRepository.countByBrandIdAndStatus(brand.getId(), com.creatorx.common.enums.DisputeStatus.OPEN)
-                + disputeRepository.countByBrandIdAndStatus(brand.getId(), com.creatorx.common.enums.DisputeStatus.IN_REVIEW);
-        long openFlags = campaignFlagRepository.countByBrandIdAndStatus(
-                brand.getId(),
-                com.creatorx.common.enums.CampaignFlagStatus.OPEN
-        );
+
+        // Risk metrics - wrap in try-catch since these are non-critical
+        long openDisputes = 0;
+        long openFlags = 0;
+        try {
+            openDisputes = disputeRepository.countByBrandIdAndStatus(brand.getId(), com.creatorx.common.enums.DisputeStatus.OPEN)
+                    + disputeRepository.countByBrandIdAndStatus(brand.getId(), com.creatorx.common.enums.DisputeStatus.IN_REVIEW);
+        } catch (Exception e) {
+            log.warn("Failed to count open disputes for brand {}: {}", brand.getId(), e.getMessage());
+        }
+        try {
+            openFlags = campaignFlagRepository.countByBrandIdAndStatus(
+                    brand.getId(),
+                    com.creatorx.common.enums.CampaignFlagStatus.OPEN
+            );
+        } catch (Exception e) {
+            log.warn("Failed to count open campaign flags for brand {}: {}", brand.getId(), e.getMessage());
+        }
 
         BrandProfileSummaryDTO profileSummary = BrandProfileSummaryDTO.builder()
                 .brandId(brand.getId())
                 .brandEmail(brand.getEmail())
-                .companyName(profile.getCompanyName())
-                .industry(profile.getIndustry())
-                .website(profile.getWebsite())
-                .gstNumber(profile.getGstNumber())
-                .verified(profile.getVerified())
-                .onboardingStatus(profile.getOnboardingStatus() != null
+                .companyName(profile != null ? profile.getCompanyName() : null)
+                .industry(profile != null ? profile.getIndustry() : null)
+                .website(profile != null ? profile.getWebsite() : null)
+                .gstNumber(profile != null ? profile.getGstNumber() : null)
+                .verified(profile != null ? profile.getVerified() : false)
+                .onboardingStatus(profile != null && profile.getOnboardingStatus() != null
                         ? profile.getOnboardingStatus().name() : null)
-                .companyLogoUrl(profile.getCompanyLogoUrl())
+                .companyLogoUrl(profile != null ? profile.getCompanyLogoUrl() : null)
                 .userStatus(brand.getStatus() != null ? brand.getStatus().name() : null)
                 .build();
 
