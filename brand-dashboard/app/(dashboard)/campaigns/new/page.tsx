@@ -210,46 +210,6 @@ export default function NewCampaignPage() {
   })
   const source = searchParams.get('source')
 
-  // Gate: block campaign creation for non-approved brands
-  if (authUser?.onboardingStatus && authUser.onboardingStatus !== 'APPROVED') {
-    const statusMessages: Record<string, { title: string; description: string }> = {
-      DRAFT: {
-        title: 'Complete Onboarding First',
-        description: 'You need to submit your company details and GST verification document before creating campaigns.',
-      },
-      SUBMITTED: {
-        title: 'Onboarding Under Review',
-        description: 'Your onboarding application is being reviewed. You can create campaigns once approved.',
-      },
-      UNDER_REVIEW: {
-        title: 'Onboarding Under Review',
-        description: 'Our team is reviewing your application. You will be able to create campaigns once approved.',
-      },
-      REJECTED: {
-        title: 'Onboarding Not Approved',
-        description: 'Your onboarding application was not approved. Please update your details and resubmit to start creating campaigns.',
-      },
-    }
-    const msg = statusMessages[authUser.onboardingStatus] || statusMessages.DRAFT
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <div className="rounded-full bg-amber-100 p-4 mb-6">
-          <AlertCircle className="h-8 w-8 text-amber-600" />
-        </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">{msg.title}</h2>
-        <p className="text-slate-600 max-w-md mb-6">{msg.description}</p>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => router.push('/dashboard')}>
-            Back to Dashboard
-          </Button>
-          <Button asChild>
-            <Link href="/profile">Go to Profile</Link>
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   const formatApiError = (error: unknown, fallback: string) => {
     if (!error || typeof error !== 'object') return fallback
     const err = error as { message?: string; details?: Record<string, string> }
@@ -531,6 +491,46 @@ export default function NewCampaignPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Gate: block campaign creation for non-approved brands
+  if (authUser?.onboardingStatus && authUser.onboardingStatus !== 'APPROVED') {
+    const statusMessages: Record<string, { title: string; description: string }> = {
+      DRAFT: {
+        title: 'Complete Onboarding First',
+        description: 'You need to submit your company details and GST verification document before creating campaigns.',
+      },
+      SUBMITTED: {
+        title: 'Onboarding Under Review',
+        description: 'Your onboarding application is being reviewed. You can create campaigns once approved.',
+      },
+      UNDER_REVIEW: {
+        title: 'Onboarding Under Review',
+        description: 'Our team is reviewing your application. You will be able to create campaigns once approved.',
+      },
+      REJECTED: {
+        title: 'Onboarding Not Approved',
+        description: 'Your onboarding application was not approved. Please update your details and resubmit to start creating campaigns.',
+      },
+    }
+    const msg = statusMessages[authUser.onboardingStatus] || statusMessages.DRAFT
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="rounded-full bg-amber-100 p-4 mb-6">
+          <AlertCircle className="h-8 w-8 text-amber-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">{msg.title}</h2>
+        <p className="text-slate-600 max-w-md mb-6">{msg.description}</p>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => router.push('/dashboard')}>
+            Back to Dashboard
+          </Button>
+          <Button asChild>
+            <Link href="/profile">Go to Profile</Link>
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
