@@ -73,6 +73,8 @@ supabase:
       kyc: ${SUPABASE_STORAGE_BUCKET_KYC:kyc-documents}
       deliverables: ${SUPABASE_STORAGE_BUCKET_DELIVERABLES:deliverables}
       portfolio: ${SUPABASE_STORAGE_BUCKET_PORTFOLIO:portfolio}
+      brand-verification: ${SUPABASE_STORAGE_BUCKET_BRAND_VERIFICATION:kyc-documents}
+      exports: ${SUPABASE_STORAGE_BUCKET_EXPORTS:deliverables}
 
 # JWT Configuration (for backward compatibility, not used with Supabase)
 jwt:

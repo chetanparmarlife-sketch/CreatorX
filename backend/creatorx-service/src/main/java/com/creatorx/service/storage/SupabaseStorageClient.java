@@ -48,6 +48,7 @@ public class SupabaseStorageClient {
         this.webClient = WebClient.builder()
                 .baseUrl(this.storageUrl)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + serviceRoleKey)
+                .defaultHeader("apikey", serviceRoleKey)
                 .build();
     }
     

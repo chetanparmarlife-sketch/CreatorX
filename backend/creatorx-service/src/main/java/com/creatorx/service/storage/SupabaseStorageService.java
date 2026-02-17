@@ -38,10 +38,10 @@ public class SupabaseStorageService {
     @Value("${supabase.storage.bucket.portfolio:portfolio}")
     private String portfolioBucket;
 
-    @Value("${supabase.storage.bucket.brand-verification:brand-verification-docs}")
+    @Value("${supabase.storage.bucket.brand-verification:kyc-documents}")
     private String brandVerificationBucket;
 
-    @Value("${supabase.storage.bucket.exports:gdpr-exports}")
+    @Value("${supabase.storage.bucket.exports:deliverables}")
     private String exportsBucket;
     
     private final FileValidationService fileValidationService;
