@@ -111,7 +111,10 @@ public class SecurityConfig {
                 "http://localhost:8081", // Expo default
                 "http://localhost:19006", // Expo web
                 "exp://localhost:8081",
-                "http://localhost:3000");
+                "http://localhost:3000",
+                "https://creator-x.club",
+                "https://www.creator-x.club",
+                "https://brand-creatorx.vercel.app");
         List<String> extraOrigins = parseAllowedOrigins(allowedOrigins);
         if (extraOrigins.isEmpty()) {
             configuration.setAllowedOrigins(baseOrigins);
