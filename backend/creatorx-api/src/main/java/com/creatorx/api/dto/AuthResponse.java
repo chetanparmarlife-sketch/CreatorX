@@ -35,6 +35,7 @@ public class AuthResponse {
         private String supabaseUserId;
         private Boolean emailVerified;
         private Boolean phoneVerified;
+        private String onboardingStatus;
         private String createdAt;
     }
 }

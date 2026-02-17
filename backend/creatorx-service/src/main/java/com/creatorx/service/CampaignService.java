@@ -3,6 +3,7 @@ package com.creatorx.service;
 import com.creatorx.common.dto.CampaignFilterRequest;
 import com.creatorx.common.enums.CampaignPlatform;
 import com.creatorx.common.enums.CampaignStatus;
+import com.creatorx.common.enums.OnboardingStatus;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.CampaignNotFoundException;
@@ -10,8 +11,10 @@ import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.common.exception.UnauthorizedException;
 import com.creatorx.common.settings.PlatformSettingKeys;
 import com.creatorx.repository.ApplicationRepository;
+import com.creatorx.repository.BrandProfileRepository;
 import com.creatorx.repository.CampaignRepository;
 import com.creatorx.repository.SavedCampaignRepository;
+import com.creatorx.repository.entity.BrandProfile;
 import com.creatorx.repository.entity.Campaign;
 import com.creatorx.repository.entity.CampaignDeliverable;
 import com.creatorx.repository.entity.SavedCampaign;
@@ -45,6 +48,7 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final SavedCampaignRepository savedCampaignRepository;
     private final ApplicationRepository applicationRepository;
+    private final BrandProfileRepository brandProfileRepository;
     private final UserService userService;
     private final CampaignMapper campaignMapper;
     private final SearchQuerySanitizer searchQuerySanitizer;
@@ -259,7 +263,15 @@ public class CampaignService {
         if (brand.getRole() != UserRole.BRAND) {
             throw new BusinessException("Only brands can create campaigns");
         }
-        
+
+        // Verify brand onboarding is approved
+        BrandProfile brandProfile = brandProfileRepository.findById(brandId)
+                .orElseThrow(() -> new BusinessException("Brand profile not found. Please complete onboarding."));
+        if (brandProfile.getOnboardingStatus() != OnboardingStatus.APPROVED) {
+            throw new BusinessException("Brand onboarding must be approved before creating campaigns. Current status: "
+                    + brandProfile.getOnboardingStatus());
+        }
+
         // Validate campaign data
         validateCampaignData(campaignDTO);
         

@@ -16,6 +16,7 @@ public class BrandVerificationStatusDTO {
     private String brandId;
     private String brandEmail;
     private String status;
+    private String onboardingStatus;
     private String fileUrl;
     private String rejectionReason;
     private LocalDateTime submittedAt;

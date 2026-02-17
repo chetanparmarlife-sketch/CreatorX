@@ -1,5 +1,6 @@
 package com.creatorx.service;
 
+import com.creatorx.common.enums.OnboardingStatus;
 import com.creatorx.common.exception.BusinessException;
 import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.repository.BrandVerificationDocumentRepository;
@@ -59,6 +60,7 @@ public class BrandVerificationService {
 
         profile.setGstNumber(gstNumber);
         profile.setVerified(false);
+        profile.setOnboardingStatus(OnboardingStatus.SUBMITTED);
         brandProfileRepository.save(profile);
 
         BrandVerificationDocument document = BrandVerificationDocument.builder()
@@ -78,6 +80,7 @@ public class BrandVerificationService {
                 .brandId(brandId)
                 .brandEmail(brand.getEmail())
                 .status(saved.getStatus())
+                .onboardingStatus(OnboardingStatus.SUBMITTED.name())
                 .fileUrl(saved.getFileUrl())
                 .submittedAt(saved.getSubmittedAt())
                 .build();
@@ -85,12 +88,17 @@ public class BrandVerificationService {
 
     @Transactional(readOnly = true)
     public BrandVerificationStatusDTO getLatestStatus(String brandId) {
+        BrandProfile profile = brandProfileRepository.findById(brandId).orElse(null);
+        String onboardingStatus = profile != null && profile.getOnboardingStatus() != null
+                ? profile.getOnboardingStatus().name() : null;
+
         return brandVerificationRepository.findFirstByBrandIdOrderBySubmittedAtDesc(brandId)
                 .map((document) -> BrandVerificationStatusDTO.builder()
                         .documentId(document.getId())
                         .brandId(document.getBrand().getId())
                         .brandEmail(document.getBrand().getEmail())
                         .status(document.getStatus())
+                        .onboardingStatus(onboardingStatus)
                         .fileUrl(document.getFileUrl())
                         .rejectionReason(document.getRejectionReason())
                         .submittedAt(document.getSubmittedAt())
@@ -98,6 +106,7 @@ public class BrandVerificationService {
                         .build())
                 .orElse(BrandVerificationStatusDTO.builder()
                         .status("NOT_SUBMITTED")
+                        .onboardingStatus(onboardingStatus)
                         .build());
     }
 
@@ -134,6 +143,9 @@ public class BrandVerificationService {
         BrandProfile profile = brandProfileRepository.findById(document.getBrand().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("BrandProfile", document.getBrand().getId()));
         profile.setVerified("APPROVED".equals(normalized));
+        profile.setOnboardingStatus("APPROVED".equals(normalized)
+                ? OnboardingStatus.APPROVED
+                : OnboardingStatus.REJECTED);
         brandProfileRepository.save(profile);
 
         adminAuditService.logAction(
@@ -151,6 +163,8 @@ public class BrandVerificationService {
                 .brandId(document.getBrand().getId())
                 .brandEmail(document.getBrand().getEmail())
                 .status(document.getStatus())
+                .onboardingStatus(profile.getOnboardingStatus() != null
+                        ? profile.getOnboardingStatus().name() : null)
                 .fileUrl(document.getFileUrl())
                 .rejectionReason(document.getRejectionReason())
                 .submittedAt(document.getSubmittedAt())
@@ -206,6 +220,8 @@ public class BrandVerificationService {
                 .website(profile.getWebsite())
                 .gstNumber(profile.getGstNumber())
                 .verified(profile.getVerified())
+                .onboardingStatus(profile.getOnboardingStatus() != null
+                        ? profile.getOnboardingStatus().name() : null)
                 .companyLogoUrl(profile.getCompanyLogoUrl())
                 .userStatus(brand.getStatus() != null ? brand.getStatus().name() : null)
                 .build();

@@ -428,6 +428,8 @@ public class ProfileService {
                 .industry(profile.getIndustry())
                 .website(profile.getWebsite())
                 .verified(profile.getVerified())
+                .onboardingStatus(profile.getOnboardingStatus() != null
+                        ? profile.getOnboardingStatus().name() : null)
                 .companyLogoUrl(profile.getCompanyLogoUrl())
                 .companyDescription(profile.getCompanyDescription())
                 .build();

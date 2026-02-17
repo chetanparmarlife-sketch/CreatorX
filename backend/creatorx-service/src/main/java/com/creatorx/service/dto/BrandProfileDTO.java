@@ -16,6 +16,7 @@ public class BrandProfileDTO {
     private String industry;
     private String website;
     private Boolean verified;
+    private String onboardingStatus;
     private String companyLogoUrl;
     private String companyDescription;
 }

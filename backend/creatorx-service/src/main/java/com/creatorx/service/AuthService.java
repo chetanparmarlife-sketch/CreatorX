@@ -4,6 +4,7 @@
 
 package com.creatorx.service;
 
+import com.creatorx.common.enums.OnboardingStatus;
 import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.enums.UserStatus;
 import com.creatorx.common.exception.BusinessException;
@@ -87,6 +88,20 @@ public class AuthService {
         user.setPasswordHash("supabase_managed");
 
         User savedUser = userRepository.save(user);
+
+        // Create brand profile immediately for brand registrations
+        if (role == UserRole.BRAND) {
+            if (!brandProfileRepository.existsById(savedUser.getId())) {
+                BrandProfile brandProfile = BrandProfile.builder()
+                        .user(savedUser)
+                        .companyName(name != null ? name : email.split("@")[0])
+                        .verified(false)
+                        .onboardingStatus(OnboardingStatus.DRAFT)
+                        .build();
+                brandProfileRepository.save(brandProfile);
+                log.info("Created brand profile with DRAFT onboarding for user: {}", savedUser.getId());
+            }
+        }
 
         log.info("Registered user: {} with role: {}", email, role);
         return savedUser;
@@ -220,6 +235,7 @@ public class AuthService {
                         .industry(industry)
                         .website(website)
                         .verified(false)
+                        .onboardingStatus(OnboardingStatus.DRAFT)
                         .build();
                 brandProfileRepository.save(brandProfile);
                 log.info("Created brand profile for user: {} with company: {}", user.getId(),

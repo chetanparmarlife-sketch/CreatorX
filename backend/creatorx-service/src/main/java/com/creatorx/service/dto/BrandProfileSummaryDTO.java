@@ -17,6 +17,7 @@ public class BrandProfileSummaryDTO {
     private String website;
     private String gstNumber;
     private Boolean verified;
+    private String onboardingStatus;
     private String companyLogoUrl;
     private String userStatus;
 }

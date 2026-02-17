@@ -11,13 +11,15 @@ import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.creatorx.common.enums.OnboardingStatus;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "brand_profiles", indexes = {
     @Index(name = "idx_brand_profiles_company_name", columnList = "company_name"),
     @Index(name = "idx_brand_profiles_gst", columnList = "gst_number"),
-    @Index(name = "idx_brand_profiles_verified", columnList = "verified")
+    @Index(name = "idx_brand_profiles_verified", columnList = "verified"),
+    @Index(name = "idx_brand_profiles_onboarding_status", columnList = "onboarding_status")
 })
 @Data
 @SuperBuilder
@@ -47,7 +49,12 @@ public class BrandProfile {
     
     @Builder.Default
     private Boolean verified = false;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "onboarding_status", nullable = false, length = 20)
+    @Builder.Default
+    private OnboardingStatus onboardingStatus = OnboardingStatus.DRAFT;
+
     @Column(name = "company_logo_url", columnDefinition = "TEXT")
     private String companyLogoUrl;
     

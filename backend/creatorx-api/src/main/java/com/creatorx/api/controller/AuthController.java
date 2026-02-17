@@ -9,7 +9,10 @@ import com.creatorx.api.dto.ForgotPasswordRequest;
 import com.creatorx.api.dto.LinkSupabaseUserRequest;
 import com.creatorx.api.dto.RefreshTokenRequest;
 import com.creatorx.api.dto.RegisterRequest;
+import com.creatorx.common.enums.UserRole;
 import com.creatorx.common.exception.BusinessException;
+import com.creatorx.repository.BrandProfileRepository;
+import com.creatorx.repository.entity.BrandProfile;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final BrandProfileRepository brandProfileRepository;
 
     @org.springframework.beans.factory.annotation.Value("${creatorx.webhook.internal-secret:}")
     private String webhookInternalSecret;
@@ -260,14 +264,22 @@ public class AuthController {
     }
 
     private AuthResponse.AuthUserInfo toAuthUserInfo(User user) {
-        return AuthResponse.AuthUserInfo.builder()
+        AuthResponse.AuthUserInfo.AuthUserInfoBuilder builder = AuthResponse.AuthUserInfo.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .role(user.getRole())
                 .supabaseUserId(user.getSupabaseId())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
-                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
-                .build();
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
+
+        if (user.getRole() == UserRole.BRAND) {
+            BrandProfile brandProfile = brandProfileRepository.findById(user.getId()).orElse(null);
+            if (brandProfile != null && brandProfile.getOnboardingStatus() != null) {
+                builder.onboardingStatus(brandProfile.getOnboardingStatus().name());
+            }
+        }
+
+        return builder.build();
     }
 }
