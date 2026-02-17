@@ -194,6 +194,21 @@ export default function NewCampaignPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const authUser = useAuthStore((s) => s.user)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [showFundingDialog, setShowFundingDialog] = useState(false)
+  const [createdCampaign, setCreatedCampaign] = useState<Campaign | null>(null)
+  const [fundingStep, setFundingStep] = useState<'check' | 'complete'>('check')
+  const createCampaign = useCreateCampaign()
+  const { data: templates = [] } = useTemplates()
+  const { data: wallet, refetch: refetchWallet } = useBrandWallet()
+  const allocateMutation = useAllocateToCampaign()
+  const { track } = useBrandEventTracker({
+    walletBalance: wallet?.balance ?? null,
+  })
+  const source = searchParams.get('source')
 
   // Gate: block campaign creation for non-approved brands
   if (authUser?.onboardingStatus && authUser.onboardingStatus !== 'APPROVED') {
@@ -234,21 +249,6 @@ export default function NewCampaignPage() {
       </div>
     )
   }
-  const [currentStep, setCurrentStep] = useState(1)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
-  const [showFundingDialog, setShowFundingDialog] = useState(false)
-  const [createdCampaign, setCreatedCampaign] = useState<Campaign | null>(null)
-  const [fundingStep, setFundingStep] = useState<'check' | 'complete'>('check')
-  const createCampaign = useCreateCampaign()
-  const { data: templates = [] } = useTemplates()
-  const { data: wallet, refetch: refetchWallet } = useBrandWallet()
-  const allocateMutation = useAllocateToCampaign()
-  const { track } = useBrandEventTracker({
-    walletBalance: wallet?.balance ?? null,
-  })
-  const source = searchParams.get('source')
 
   const formatApiError = (error: unknown, fallback: string) => {
     if (!error || typeof error !== 'object') return fallback
