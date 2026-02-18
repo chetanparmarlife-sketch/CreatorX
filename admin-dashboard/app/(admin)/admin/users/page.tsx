@@ -7,6 +7,8 @@ import { UserStatus } from '@/lib/types'
 import { Pagination } from '@/components/shared/pagination'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
+import { ActionBar } from '@/components/shared/action-bar'
 
 const statusOptions = Object.values(UserStatus)
 
@@ -37,53 +39,51 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Users</h1>
-        <p className="text-slate-500">Monitor accounts and update user status.</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-500">User directory</div>
-          <select
-            className="h-9 rounded-lg border border-slate-200 px-2 text-sm"
-            value={sortDir}
-            onChange={(event) => setSortDir(event.target.value as 'ASC' | 'DESC')}
-          >
-            <option value="DESC">Newest first</option>
-            <option value="ASC">Oldest first</option>
-          </select>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500">
-              <tr>
-                <th className="py-2 pr-4">User</th>
-                <th className="py-2 pr-4">Role</th>
-                <th className="py-2 pr-4">Created</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-slate-700">
-              {isLoading ? (
+      <DashboardPageShell
+        title="Users"
+        subtitle="Monitor accounts and update user status."
+        eyebrow="User Management"
+        actionBar={
+          <ActionBar title="User directory" description="Review and update account state.">
+            <select
+              className="h-9 rounded-lg border border-slate-200 px-2 text-sm"
+              value={sortDir}
+              onChange={(event) => setSortDir(event.target.value as 'ASC' | 'DESC')}
+            >
+              <option value="DESC">Newest first</option>
+              <option value="ASC">Oldest first</option>
+            </select>
+          </ActionBar>
+        }
+        loading={isLoading && items.length === 0}
+        empty={!isLoading && items.length === 0}
+        emptyTitle="No users found"
+        emptyDescription="User accounts will appear here once they sign up."
+      >
+        <div className="table-shell p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase text-slate-500">
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
-                    Loading...
-                  </td>
+                  <th className="py-2 pr-4">User</th>
+                  <th className="py-2 pr-4">Role</th>
+                  <th className="py-2 pr-4">Created</th>
+                  <th className="py-2 pr-4">Status</th>
+                  <th className="py-2 pr-4">Actions</th>
                 </tr>
-              ) : items.length ? (
-                items.map((user: any) => (
+              </thead>
+              <tbody className="text-slate-700">
+                {items.map((user: any) => (
                   <tr key={user.id} className="border-t border-slate-100">
                     <td className="py-3 pr-4">
                       <p className="font-medium text-slate-900">{user.email}</p>
                       <p className="text-xs text-slate-500">
-                        {user.fullName || user.companyName || user.creatorUsername || '—'}
+                        {user.fullName || user.companyName || user.creatorUsername || '--'}
                       </p>
                     </td>
                     <td className="py-3 pr-4">{user.role}</td>
                     <td className="py-3 pr-4">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '--'}
                     </td>
                     <td className="py-3 pr-4">
                       <select
@@ -112,21 +112,15 @@ export default function AdminUsersPage() {
                       </a>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
-                    No users found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4">
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          </div>
         </div>
-        <div className="mt-4">
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
-      </div>
+      </DashboardPageShell>
     </div>
   )
 }

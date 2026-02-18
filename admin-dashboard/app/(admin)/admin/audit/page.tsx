@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminAuditPage() {
   const [adminId, setAdminId] = useState('')
@@ -75,12 +76,12 @@ export default function AdminAuditPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Audit Log</h1>
-        <p className="text-slate-500">Trace critical admin actions.</p>
-      </div>
-
-      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-6">
+      <DashboardPageShell
+        title="Audit Log"
+        subtitle="Trace critical admin actions."
+        eyebrow="Monitoring"
+      >
+      <div className="table-shell grid gap-4 p-6 md:grid-cols-6">
         <select
           className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
           value={preset}
@@ -190,7 +191,7 @@ export default function AdminAuditPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="table-shell p-6">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase text-slate-500">
@@ -259,6 +260,7 @@ export default function AdminAuditPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!selectedEntry}

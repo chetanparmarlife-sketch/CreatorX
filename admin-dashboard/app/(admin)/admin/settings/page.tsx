@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 const parseJsonArray = (value?: string) => {
   if (!value) return []
@@ -198,19 +199,19 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Platform Settings</h1>
-        <p className="text-slate-500">Configure fees, schedules, categories, and feature flags.</p>
-      </div>
+      <DashboardPageShell
+        title="Platform Settings"
+        subtitle="Configure fees, schedules, categories, and feature flags."
+        eyebrow="System"
+      >
+        {validationError ? (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {validationError}
+          </div>
+        ) : null}
 
-      {validationError ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {validationError}
-        </div>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="section-card">
           <h2 className="text-lg font-semibold text-slate-900">Fees</h2>
           <div className="mt-4 space-y-3">
             <label className="block text-sm font-medium text-slate-700">Platform commission (%)</label>
@@ -231,7 +232,7 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="section-card">
           <h2 className="text-lg font-semibold text-slate-900">Payout Schedule</h2>
           <div className="mt-4 space-y-4">
             <div>
@@ -285,7 +286,7 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="section-card">
           <h2 className="text-lg font-semibold text-slate-900">Categories</h2>
           <div className="mt-4 space-y-3">
             <label className="block text-sm font-medium text-slate-700">Allowed categories</label>
@@ -318,7 +319,7 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="section-card">
           <h2 className="text-lg font-semibold text-slate-900">Feature Flags</h2>
           <div className="mt-4 space-y-3">
             <label className="flex items-center gap-2 text-sm text-slate-600">
@@ -347,7 +348,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="table-shell p-6">
         <h2 className="text-lg font-semibold text-slate-900">Current Settings</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -386,6 +387,7 @@ export default function AdminSettingsPage() {
           </table>
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog open={!!confirmingSection} onOpenChange={(open) => !open && setConfirmingSection(null)}>
         <DialogContent>
