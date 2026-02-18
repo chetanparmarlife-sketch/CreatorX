@@ -17,6 +17,7 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  const refreshAuth = useAuthStore((s) => s.checkAuth)
   const [hasToken, setHasToken] = useState<boolean | null>(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
@@ -32,6 +33,8 @@ export default function DashboardLayout({
 
       if (token) {
         setHasToken(true)
+        // Refresh user data from backend (updates onboardingStatus after admin approval)
+        refreshAuth()
         return
       }
 
