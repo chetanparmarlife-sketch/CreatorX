@@ -26,7 +26,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
@@ -147,7 +146,27 @@ const buildNavSections = (summary?: {
     },
   ]
 
-export function AdminSidebar() {
+const flattenNavItems = (sections: NavSection[]) => sections.flatMap((section) => section.items)
+
+export function getAdminRouteTitle(pathname: string): string {
+  const items = flattenNavItems(buildNavSections())
+  const exactMatch = items.find((item) => pathname === item.href)
+  if (exactMatch) return exactMatch.label
+
+  const nestedMatch = items
+    .filter((item) => pathname.startsWith(`${item.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]
+
+  return nestedMatch?.label || 'Admin Console'
+}
+
+export function AdminSidebar({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean
+  onNavigate?: () => void
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuthStore()
@@ -163,7 +182,12 @@ export function AdminSidebar() {
   }
 
   return (
-    <div className="w-64 h-screen bg-slate-950 border-r border-slate-800/80 text-slate-100 flex flex-col fixed left-0 top-0 shadow-[0_0_40px_rgba(15,23,42,0.4)]">
+    <aside
+      className={cn(
+        'bg-slate-950 border-r border-slate-800/80 text-slate-100 flex flex-col shadow-[0_0_40px_rgba(15,23,42,0.4)]',
+        mobile ? 'h-full w-full' : 'fixed left-0 top-0 h-screen w-64 hidden lg:flex'
+      )}
+    >
       <div className="px-6 py-6">
         <p className="text-xs uppercase tracking-[0.32em] text-slate-500">Admin Console</p>
         <h2 className="text-xl font-semibold text-white">CreatorX</h2>
@@ -181,11 +205,14 @@ export function AdminSidebar() {
             )}
             <div className="space-y-1">
               {section.items.map((item) => {
-                const isActive = pathname === item.href
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== '/admin' && pathname.startsWith(`${item.href}/`))
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={onNavigate}
                     className={cn(
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg border border-transparent text-sm font-medium transition-all',
                       isActive
@@ -224,14 +251,14 @@ export function AdminSidebar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
-              <div>
-                <p className="font-medium">{user?.email || 'Admin'}</p>
+              <div className="min-w-0 text-left">
+                <p className="font-medium truncate">{user?.email || 'Admin'}</p>
                 <p className="text-xs text-slate-400">Administrator</p>
               </div>
               <ChevronUp className="w-4 h-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuContent className="w-56" align="end" side={mobile ? 'top' : 'right'}>
             <DropdownMenuItem onClick={handleLogout} className="gap-2">
               <LogOut className="w-4 h-4" />
               Sign out
@@ -239,6 +266,6 @@ export function AdminSidebar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </div>
+    </aside>
   )
 }
