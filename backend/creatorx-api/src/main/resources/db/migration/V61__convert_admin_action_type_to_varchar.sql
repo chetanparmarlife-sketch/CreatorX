@@ -1,67 +1,58 @@
 -- V61: Convert ALL remaining PostgreSQL enum columns to VARCHAR
--- Previous attempts failed because CHECK constraints and DEFAULT values
--- reference enum types, blocking ALTER COLUMN TYPE.
--- Fix: Drop CHECK constraints first, then defaults, then convert columns.
+-- ALTER COLUMN TYPE fails due to dependent objects (views, triggers, indexes)
+-- that reference enum types. The only reliable approach is to drop the old
+-- column and recreate it as VARCHAR using add-copy-drop-rename pattern.
 
--- Step 1: Drop ALL CHECK constraints in the public schema
--- (CHECK constraints reference enum types and block ALTER COLUMN TYPE)
+-- Step 1: For each enum column, add a VARCHAR copy, migrate data, drop old, rename
 DO $$
 DECLARE
   r RECORD;
+  is_not_null BOOLEAN;
+  tmp_name TEXT;
 BEGIN
   FOR r IN
-    SELECT con.conname, rel.relname
-    FROM pg_constraint con
-    JOIN pg_class rel ON con.conrelid = rel.oid
-    JOIN pg_namespace nsp ON rel.relnamespace = nsp.oid
-    WHERE con.contype = 'c'
-    AND nsp.nspname = 'public'
-  LOOP
-    EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.relname, r.conname);
-  END LOOP;
-END;
-$$;
-
--- Step 2: Drop ALL defaults on enum columns
-DO $$
-DECLARE
-  r RECORD;
-BEGIN
-  FOR r IN
-    SELECT c.table_name, c.column_name
+    SELECT c.table_name, c.column_name, c.is_nullable, c.udt_name
     FROM information_schema.columns c
     WHERE c.table_schema = 'public'
     AND c.data_type = 'USER-DEFINED'
-    AND c.column_default IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM pg_type t
+      JOIN pg_enum e ON t.oid = e.enumtypid
+      WHERE t.typname = c.udt_name::name
+    )
   LOOP
-    EXECUTE format('ALTER TABLE %I ALTER COLUMN %I DROP DEFAULT',
+    is_not_null := (r.is_nullable = 'NO');
+    tmp_name := r.column_name || '_v61';
+
+    -- Add temp VARCHAR column
+    EXECUTE format('ALTER TABLE %I ADD COLUMN %I VARCHAR(50)',
+      r.table_name, tmp_name);
+
+    -- Copy data from enum column to varchar column
+    EXECUTE format('UPDATE %I SET %I = %I::TEXT',
+      r.table_name, tmp_name, r.column_name);
+
+    -- Drop old enum column (CASCADE removes all dependent objects)
+    EXECUTE format('ALTER TABLE %I DROP COLUMN %I CASCADE',
       r.table_name, r.column_name);
-  END LOOP;
-END;
-$$;
 
--- Step 3: Convert ALL remaining enum columns to VARCHAR(50)
-DO $$
-DECLARE
-  r RECORD;
-BEGIN
-  FOR r IN
-    SELECT c.table_name, c.column_name, c.udt_name
-    FROM information_schema.columns c
-    WHERE c.table_schema = 'public'
-    AND c.data_type = 'USER-DEFINED'
-  LOOP
-    EXECUTE format(
-      'ALTER TABLE %I ALTER COLUMN %I TYPE VARCHAR(50) USING %I::TEXT',
-      r.table_name, r.column_name, r.column_name
-    );
-    RAISE NOTICE 'Converted %.% from % to VARCHAR(50)',
+    -- Rename temp column to original name
+    EXECUTE format('ALTER TABLE %I RENAME COLUMN %I TO %I',
+      r.table_name, tmp_name, r.column_name);
+
+    -- Restore NOT NULL if it was set
+    IF is_not_null THEN
+      EXECUTE format('ALTER TABLE %I ALTER COLUMN %I SET NOT NULL',
+        r.table_name, r.column_name);
+    END IF;
+
+    RAISE NOTICE 'Converted %.% (was %)',
       r.table_name, r.column_name, r.udt_name;
   END LOOP;
 END;
 $$;
 
--- Step 4: Drop ALL remaining custom enum types
+-- Step 2: Drop ALL remaining custom enum types
 DO $$
 DECLARE
   r RECORD;
