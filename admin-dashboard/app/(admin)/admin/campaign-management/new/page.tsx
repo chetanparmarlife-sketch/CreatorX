@@ -7,6 +7,7 @@ import { adminCampaignManagementService } from '@/lib/api/admin/campaign-managem
 import { adminUserService } from '@/lib/api/admin/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { CampaignPlatform, UserRole } from '@/lib/types'
 
 export default function AdminCampaignCreatePage() {
@@ -166,15 +167,14 @@ export default function AdminCampaignCreatePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Create Campaign</h1>
-        <p className="text-slate-500">
-          Launch a campaign on behalf of a brand with the same structure used in the brand workflow.
-        </p>
-      </div>
+      <DashboardPageShell
+        title="Create Campaign"
+        subtitle="Launch a campaign on behalf of a brand with the same structure used in the brand workflow."
+        eyebrow="Campaign Ops"
+      >
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-8">
+        <div className="section-card space-y-8">
           <div className="space-y-3">
             <h2 className="text-lg font-semibold text-slate-900">Brand + Basics</h2>
             <div className="grid gap-4 md:grid-cols-2">
@@ -403,7 +403,7 @@ export default function AdminCampaignCreatePage() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+          <div className="section-card p-5 space-y-3">
             <p className="text-sm font-semibold text-slate-900">Budget guidance</p>
             {budgetGuidance ? (
               <div className="space-y-2 text-sm text-slate-600">
@@ -417,7 +417,7 @@ export default function AdminCampaignCreatePage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+          <div className="section-card p-5 space-y-3">
             <p className="text-sm font-semibold text-slate-900">Ready-to-launch checklist</p>
             <div className="space-y-2 text-sm">
               {checklist.map((item) => (
@@ -431,13 +431,14 @@ export default function AdminCampaignCreatePage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2 text-sm text-slate-600">
+          <div className="section-card p-5 space-y-2 text-sm text-slate-600">
             <p className="font-semibold text-slate-900">Next actions</p>
             <p>Create in draft, then submit for review or activate depending on pre-approval settings.</p>
             <p>After launch, use the Applications + Deliverables tabs to mirror brand operations.</p>
           </div>
         </aside>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }

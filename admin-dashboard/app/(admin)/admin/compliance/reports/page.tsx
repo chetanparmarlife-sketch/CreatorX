@@ -7,6 +7,7 @@ import { ComplianceReportStatus, ComplianceReportType } from '@/lib/types'
 import { Pagination } from '@/components/shared/pagination'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 const reportTypes = Object.values(ComplianceReportType)
 const reportStatuses = Object.values(ComplianceReportStatus)
@@ -70,12 +71,12 @@ export default function AdminComplianceReportsPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Compliance Reports</h1>
-        <p className="text-slate-500">Generate and review tax documents and regulatory exports.</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <DashboardPageShell
+        title="Compliance Reports"
+        subtitle="Generate and review tax documents and regulatory exports."
+        eyebrow="Compliance"
+      >
+      <div className="section-card">
         <h2 className="text-lg font-semibold text-slate-900">Generate Report</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-4">
           <input
@@ -113,7 +114,7 @@ export default function AdminComplianceReportsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="table-shell p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             <select
@@ -215,6 +216,7 @@ export default function AdminComplianceReportsPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }

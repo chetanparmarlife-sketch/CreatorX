@@ -7,6 +7,7 @@ import { AppealStatus } from '@/lib/types'
 import { Pagination } from '@/components/shared/pagination'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   Dialog,
   DialogContent,
@@ -48,12 +49,12 @@ export default function AdminAppealsPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Account Appeals</h1>
-        <p className="text-slate-500">Review and resolve suspension appeals.</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <DashboardPageShell
+        title="Account Appeals"
+        subtitle="Review and resolve suspension appeals."
+        eyebrow="User Management"
+      >
+      <div className="table-shell p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-slate-500">Appeals queue</div>
           <select
@@ -126,6 +127,7 @@ export default function AdminAppealsPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!selectedAppealId}

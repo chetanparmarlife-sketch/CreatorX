@@ -8,6 +8,7 @@ import { adminCampaignReviewService } from '@/lib/api/admin/campaign-review'
 import { campaignService } from '@/lib/api/campaigns'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   Dialog,
   DialogContent,
@@ -63,20 +64,20 @@ export default function AdminCampaignReviewDetailPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Campaign Review</p>
-          <h1 className="text-3xl font-semibold text-slate-900">{campaign.title}</h1>
-          <p className="text-slate-500">{campaign.category}</p>
-        </div>
-        <Link className="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/admin/campaign-reviews">
-          Back to list
-        </Link>
-      </div>
+      <DashboardPageShell
+        title={campaign.title}
+        subtitle={campaign.category}
+        eyebrow="Campaign Review"
+        actionBar={
+          <Link className="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/admin/campaign-reviews">
+            Back to list
+          </Link>
+        }
+      >
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Campaign Details</h2>
             <p className="text-sm text-slate-600">{campaign.description}</p>
             <div className="grid gap-4 md:grid-cols-2">
@@ -103,7 +104,7 @@ export default function AdminCampaignReviewDetailPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Deliverables</h2>
             {campaign.deliverables?.length ? (
               <div className="space-y-3">
@@ -121,13 +122,13 @@ export default function AdminCampaignReviewDetailPage() {
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Brand</h2>
             <p className="text-sm text-slate-700">{campaign.brand?.companyName || '—'}</p>
             <p className="text-xs text-slate-500">{campaign.brand?.website || ''}</p>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3">
+          <section className="section-card p-6 space-y-3">
             <h2 className="text-lg font-semibold text-slate-900">Review Actions</h2>
             <button
               className="w-full h-11 rounded-lg bg-emerald-600 text-sm font-semibold text-white"
@@ -153,6 +154,7 @@ export default function AdminCampaignReviewDetailPage() {
           </section>
         </aside>
       </div>
+      </DashboardPageShell>
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>

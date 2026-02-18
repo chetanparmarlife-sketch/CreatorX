@@ -6,6 +6,7 @@ import { adminUserService } from '@/lib/api/admin/users'
 import { adminPermissionService } from '@/lib/api/admin/permissions'
 import { ADMIN_PERMISSIONS } from '@/lib/constants/admin-permissions'
 import { UserRole } from '@/lib/types'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminPermissionsPage() {
   const queryClient = useQueryClient()
@@ -77,12 +78,12 @@ export default function AdminPermissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Admin Permissions</h1>
-        <p className="text-slate-500">Grant or revoke permissions for admin users.</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+      <DashboardPageShell
+        title="Admin Permissions"
+        subtitle="Grant or revoke permissions for admin users."
+        eyebrow="System"
+      >
+      <div className="table-shell p-6 space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-slate-700">Admin user</label>
@@ -203,6 +204,7 @@ export default function AdminPermissionsPage() {
           </div>
         </div>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }

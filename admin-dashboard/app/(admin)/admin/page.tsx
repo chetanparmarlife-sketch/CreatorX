@@ -16,6 +16,7 @@ import {
 import { StatCardsSkeleton } from '@/components/shared/skeleton'
 import { adminSystemService } from '@/lib/api/admin/system'
 import { adminFinanceService } from '@/lib/api/admin/finance'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminOverviewPage() {
   const [csatRating, setCsatRating] = useState<number | null>(null)
@@ -112,10 +113,11 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.32em] text-slate-500">Admin Dashboard</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Platform Overview</h1>
-      </div>
+      <DashboardPageShell
+        title="Platform Overview"
+        subtitle="Operational pulse for queues, risk, and system health."
+        eyebrow="Admin Dashboard"
+      >
 
       <div className="ops-hero">
         <div className="relative z-10 grid gap-4 md:grid-cols-3">
@@ -343,6 +345,7 @@ export default function AdminOverviewPage() {
           </div>
         </div>
       )}
+      </DashboardPageShell>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { adminSystemService } from '@/lib/api/admin/system'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 const formatNumber = (value?: number | null, suffix = '') => {
   if (value === null || value === undefined || Number.isNaN(value)) {
@@ -38,10 +39,11 @@ export default function AdminHealthPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">System Health</h1>
-        <p className="text-slate-500">Operational health, metrics, and service statuses.</p>
-      </div>
+      <DashboardPageShell
+        title="System Health"
+        subtitle="Operational health, metrics, and service statuses."
+        eyebrow="System"
+      >
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -88,7 +90,7 @@ export default function AdminHealthPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="table-shell p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Component Status</h2>
           <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Actuator</span>
@@ -106,6 +108,7 @@ export default function AdminHealthPage() {
           )}
         </div>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }

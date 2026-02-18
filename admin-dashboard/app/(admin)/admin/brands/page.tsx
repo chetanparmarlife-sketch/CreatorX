@@ -6,6 +6,7 @@ import { adminBrandVerificationService } from '@/lib/api/admin/brand-verificatio
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
 import { Pagination } from '@/components/shared/pagination'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   Dialog,
   DialogContent,
@@ -127,12 +128,12 @@ export default function AdminBrandVerificationPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Brand Verification</h1>
-        <p className="text-slate-500">Review GST verification submissions from brands.</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <DashboardPageShell
+        title="Brand Verification"
+        subtitle="Review GST verification submissions from brands."
+        eyebrow="User Management"
+      >
+      <div className="table-shell p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm text-slate-500">Pending documents</p>
@@ -312,6 +313,7 @@ export default function AdminBrandVerificationPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!reviewingDoc}

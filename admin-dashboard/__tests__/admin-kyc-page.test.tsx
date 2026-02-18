@@ -43,6 +43,9 @@ describe('AdminKycPage', () => {
       total: 1,
       totalPages: 1,
     })
+    approve.mockResolvedValue({})
+    reject.mockResolvedValue({})
+    bulkReview.mockResolvedValue({})
   })
 
   it('renders pending documents and opens reject dialog', async () => {
@@ -55,5 +58,27 @@ describe('AdminKycPage', () => {
     fireEvent.click(screen.getByText('Reject'))
 
     expect(screen.getByText('Reject KYC document')).toBeInTheDocument()
+  })
+
+  it('approves and rejects a KYC document', async () => {
+    renderWithClient(<AdminKycPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('creator@example.com')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Approve' })[0])
+
+    await waitFor(() => {
+      expect(approve).toHaveBeenCalledWith('doc-1')
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Reject' })[0])
+    fireEvent.change(screen.getByPlaceholderText('Reason'), { target: { value: 'Invalid document' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }))
+
+    await waitFor(() => {
+      expect(reject).toHaveBeenCalledWith('doc-1', 'Invalid document')
+    })
   })
 })

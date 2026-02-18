@@ -7,6 +7,7 @@ import { useMutation } from '@tanstack/react-query'
 import { adminProfileService } from '@/lib/api/admin/profiles'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 type ProfileTab = 'USER' | 'CREATOR' | 'BRAND'
 
@@ -53,16 +54,16 @@ export default function AdminUserProfileEditPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Admin Profiles</p>
-          <h1 className="text-3xl font-semibold text-slate-900">Edit Profile</h1>
-          <p className="text-slate-500">User ID: {userId}</p>
-        </div>
-        <Link className="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/admin/users">
-          Back to Users
-        </Link>
-      </div>
+      <DashboardPageShell
+        title="Edit Profile"
+        subtitle={`User ID: ${userId}`}
+        eyebrow="User Management"
+        actionBar={
+          <Link className="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/admin/users">
+            Back to Users
+          </Link>
+        }
+      >
 
       <div className="flex flex-wrap gap-2">
         {(['USER', 'CREATOR', 'BRAND'] as ProfileTab[]).map((item) => (
@@ -79,7 +80,7 @@ export default function AdminUserProfileEditPage() {
       </div>
 
       {tab === 'USER' ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="section-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">User Profile</h2>
           <input
             className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
@@ -109,7 +110,7 @@ export default function AdminUserProfileEditPage() {
       ) : null}
 
       {tab === 'CREATOR' ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="section-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Creator Profile</h2>
           <input
             className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
@@ -151,7 +152,7 @@ export default function AdminUserProfileEditPage() {
       ) : null}
 
       {tab === 'BRAND' ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="section-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Brand Profile</h2>
           <input
             className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
@@ -191,6 +192,7 @@ export default function AdminUserProfileEditPage() {
           </button>
         </div>
       ) : null}
+      </DashboardPageShell>
     </div>
   )
 }

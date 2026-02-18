@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { PageHeader } from '@/components/shared/page-header'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { TableSkeleton } from '@/components/shared/skeleton'
 import { UserRole } from '@/lib/types'
 
@@ -86,12 +86,13 @@ export default function AdminDeliverablesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Deliverables" />
-      <p className="text-sm text-slate-500">
-        Review deliverables across campaigns with the same workflow used by brands.
-      </p>
+      <DashboardPageShell
+        title="Deliverables"
+        subtitle="Review deliverables across campaigns with the same workflow used by brands."
+        eyebrow="Campaign Ops"
+      >
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="table-shell p-6 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <select
             className="h-10 rounded-lg border border-slate-200 px-3 text-sm min-w-[220px]"
@@ -208,6 +209,7 @@ export default function AdminDeliverablesPage() {
           </div>
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
         <DialogContent>

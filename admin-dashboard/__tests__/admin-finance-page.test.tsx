@@ -63,7 +63,7 @@ describe('AdminFinancePage', () => {
       expect(getUserReport).toHaveBeenCalled()
     })
 
-    fireEvent.click(screen.getByText('Export CSV'))
+    fireEvent.click(screen.getByRole('button', { name: /Export/i }))
 
     await waitFor(() => {
       expect(exportReport).toHaveBeenCalled()

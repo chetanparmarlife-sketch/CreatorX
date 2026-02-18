@@ -10,6 +10,7 @@ import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { StatusChip } from '@/components/shared/status-chip'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminDisputeDetailPage() {
   const router = useRouter()
@@ -122,28 +123,28 @@ export default function AdminDisputeDetailPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Dispute Detail</p>
-          <h1 className="text-3xl font-semibold text-slate-900">{dispute.campaignTitle || 'Dispute'}</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-slate-500">{dispute.type}</p>
+      <DashboardPageShell
+        title={dispute.campaignTitle || 'Dispute'}
+        subtitle={dispute.type}
+        eyebrow="Disputes"
+        actionBar={
+          <div className="flex items-center gap-3">
             <StatusChip
               tone={dispute.status === 'RESOLVED' || dispute.status === 'CLOSED' ? 'approved' : dispute.status === 'IN_REVIEW' ? 'needs_action' : 'pending'}
               size="compact"
             >
               {dispute.status}
             </StatusChip>
+            <Link className="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/admin/disputes">
+              Back to disputes
+            </Link>
           </div>
-        </div>
-        <Link className="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/admin/disputes">
-          Back to disputes
-        </Link>
-      </div>
+        }
+      >
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Parties</h2>
             <div className="grid gap-4 md:grid-cols-2 text-sm text-slate-700">
               <div>
@@ -157,7 +158,7 @@ export default function AdminDisputeDetailPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Key Facts</h2>
             <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
               {keyFacts.map((fact) => (
@@ -166,12 +167,12 @@ export default function AdminDisputeDetailPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Description</h2>
             <p className="text-sm text-slate-700 whitespace-pre-line">{dispute.description}</p>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Timeline</h2>
             <div className="space-y-3 text-sm">
               {timeline.map((item) => (
@@ -188,7 +189,7 @@ export default function AdminDisputeDetailPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <section className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Internal Notes</h2>
             <div className="space-y-3">
               <textarea
@@ -225,7 +226,7 @@ export default function AdminDisputeDetailPage() {
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 text-sm">
+          <section className="section-card p-6 space-y-4 text-sm">
             <h2 className="text-lg font-semibold text-slate-900">Evidence</h2>
             {evidence.length ? (
               <div className="space-y-3">
@@ -253,7 +254,7 @@ export default function AdminDisputeDetailPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3 text-sm">
+          <section className="section-card p-6 space-y-3 text-sm">
             <h2 className="text-lg font-semibold text-slate-900">Assignment</h2>
             <p className="text-xs text-slate-500">
               Current assignee: {dispute.assignedAdminId || user?.id || 'Unassigned'}
@@ -278,7 +279,7 @@ export default function AdminDisputeDetailPage() {
             </button>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3 text-sm">
+          <section className="section-card p-6 space-y-3 text-sm">
             <h2 className="text-lg font-semibold text-slate-900">Resolution Actions</h2>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
               Templates:
@@ -378,7 +379,7 @@ export default function AdminDisputeDetailPage() {
             </button>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3 text-sm">
+          <section className="section-card p-6 space-y-3 text-sm">
             <h2 className="text-lg font-semibold text-slate-900">SLA</h2>
             {slaSummary.map((item) => (
               <div key={item.label}>
@@ -391,6 +392,7 @@ export default function AdminDisputeDetailPage() {
           </section>
         </aside>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }

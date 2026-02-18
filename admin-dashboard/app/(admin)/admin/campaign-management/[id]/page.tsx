@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { CampaignPlatform, CampaignStatus } from '@/lib/types'
 
 const statusTone: Record<CampaignStatus, 'approved' | 'needs_action' | 'blocked' | 'pending' | 'info'> = {
@@ -207,22 +208,26 @@ export default function AdminCampaignManagementDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-900">{campaign.title}</h1>
-          <p className="text-slate-500">Manage this campaign on behalf of the brand.</p>
-        </div>
-        <StatusChip tone={statusTone[campaign.status as CampaignStatus] || 'info'} size="comfortable">
-          {campaign.status}
-        </StatusChip>
-      </div>
+      <DashboardPageShell
+        title={campaign.title}
+        subtitle="Manage this campaign on behalf of the brand."
+        eyebrow="Campaign Ops"
+        actionBar={
+          <div className="flex items-center gap-2">
+            <StatusChip tone={statusTone[campaign.status as CampaignStatus] || 'info'} size="compact">
+              {campaign.status}
+            </StatusChip>
+            <span className="text-xs text-slate-500">{campaign.id}</span>
+          </div>
+        }
+      >
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="section-card p-5">
         <p className="text-sm font-semibold text-slate-900">Next action</p>
         <p className="text-sm text-slate-600">{nextActionByStatus[campaign.status as CampaignStatus]}</p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="section-card p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-slate-900">Acting as brand</p>
@@ -327,8 +332,8 @@ export default function AdminCampaignManagementDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="table-shell p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Applications</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -398,7 +403,7 @@ export default function AdminCampaignManagementDetailPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="section-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">Invite creator</h2>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Creator ID</label>
@@ -412,7 +417,7 @@ export default function AdminCampaignManagementDetailPage() {
               Send invite
             </Button>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-2 text-sm text-slate-600">
+          <div className="section-card p-6 space-y-2 text-sm text-slate-600">
             <p className="text-sm font-semibold text-slate-900">Workflow alignment</p>
             <p>Creation mirrors the brand flow: draft → review → active.</p>
             <p>Use Applications to shortlist/select creators, then track Deliverables for approvals.</p>
@@ -421,7 +426,7 @@ export default function AdminCampaignManagementDetailPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="table-shell p-6 space-y-4">
         <h2 className="text-lg font-semibold text-slate-900">Deliverables</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -474,6 +479,7 @@ export default function AdminCampaignManagementDetailPage() {
           </table>
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>

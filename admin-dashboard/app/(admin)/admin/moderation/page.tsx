@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminModerationRulesPage() {
   const queryClient = useQueryClient()
@@ -59,12 +60,12 @@ export default function AdminModerationRulesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Moderation Rules</h1>
-        <p className="text-slate-500">Configure automated content checks for campaigns.</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <DashboardPageShell
+        title="Moderation Rules"
+        subtitle="Configure automated content checks for campaigns."
+        eyebrow="Moderation"
+      >
+      <div className="section-card">
         <h2 className="text-lg font-semibold text-slate-900">Create Rule</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <input
@@ -121,7 +122,7 @@ export default function AdminModerationRulesPage() {
         </button>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="table-shell p-6">
         <h2 className="text-lg font-semibold text-slate-900">Existing Rules</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -189,6 +190,7 @@ export default function AdminModerationRulesPage() {
           </table>
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!testingRule}

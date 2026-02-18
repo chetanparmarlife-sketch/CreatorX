@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { adminFinanceService } from '@/lib/api/admin/finance'
 import { FinanceReportGroup, FinanceReportPeriod, TransactionStatus, TransactionType } from '@/lib/types'
 import { ActionBar } from '@/components/shared/action-bar'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { StatusChip } from '@/components/shared/status-chip'
 import {
   Dialog,
@@ -116,12 +117,13 @@ export default function AdminFinancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Finance</h1>
-        <p className="text-slate-500">Reconciliation overview for platform payouts.</p>
-      </div>
+      <DashboardPageShell
+        title="Finance"
+        subtitle="Reconciliation overview for platform payouts."
+        eyebrow="Finance"
+      >
 
-      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-6">
+      <div className="section-card grid gap-4 md:grid-cols-6">
         <input
           className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
           type="datetime-local"
@@ -255,7 +257,7 @@ export default function AdminFinancePage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {items.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div key={item.label} className="section-card p-5">
             <p className="text-sm text-slate-500">{item.label}</p>
             <p className="mt-3 text-2xl font-semibold text-slate-900">
               {isSummaryLoading ? '—' : item.value}
@@ -264,7 +266,7 @@ export default function AdminFinancePage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="table-shell p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Detailed Reports</h2>
           <span className="text-xs uppercase tracking-[0.2em] text-slate-400">{appliedFilters.groupBy}</span>
@@ -414,6 +416,7 @@ export default function AdminFinancePage() {
           </button>
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!selectedRow}

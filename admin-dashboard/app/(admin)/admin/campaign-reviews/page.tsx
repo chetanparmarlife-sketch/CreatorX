@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { adminCampaignReviewService } from '@/lib/api/admin/campaign-review'
 import { Pagination } from '@/components/shared/pagination'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminCampaignReviewsPage() {
   const [page, setPage] = useState(0)
@@ -20,12 +21,13 @@ export default function AdminCampaignReviewsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Campaign Reviews</h1>
-        <p className="text-slate-500">Approve or reject campaigns awaiting pre-approval.</p>
-      </div>
+      <DashboardPageShell
+        title="Campaign Reviews"
+        subtitle="Approve or reject campaigns awaiting pre-approval."
+        eyebrow="Campaign Ops"
+      >
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="table-shell p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-slate-500">Pending campaigns</div>
           <select
@@ -91,6 +93,7 @@ export default function AdminCampaignReviewsPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }

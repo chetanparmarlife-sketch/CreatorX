@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { adminCampaignManagementService } from '@/lib/api/admin/campaign-management'
 import { adminUserService } from '@/lib/api/admin/users'
-import { PageHeader } from '@/components/shared/page-header'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { TableSkeleton } from '@/components/shared/skeleton'
 import { StatusChip } from '@/components/shared/status-chip'
 import { Input } from '@/components/ui/input'
@@ -58,16 +58,15 @@ export default function AdminCampaignManagementPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <DashboardPageShell
         title="Campaign Management"
+        subtitle="Manage campaigns on behalf of brands with the same lifecycle used in the brand and creator apps."
+        eyebrow="Campaign Ops"
         ctaLabel="Create Campaign"
         onCtaClick={() => router.push('/admin/campaign-management/new')}
-      />
-      <p className="text-sm text-slate-500">
-        Manage campaigns on behalf of brands with the same lifecycle used in the brand and creator apps.
-      </p>
+      >
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="table-shell p-6 space-y-4">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[240px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -179,6 +178,7 @@ export default function AdminCampaignManagementPage() {
           </div>
         </div>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }

@@ -7,7 +7,7 @@ import { adminMessageService } from '@/lib/api/admin/messages'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { PageHeader } from '@/components/shared/page-header'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { TableSkeleton } from '@/components/shared/skeleton'
 import type { Conversation, Message } from '@/lib/types'
 
@@ -87,13 +87,14 @@ export default function AdminMessagesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Messages" />
-      <p className="text-sm text-slate-500">
-        Monitor all creator-brand conversations and reply as Team CreatorX.
-      </p>
+      <DashboardPageShell
+        title="Messages"
+        subtitle="Monitor all creator-brand conversations and reply as Team CreatorX."
+        eyebrow="Support"
+      >
 
-      <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] h-[70vh]">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
+      <div className="grid h-[70vh] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="table-shell flex flex-col overflow-hidden">
           <div className="p-4 border-b border-slate-100">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -143,7 +144,7 @@ export default function AdminMessagesPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col">
+        <div className="table-shell flex flex-col">
           {activeConversation ? (
             <>
               <div className="border-b border-slate-100 px-5 py-4">
@@ -206,6 +207,7 @@ export default function AdminMessagesPage() {
           )}
         </div>
       </div>
+      </DashboardPageShell>
     </div>
   )
 }
