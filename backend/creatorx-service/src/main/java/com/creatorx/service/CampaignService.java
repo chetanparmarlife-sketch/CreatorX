@@ -313,22 +313,36 @@ public class CampaignService {
         if (!campaign.getBrand().getId().equals(brandId)) {
             throw new UnauthorizedException("You can only update your own campaigns");
         }
-        
+
+        // Guard: prevent updates on terminal-status campaigns
+        CampaignStatus currentStatus = campaign.getStatus();
+        if (currentStatus == CampaignStatus.COMPLETED || currentStatus == CampaignStatus.CANCELLED) {
+            throw new BusinessException("Cannot update a " + currentStatus.name().toLowerCase() + " campaign");
+        }
+
+        // Guard: for ACTIVE campaigns, only allow status transitions (pause/cancel/complete)
+        if (currentStatus == CampaignStatus.ACTIVE) {
+            boolean hasFieldChanges = campaignDTO.getTitle() != null || campaignDTO.getDescription() != null
+                    || campaignDTO.getBudget() != null || campaignDTO.getCategory() != null
+                    || campaignDTO.getPlatform() != null || campaignDTO.getRequirements() != null
+                    || campaignDTO.getDeliverableTypes() != null || campaignDTO.getStartDate() != null
+                    || campaignDTO.getEndDate() != null || campaignDTO.getApplicationDeadline() != null
+                    || campaignDTO.getMaxApplicants() != null || campaignDTO.getTags() != null
+                    || campaignDTO.getDeliverables() != null;
+            if (hasFieldChanges) {
+                throw new BusinessException(
+                        "Cannot modify campaign details while it is active. Pause the campaign first to make changes.");
+            }
+        }
+
         // Validate updated data if provided
-        if (campaignDTO.getTitle() != null || campaignDTO.getDescription() != null || 
-            campaignDTO.getBudget() != null || campaignDTO.getStartDate() != null || 
+        if (campaignDTO.getTitle() != null || campaignDTO.getDescription() != null ||
+            campaignDTO.getBudget() != null || campaignDTO.getStartDate() != null ||
             campaignDTO.getEndDate() != null) {
             validateCampaignData(campaignDTO, campaign);
         }
-        
-        // Prevent status changes to COMPLETED if campaign is active
-        if (campaign.getStatus() == CampaignStatus.ACTIVE && 
-            campaignDTO.getStatus() == CampaignStatus.COMPLETED) {
-            // Allow status change to COMPLETED
-            campaign.setStatus(CampaignStatus.COMPLETED);
-        }
-        
-        // Update fields
+
+        // Update fields (only reachable for DRAFT, PENDING_REVIEW, or PAUSED campaigns)
         if (campaignDTO.getTitle() != null) campaign.setTitle(campaignDTO.getTitle());
         if (campaignDTO.getDescription() != null) campaign.setDescription(campaignDTO.getDescription());
         if (campaignDTO.getBudget() != null) campaign.setBudget(campaignDTO.getBudget());
@@ -606,7 +620,19 @@ public class CampaignService {
     
     private CampaignDeliverable mapDeliverableDTOToEntity(CampaignDeliverableDTO dto, Campaign campaign) {
         CampaignDeliverable.DeliverableType type = CampaignDeliverable.DeliverableType.valueOf(dto.getType().name());
-        
+
+        // Validate deliverable due date against campaign date range
+        if (dto.getDueDate() != null) {
+            if (campaign.getStartDate() != null && dto.getDueDate().isBefore(campaign.getStartDate())) {
+                throw new BusinessException(
+                        "Deliverable \"" + dto.getTitle() + "\" due date cannot be before the campaign start date");
+            }
+            if (campaign.getEndDate() != null && dto.getDueDate().isAfter(campaign.getEndDate())) {
+                throw new BusinessException(
+                        "Deliverable \"" + dto.getTitle() + "\" due date cannot be after the campaign end date");
+            }
+        }
+
         return CampaignDeliverable.builder()
                 .campaign(campaign)
                 .title(dto.getTitle())

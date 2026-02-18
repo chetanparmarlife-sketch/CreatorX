@@ -49,6 +49,14 @@ export enum CampaignPlatform {
   LINKEDIN = 'LINKEDIN',
 }
 
+export enum EscrowStatus {
+  UNFUNDED = 'UNFUNDED',
+  PARTIAL = 'PARTIAL',
+  FUNDED = 'FUNDED',
+  RELEASED = 'RELEASED',
+  REFUNDED = 'REFUNDED',
+}
+
 export enum ApplicationStatus {
   APPLIED = 'APPLIED',
   SHORTLISTED = 'SHORTLISTED',
@@ -198,6 +206,9 @@ export interface Campaign {
   reviewReason?: string
   reviewedBy?: string
   reviewedAt?: string
+  escrowStatus?: EscrowStatus
+  escrowAllocated?: number
+  escrowReleased?: number
   createdAt: string
   updatedAt: string
   brand?: BrandProfile

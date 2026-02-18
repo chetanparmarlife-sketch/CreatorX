@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
-import { CampaignPlatform, CampaignStatus } from '@/lib/types'
+import { CampaignPlatform, CampaignStatus, EscrowStatus } from '@/lib/types'
 
 const statusTone: Record<CampaignStatus, 'approved' | 'needs_action' | 'blocked' | 'pending' | 'info'> = {
   DRAFT: 'needs_action',
@@ -100,6 +100,12 @@ export default function AdminCampaignManagementDetailPage() {
     setPlatform((campaign.platform as CampaignPlatform) || '')
     setStatus((campaign.status as CampaignStatus) || '')
     setRequirements(campaign.requirements || '')
+  }, [campaign])
+
+  const isFieldEditDisabled = useMemo(() => {
+    if (!campaign) return true
+    const s = campaign.status as CampaignStatus
+    return s === CampaignStatus.ACTIVE || s === CampaignStatus.COMPLETED || s === CampaignStatus.CANCELLED
   }, [campaign])
 
   const updateMutation = useMutation({
@@ -227,6 +233,28 @@ export default function AdminCampaignManagementDetailPage() {
         <p className="text-sm text-slate-600">{nextActionByStatus[campaign.status as CampaignStatus]}</p>
       </div>
 
+      {campaign.escrowStatus && (
+        <div className="section-card p-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Escrow Status</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Allocated: ₹{campaign.escrowAllocated?.toLocaleString() ?? 0}
+              {' · '}Released: ₹{campaign.escrowReleased?.toLocaleString() ?? 0}
+            </p>
+          </div>
+          <StatusChip
+            status={campaign.escrowStatus}
+            tone={
+              campaign.escrowStatus === EscrowStatus.FUNDED ? 'approved'
+                : campaign.escrowStatus === EscrowStatus.RELEASED ? 'approved'
+                : campaign.escrowStatus === EscrowStatus.PARTIAL ? 'pending'
+                : campaign.escrowStatus === EscrowStatus.REFUNDED ? 'info'
+                : 'needs_action'
+            }
+          />
+        </div>
+      )}
+
       <div className="section-card p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -268,25 +296,33 @@ export default function AdminCampaignManagementDetailPage() {
           </div>
         </div>
 
+        {isFieldEditDisabled && (
+          <p className="text-sm text-amber-600 font-medium">
+            Field editing is disabled for {campaign?.status?.toLowerCase()} campaigns.
+            {campaign?.status === CampaignStatus.ACTIVE && ' Pause the campaign to make changes.'}
+          </p>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Title</label>
-            <Input value={title} onChange={(event) => setTitle(event.target.value)} />
+            <Input value={title} onChange={(event) => setTitle(event.target.value)} disabled={isFieldEditDisabled} />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Category</label>
-            <Input value={category} onChange={(event) => setCategory(event.target.value)} />
+            <Input value={category} onChange={(event) => setCategory(event.target.value)} disabled={isFieldEditDisabled} />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Budget</label>
-            <Input type="number" value={budget} onChange={(event) => setBudget(event.target.value)} />
+            <Input type="number" value={budget} onChange={(event) => setBudget(event.target.value)} disabled={isFieldEditDisabled} />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Platform</label>
             <select
-              className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
+              className="h-10 rounded-lg border border-slate-200 px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               value={platform}
               onChange={(event) => setPlatform(event.target.value as CampaignPlatform)}
+              disabled={isFieldEditDisabled}
             >
               <option value="">Select</option>
               {Object.values(CampaignPlatform).map((value) => (
@@ -314,19 +350,19 @@ export default function AdminCampaignManagementDetailPage() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700">Description</label>
-          <Textarea value={description} onChange={(event) => setDescription(event.target.value)} />
+          <Textarea value={description} onChange={(event) => setDescription(event.target.value)} disabled={isFieldEditDisabled} />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700">Requirements</label>
-          <Textarea value={requirements} onChange={(event) => setRequirements(event.target.value)} />
+          <Textarea value={requirements} onChange={(event) => setRequirements(event.target.value)} disabled={isFieldEditDisabled} />
         </div>
 
         <div className="flex items-center justify-between">
           <Button variant="outline" onClick={() => router.push('/admin/campaign-management')}>
             Back
           </Button>
-          <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
+          <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || isFieldEditDisabled}>
             {updateMutation.isPending ? 'Saving...' : 'Save changes'}
           </Button>
         </div>

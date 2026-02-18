@@ -231,6 +231,13 @@ export default function CampaignDetailsScreen() {
           </View>
         </View>
 
+        {(campaign.escrowStatus === 'FUNDED' || campaign.isPaid) && (
+          <View style={[styles.escrowBadge, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.25)' }]}>
+            <Feather name="shield" size={16} color="#10b981" />
+            <Text style={styles.escrowBadgeText}>Payment Secured in Escrow</Text>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Campaign Overview</Text>
           <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}
@@ -502,6 +509,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   retryText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  escrowBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  escrowBadgeText: {
+    color: '#10b981',
     fontSize: 13,
     fontWeight: '700',
   },

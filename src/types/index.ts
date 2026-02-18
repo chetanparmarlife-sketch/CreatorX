@@ -36,6 +36,7 @@ export interface Campaign {
   followersRange?: string;
   gender?: string;
   isPaid?: boolean;
+  escrowStatus?: 'UNFUNDED' | 'PARTIAL' | 'FUNDED' | 'RELEASED' | 'REFUNDED';
 }
 
 export interface CampaignDeliverable {

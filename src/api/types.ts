@@ -144,6 +144,7 @@ export type CampaignStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 export type CampaignPlatform = 'INSTAGRAM' | 'YOUTUBE' | 'TWITTER' | 'FACEBOOK' | 'LINKEDIN' | 'TIKTOK';
+export type EscrowStatus = 'UNFUNDED' | 'PARTIAL' | 'FUNDED' | 'RELEASED' | 'REFUNDED';
 
 export interface Campaign {
   id: string;
@@ -163,6 +164,9 @@ export interface Campaign {
   applicationsCount?: number;
   selectedCreatorsCount: number;
   userApplicationStatus?: ApplicationStatus;
+  escrowStatus?: EscrowStatus;
+  escrowAllocated?: number;
+  escrowReleased?: number;
   createdAt: string;
   updatedAt: string;
   brand?: {

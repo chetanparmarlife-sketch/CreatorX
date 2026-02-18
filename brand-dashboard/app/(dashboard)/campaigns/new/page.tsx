@@ -181,6 +181,18 @@ const campaignSchema = z
       path: ['applicationDeadline'],
     }
   )
+  .refine(
+    (data) => {
+      if (!data.deliverables?.length) return true
+      return data.deliverables.every(
+        (d) => d.dueDate >= data.startDate && d.dueDate <= data.endDate
+      )
+    },
+    {
+      message: 'All deliverable due dates must fall within the campaign start and end dates',
+      path: ['deliverables'],
+    }
+  )
 
 type CampaignFormValues = z.infer<typeof campaignSchema>
 

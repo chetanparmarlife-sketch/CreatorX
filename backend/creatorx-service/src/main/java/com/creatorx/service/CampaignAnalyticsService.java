@@ -6,8 +6,10 @@ import com.creatorx.common.exception.ResourceNotFoundException;
 import com.creatorx.common.exception.UnauthorizedException;
 import com.creatorx.repository.ApplicationRepository;
 import com.creatorx.repository.CampaignRepository;
+import com.creatorx.repository.CreatorProfileRepository;
 import com.creatorx.repository.DeliverableRepository;
 import com.creatorx.repository.entity.Campaign;
+import com.creatorx.repository.entity.CreatorProfile;
 import com.creatorx.repository.entity.User;
 import com.creatorx.service.dto.CampaignAnalyticsDTO;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -35,6 +40,7 @@ public class CampaignAnalyticsService {
     private final CampaignRepository campaignRepository;
     private final ApplicationRepository applicationRepository;
     private final DeliverableRepository deliverableRepository;
+    private final CreatorProfileRepository creatorProfileRepository;
     
     /**
      * Get campaign analytics
@@ -146,13 +152,12 @@ public class CampaignAnalyticsService {
     }
     
     private CampaignAnalyticsDTO.EngagementMetrics calculateEngagementMetrics(String campaignId) {
-        // Get selected applications
-        List<String> selectedApplicationIds = applicationRepository.findByCampaignId(campaignId).stream()
+        // Get selected applications with their creator IDs
+        var selectedApplications = applicationRepository.findByCampaignId(campaignId).stream()
                 .filter(app -> app.getStatus() == ApplicationStatus.SELECTED)
-                .map(app -> app.getId())
                 .collect(Collectors.toList());
-        
-        if (selectedApplicationIds.isEmpty()) {
+
+        if (selectedApplications.isEmpty()) {
             return CampaignAnalyticsDTO.EngagementMetrics.builder()
                     .averageEngagementRate(0.0)
                     .totalFollowers(0L)
@@ -160,22 +165,62 @@ public class CampaignAnalyticsService {
                     .averageResponseTime(0.0)
                     .build();
         }
-        
-        // Calculate metrics from selected creators
-        // This is a simplified version - in production, you'd query creator profiles
+
+        // Collect creator user IDs from selected applications
+        List<String> creatorUserIds = selectedApplications.stream()
+                .map(app -> app.getCreator().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        // Query actual creator profiles for engagement data
+        List<CreatorProfile> creatorProfiles = creatorProfileRepository.findAllByUserIdIn(creatorUserIds);
+
         long totalFollowers = 0L;
         double totalEngagementRate = 0.0;
-        int creatorCount = selectedApplicationIds.size();
-        
-        // TODO: Query creator profiles for actual engagement data
-        // For now, return placeholder values
-        
+        int profilesWithEngagement = 0;
+
+        for (CreatorProfile profile : creatorProfiles) {
+            if (profile.getFollowerCount() != null) {
+                totalFollowers += profile.getFollowerCount();
+            }
+            if (profile.getEngagementRate() != null
+                    && profile.getEngagementRate().compareTo(BigDecimal.ZERO) > 0) {
+                totalEngagementRate += profile.getEngagementRate().doubleValue();
+                profilesWithEngagement++;
+            }
+        }
+
+        // Calculate average response time from application timestamps
+        double avgResponseTimeHours = calculateAverageResponseTime(selectedApplications);
+
         return CampaignAnalyticsDTO.EngagementMetrics.builder()
-                .averageEngagementRate(creatorCount > 0 ? totalEngagementRate / creatorCount : 0.0)
+                .averageEngagementRate(
+                        profilesWithEngagement > 0
+                                ? BigDecimal.valueOf(totalEngagementRate / profilesWithEngagement)
+                                        .setScale(2, RoundingMode.HALF_UP).doubleValue()
+                                : 0.0)
                 .totalFollowers(totalFollowers)
-                .activeCreators((long) creatorCount)
-                .averageResponseTime(24.0) // Placeholder
+                .activeCreators((long) creatorUserIds.size())
+                .averageResponseTime(avgResponseTimeHours)
                 .build();
+    }
+
+    private double calculateAverageResponseTime(
+            List<com.creatorx.repository.entity.Application> selectedApplications) {
+        // Average time between application submission and selection
+        long totalHours = 0;
+        int count = 0;
+        for (var app : selectedApplications) {
+            if (app.getAppliedAt() != null && app.getFeedback() != null
+                    && app.getFeedback().getSelectedAt() != null) {
+                Duration duration = Duration.between(app.getAppliedAt(), app.getFeedback().getSelectedAt());
+                totalHours += duration.toHours();
+                count++;
+            }
+        }
+        return count > 0
+                ? BigDecimal.valueOf((double) totalHours / count).setScale(1, RoundingMode.HALF_UP).doubleValue()
+                : 0.0;
     }
 }
 
