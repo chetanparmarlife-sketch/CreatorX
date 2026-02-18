@@ -12,6 +12,7 @@ import { ActionBar } from '@/components/shared/action-bar'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusChip } from '@/components/shared/status-chip'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   Dialog,
   DialogContent,
@@ -122,11 +123,11 @@ export default function AdminDisputesPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Disputes</h1>
-        <p className="text-slate-500">Resolve creator and brand disputes.</p>
-      </div>
-
+      <DashboardPageShell
+        title="Disputes"
+        subtitle="Resolve creator and brand disputes."
+        eyebrow="Work Queue"
+      >
       <div className="table-shell p-6">
         <ActionBar
           title="Open disputes"
@@ -348,6 +349,7 @@ export default function AdminDisputesPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!selectedDisputeId}

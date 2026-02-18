@@ -8,6 +8,9 @@ import { CampaignFlagStatus } from '@/lib/types'
 import { Pagination } from '@/components/shared/pagination'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
+import { ActionBar } from '@/components/shared/action-bar'
+import { EmptyState } from '@/components/shared/empty-state'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   Dialog,
   DialogContent,
@@ -84,14 +87,13 @@ export default function AdminCampaignFlagsPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">Campaign Flags</h1>
-        <p className="text-slate-500">Review flagged campaigns and apply enforcement actions.</p>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-500">Open flags</div>
+      <DashboardPageShell
+        title="Campaign Flags"
+        subtitle="Review flagged campaigns and apply enforcement actions."
+        eyebrow="Moderation"
+      >
+      <div className="table-shell p-6">
+        <ActionBar title="Open flags" description="Triage high-risk campaigns first.">
           <select
             className="h-9 rounded-lg border border-slate-200 px-2 text-sm"
             value={sortDir}
@@ -100,9 +102,9 @@ export default function AdminCampaignFlagsPage() {
             <option value="DESC">Newest first</option>
             <option value="ASC">Oldest first</option>
           </select>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        </ActionBar>
+        <div className="overflow-x-auto mt-4">
+          <table className="table-compact w-full text-left text-sm">
             <thead className="text-xs uppercase text-slate-500">
               <tr>
                 <th className="py-2 pr-4">Campaign</th>
@@ -176,8 +178,11 @@ export default function AdminCampaignFlagsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
-                    No campaign flags found.
+                  <td colSpan={7} className="py-6">
+                    <EmptyState
+                      title="No campaign flags found"
+                      description="Flagged campaigns will appear here for moderation review."
+                    />
                   </td>
                 </tr>
               )}
@@ -188,6 +193,7 @@ export default function AdminCampaignFlagsPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!selectedFlagId}

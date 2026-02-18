@@ -9,6 +9,7 @@ import { ActionBar } from '@/components/shared/action-bar'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusChip } from '@/components/shared/status-chip'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
 import {
@@ -122,11 +123,11 @@ export default function AdminCompliancePage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">GDPR Requests</h1>
-        <p className="text-slate-500">Track data export and deletion requests.</p>
-      </div>
-
+      <DashboardPageShell
+        title="GDPR Requests"
+        subtitle="Track data export and deletion requests."
+        eyebrow="Compliance"
+      >
       <div className="table-shell p-6">
         <ActionBar
           title="GDPR queue"
@@ -255,6 +256,7 @@ export default function AdminCompliancePage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!selectedRequest}

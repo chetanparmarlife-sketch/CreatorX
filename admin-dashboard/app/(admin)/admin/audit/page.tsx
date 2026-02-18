@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
+import { ActionBar } from '@/components/shared/action-bar'
 
 export default function AdminAuditPage() {
   const [adminId, setAdminId] = useState('')
@@ -81,7 +82,12 @@ export default function AdminAuditPage() {
         subtitle="Trace critical admin actions."
         eyebrow="Monitoring"
       >
-      <div className="table-shell grid gap-4 p-6 md:grid-cols-6">
+      <div className="table-shell p-6">
+        <ActionBar
+          title="Audit filters"
+          description="Filter critical admin actions and export reports."
+        />
+        <div className="mt-4 grid gap-4 md:grid-cols-6">
         <select
           className="h-10 rounded-lg border border-slate-200 px-3 text-sm"
           value={preset}
@@ -188,6 +194,7 @@ export default function AdminAuditPage() {
               Clear filters
             </button>
           </div>
+        </div>
         </div>
       </div>
 

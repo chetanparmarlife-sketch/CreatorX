@@ -11,6 +11,7 @@ import { ActionBar } from '@/components/shared/action-bar'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusChip } from '@/components/shared/status-chip'
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 import {
   Dialog,
   DialogContent,
@@ -161,11 +162,11 @@ export default function AdminKycPage() {
   return (
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900">KYC Review</h1>
-        <p className="text-slate-500">Review pending creator KYC submissions.</p>
-      </div>
-
+      <DashboardPageShell
+        title="KYC Review"
+        subtitle="Review pending creator KYC submissions."
+        eyebrow="Work Queue"
+      >
       <div className="table-shell p-6">
         <ActionBar
           title={`Pending documents (${totalItems})`}
@@ -440,6 +441,7 @@ export default function AdminKycPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       </div>
+      </DashboardPageShell>
 
       <Dialog
         open={!!reviewingDoc}
