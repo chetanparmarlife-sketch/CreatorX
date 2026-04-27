@@ -17,3 +17,26 @@ gradle-wrapper-tmp/
 
 # Windows device name artifacts
 nul
+
+# Environment files - NEVER commit these
+.env
+.env.local
+.env.staging
+.env.production
+.env.*.local
+brand-dashboard/.env*
+admin-dashboard/.env*
+!brand-dashboard/.env.example
+!admin-dashboard/.env.example
+!backend/.env.example
+!src/.env.example
+
+# Railway
+.railway/
+
+# Vercel
+.vercel/
+
+# EAS / Expo
+google-services-key.json
+GoogleService-Info.plist

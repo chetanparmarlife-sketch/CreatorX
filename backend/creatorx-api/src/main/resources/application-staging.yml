@@ -1,14 +1,61 @@
+# This file is loaded when the backend runs with the staging profile.
 spring:
-  jpa:
-    show-sql: false
-  flyway:
-    enabled: true
+  # Mark this configuration as the staging profile requested for the safe test environment.
+  profiles:
+    active: staging
 
+  # Connect staging to its own database, never to production.
+  datasource:
+    url: ${STAGING_DATABASE_URL}
+
+  # Connect staging to its own Redis instance for cache and rate limiting.
+  data:
+    redis:
+      url: ${STAGING_REDIS_URL}
+
+# Use the staging Supabase project and staging storage bucket names.
+supabase:
+  url: ${STAGING_SUPABASE_URL}
+  anon:
+    key: ${STAGING_SUPABASE_ANON_KEY}
+  jwt:
+    secret: ${STAGING_JWT_SECRET}
+  service:
+    role:
+      key: ${STAGING_SUPABASE_SERVICE_ROLE_KEY:}
+  storage:
+    bucket:
+      avatars: creatorx-staging
+      kyc: creatorx-staging
+      deliverables: creatorx-staging
+      portfolio: creatorx-staging
+      brand-verification: creatorx-staging
+      exports: creatorx-staging
+
+# Keep the legacy JWT setting available for code paths that still read jwt.secret.
+jwt:
+  secret: ${STAGING_JWT_SECRET}
+
+# Use Razorpay test keys only in staging.
+razorpay:
+  key-id: ${STAGING_RAZORPAY_KEY_ID}
+  key-secret: ${STAGING_RAZORPAY_SECRET}
+  webhook-secret: ${STAGING_RAZORPAY_WEBHOOK_SECRET:}
+  payout:
+    mode: test
+    account-number: ${STAGING_RAZORPAY_ACCOUNT_NUMBER:}
+
+# Allow only the staging frontends and local test URLs that are listed in the environment variable.
+creatorx:
+  cors:
+    allowed-origins: ${STAGING_ALLOWED_ORIGINS}
+
+# Railway sends traffic to this port unless a PORT variable overrides it.
+server:
+  port: 8080
+
+# Show detailed CreatorX logs in staging so bugs are easier to diagnose.
 logging:
   level:
-    com.creatorx: INFO
-    root: WARN
-
-
-
-
+    com.creatorx: DEBUG
+    root: INFO

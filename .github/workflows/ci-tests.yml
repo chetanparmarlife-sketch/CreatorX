@@ -1,0 +1,114 @@
+name: CI Tests
+
+on:
+  # Run these checks before code can be merged into staging or production branches.
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  # Allow this workflow to read the repository contents.
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Java 17 because the Spring Boot backend is built with Java 17.
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      # Make the Gradle launcher executable on Linux.
+      - name: Make Gradle executable
+        working-directory: backend
+        run: chmod +x ./gradlew
+
+      # Run the backend tests. A failure here makes the pull request check fail.
+      - name: Run backend tests
+        working-directory: backend
+        run: ./gradlew test --no-daemon
+
+      # Save the backend test results so they can be downloaded from the GitHub Actions page.
+      - name: Upload backend test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/**/build/test-results/**/*.xml
+          if-no-files-found: warn
+          retention-days: 30
+
+  brand-dashboard-check:
+    name: Brand dashboard lint and build check
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Node.js 18 because the brand dashboard is a Next.js app.
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: brand-dashboard/package-lock.json
+
+      # Install the exact package versions listed in package-lock.json.
+      - name: Install brand dashboard dependencies
+        working-directory: brand-dashboard
+        run: npm ci
+
+      # Run linting if the project has a lint script. A failure here makes the pull request check fail.
+      - name: Run brand dashboard lint
+        working-directory: brand-dashboard
+        run: npm run lint
+
+      # Build the brand dashboard. A failure here makes the pull request check fail.
+      - name: Build brand dashboard
+        working-directory: brand-dashboard
+        run: npm run build
+
+  admin-dashboard-check:
+    name: Admin dashboard lint and build check
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Node.js 18 because the admin dashboard is a Next.js app.
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: admin-dashboard/package-lock.json
+
+      # Install the exact package versions listed in package-lock.json.
+      - name: Install admin dashboard dependencies
+        working-directory: admin-dashboard
+        run: npm ci
+
+      # Run linting if the project has a lint script. A failure here makes the pull request check fail.
+      - name: Run admin dashboard lint
+        working-directory: admin-dashboard
+        run: npm run lint
+
+      # Build the admin dashboard. A failure here makes the pull request check fail.
+      - name: Build admin dashboard
+        working-directory: admin-dashboard
+        run: npm run build

@@ -1,0 +1,247 @@
+name: Deploy Production
+
+on:
+  # Run this workflow every time code is pushed to the production branch.
+  push:
+    branches:
+      - main
+
+permissions:
+  # Allow this workflow to read the repository contents.
+  contents: read
+
+jobs:
+  deploy-backend:
+    name: Deploy backend to Railway production
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Stop immediately with a clear error if the Railway production token was not added in GitHub Secrets.
+      - name: Check required Railway production secret
+        env:
+          PROD_RAILWAY_TOKEN: ${{ secrets.PROD_RAILWAY_TOKEN }}
+        run: |
+          if [ -z "$PROD_RAILWAY_TOKEN" ]; then
+            echo "Missing required GitHub Secret: PROD_RAILWAY_TOKEN"
+            exit 1
+          fi
+
+      # Install Java 17 because the Spring Boot backend is built with Java 17.
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      # Make the Gradle launcher executable on Linux.
+      - name: Make Gradle executable
+        working-directory: backend
+        run: chmod +x ./gradlew
+
+      # Build the backend package without running tests because tests run in the separate CI workflow.
+      - name: Build backend
+        working-directory: backend
+        run: ./gradlew build -x test --no-daemon
+
+      # Install the Railway command line tool so GitHub Actions can deploy to Railway.
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      # Upload the backend code to the Railway production service.
+      - name: Deploy backend to Railway production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.PROD_RAILWAY_TOKEN }}
+        run: railway up --service creatorx-backend-prod --environment production --ci
+
+  deploy-brand-dashboard:
+    name: Deploy brand dashboard to Vercel production
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Stop immediately with a clear error if any Vercel secret needed for the brand project is missing.
+      - name: Check required Vercel brand production secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BRAND_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Missing required GitHub Secret: VERCEL_TOKEN"
+            exit 1
+          fi
+          if [ -z "$VERCEL_ORG_ID" ]; then
+            echo "Missing required GitHub Secret: VERCEL_ORG_ID"
+            exit 1
+          fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing required GitHub Secret: VERCEL_BRAND_PROJECT_ID"
+            exit 1
+          fi
+
+      # Install Node.js 18 because the Next.js dashboards are built with Node.
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: brand-dashboard/package-lock.json
+
+      # Install the exact package versions listed in package-lock.json.
+      - name: Install brand dashboard dependencies
+        working-directory: brand-dashboard
+        run: npm ci
+
+      # Run the normal Next.js build so the workflow fails before deployment if the app cannot compile.
+      - name: Build brand dashboard
+        working-directory: brand-dashboard
+        run: npm run build
+
+      # Install the Vercel command line tool so GitHub Actions can deploy to Vercel.
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      # Pull the production environment settings from Vercel for the brand dashboard project.
+      - name: Pull Vercel production settings for brand dashboard
+        working-directory: brand-dashboard
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BRAND_PROJECT_ID }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      # Create the Vercel production output that the next deploy step uploads.
+      - name: Create Vercel prebuilt output for brand dashboard
+        working-directory: brand-dashboard
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BRAND_PROJECT_ID }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      # Deploy the already-built brand dashboard to Vercel production.
+      - name: Deploy brand dashboard to Vercel production
+        working-directory: brand-dashboard
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BRAND_PROJECT_ID }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  deploy-admin-dashboard:
+    name: Deploy admin dashboard to Vercel production
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository code into the GitHub runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Stop immediately with a clear error if any Vercel secret needed for the admin project is missing.
+      - name: Check required Vercel admin production secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Missing required GitHub Secret: VERCEL_TOKEN"
+            exit 1
+          fi
+          if [ -z "$VERCEL_ORG_ID" ]; then
+            echo "Missing required GitHub Secret: VERCEL_ORG_ID"
+            exit 1
+          fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing required GitHub Secret: VERCEL_ADMIN_PROJECT_ID"
+            exit 1
+          fi
+
+      # Install Node.js 18 because the Next.js dashboards are built with Node.
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: admin-dashboard/package-lock.json
+
+      # Install the exact package versions listed in package-lock.json.
+      - name: Install admin dashboard dependencies
+        working-directory: admin-dashboard
+        run: npm ci
+
+      # Run the normal Next.js build so the workflow fails before deployment if the app cannot compile.
+      - name: Build admin dashboard
+        working-directory: admin-dashboard
+        run: npm run build
+
+      # Install the Vercel command line tool so GitHub Actions can deploy to Vercel.
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      # Pull the production environment settings from Vercel for the admin dashboard project.
+      - name: Pull Vercel production settings for admin dashboard
+        working-directory: admin-dashboard
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      # Create the Vercel production output that the next deploy step uploads.
+      - name: Create Vercel prebuilt output for admin dashboard
+        working-directory: admin-dashboard
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      # Deploy the already-built admin dashboard to Vercel production.
+      - name: Deploy admin dashboard to Vercel production
+        working-directory: admin-dashboard
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  health-check:
+    name: Check production backend health
+    runs-on: ubuntu-latest
+    needs:
+      - deploy-backend
+      - deploy-brand-dashboard
+      - deploy-admin-dashboard
+
+    steps:
+      # Stop immediately with a clear error if the production API URL was not added in GitHub Secrets.
+      - name: Check required production API URL secret
+        env:
+          PROD_API_URL: ${{ secrets.PROD_API_URL }}
+        run: |
+          if [ -z "$PROD_API_URL" ]; then
+            echo "Missing required GitHub Secret: PROD_API_URL"
+            exit 1
+          fi
+
+      # Ask the backend health endpoint if the production API is alive.
+      - name: Call production backend health endpoint
+        env:
+          PROD_API_URL: ${{ secrets.PROD_API_URL }}
+        run: |
+          STATUS_CODE=$(curl -s -o /tmp/creatorx-health.json -w "%{http_code}" "$PROD_API_URL/actuator/health")
+          if [ "$STATUS_CODE" != "200" ]; then
+            echo "Production health check failed with HTTP status $STATUS_CODE"
+            cat /tmp/creatorx-health.json
+            exit 1
+          fi
+          echo "Production health check passed."

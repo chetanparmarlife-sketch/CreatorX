@@ -1,41 +1,84 @@
-# Production profile for Railway deployment
+# This file is loaded when the backend runs with the production profile.
 spring:
-  jpa:
-    show-sql: false
-    open-in-view: false
-  flyway:
-    enabled: true
+  # Mark this configuration as the production profile for real users and real payments.
+  profiles:
+    active: production
 
-  # Use simple cache instead of Redis in production (until Redis is set up)
-  cache:
-    type: simple
+  # Connect production to its own database, never to staging.
+  datasource:
+    url: ${PROD_DATABASE_URL}
 
-  # Disable Redis auto-configuration if not needed
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+  # Connect production to its own Redis instance for cache and rate limiting.
+  data:
+    redis:
+      url: ${PROD_REDIS_URL}
 
+# Use the production Supabase project and production storage bucket names.
+supabase:
+  url: ${PROD_SUPABASE_URL}
+  anon:
+    key: ${PROD_SUPABASE_ANON_KEY}
+  jwt:
+    secret: ${PROD_JWT_SECRET}
+  service:
+    role:
+      key: ${PROD_SUPABASE_SERVICE_ROLE_KEY:}
+  storage:
+    bucket:
+      avatars: creatorx-production
+      kyc: creatorx-production
+      deliverables: creatorx-production
+      portfolio: creatorx-production
+      brand-verification: creatorx-production
+      exports: creatorx-production
+
+# Keep the legacy JWT setting available for code paths that still read jwt.secret.
+jwt:
+  secret: ${PROD_JWT_SECRET}
+
+# Use Razorpay live keys only in production.
+razorpay:
+  key-id: ${PROD_RAZORPAY_KEY_ID}
+  key-secret: ${PROD_RAZORPAY_SECRET}
+  webhook-secret: ${PROD_RAZORPAY_WEBHOOK_SECRET:}
+  payout:
+    mode: live
+    account-number: ${PROD_RAZORPAY_ACCOUNT_NUMBER:}
+
+# Allow only the production frontends that are listed in the environment variable.
+creatorx:
+  cors:
+    allowed-origins: ${PROD_ALLOWED_ORIGINS}
+
+# Railway sends traffic to this port unless a PORT variable overrides it.
+server:
+  port: 8080
+  error:
+    include-stacktrace: never
+    include-exception: false
+
+# Keep production logs quieter so sensitive operational noise is not exposed.
 logging:
   level:
     com.creatorx: INFO
     root: WARN
 
-server:
-  error:
-    include-stacktrace: never
-    include-exception: false
-
-# Disable health checks for services not configured
+# Keep the public health check available and hide every other actuator endpoint.
 management:
-  health:
-    redis:
-      enabled: false
-    defaults:
-      enabled: true
-  # Set shorter startup timeout for health checks
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health
   endpoint:
     health:
+      enabled: true
+      show-details: never
       probes:
         enabled: true
-      show-details: never
+    info:
+      enabled: false
+    metrics:
+      enabled: false
+    prometheus:
+      enabled: false
