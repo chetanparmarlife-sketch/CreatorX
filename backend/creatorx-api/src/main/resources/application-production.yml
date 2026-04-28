@@ -32,15 +32,23 @@ supabase:
       brand-verification: creatorx-production
       exports: creatorx-production
 
-# Keep the legacy JWT setting available for code paths that still read jwt.secret.
+# JWT secret must be set as environment variable JWT_SECRET
+# Generate one with: openssl rand -base64 64
+# This avoids deploying production with a committed token-signing secret.
 jwt:
-  secret: ${PROD_JWT_SECRET}
+  secret: ${JWT_SECRET}
+  expiration: 86400000
 
 # Use Razorpay live keys only in production.
 razorpay:
   key-id: ${PROD_RAZORPAY_KEY_ID}
   key-secret: ${PROD_RAZORPAY_SECRET}
   webhook-secret: ${PROD_RAZORPAY_WEBHOOK_SECRET:}
+  webhook:
+    # Production may whitelist Razorpay IPs later, but the empty default keeps rate limiting active.
+    allowed-ips: ""
+    rate-limit:
+      requests-per-minute: 60
   payout:
     mode: live
     account-number: ${PROD_RAZORPAY_ACCOUNT_NUMBER:}

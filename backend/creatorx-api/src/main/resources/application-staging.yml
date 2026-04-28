@@ -32,15 +32,23 @@ supabase:
       brand-verification: creatorx-staging
       exports: creatorx-staging
 
-# Keep the legacy JWT setting available for code paths that still read jwt.secret.
+# JWT secret must be set as environment variable JWT_SECRET
+# Generate one with: openssl rand -base64 64
+# This avoids deploying staging with a committed token-signing secret.
 jwt:
-  secret: ${STAGING_JWT_SECRET}
+  secret: ${JWT_SECRET}
+  expiration: 86400000
 
 # Use Razorpay test keys only in staging.
 razorpay:
   key-id: ${STAGING_RAZORPAY_KEY_ID}
   key-secret: ${STAGING_RAZORPAY_SECRET}
   webhook-secret: ${STAGING_RAZORPAY_WEBHOOK_SECRET:}
+  webhook:
+    # Staging may whitelist Razorpay IPs later, but the empty default keeps rate limiting active.
+    allowed-ips: ""
+    rate-limit:
+      requests-per-minute: 60
   payout:
     mode: test
     account-number: ${STAGING_RAZORPAY_ACCOUNT_NUMBER:}

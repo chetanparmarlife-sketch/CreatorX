@@ -3,6 +3,7 @@ package com.creatorx.api.config;
 import com.creatorx.api.security.IdempotencyFilter;
 import com.creatorx.api.security.RateLimitFilter;
 import com.creatorx.api.security.SupabaseJwtAuthenticationFilter;
+import com.creatorx.api.security.WebhookRateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,6 +44,7 @@ public class SecurityConfig {
     private final SupabaseJwtAuthenticationFilter supabaseJwtAuthenticationFilter;
     private final IdempotencyFilter idempotencyFilter;
     private final Optional<RateLimitFilter> rateLimitFilter;
+    private final Optional<WebhookRateLimitingFilter> webhookRateLimitingFilter;
 
     @Value("${creatorx.cors.allowed-origins:}")
     private String allowedOrigins;
@@ -89,6 +91,16 @@ public class SecurityConfig {
                             response.setContentType("application/json");
                             response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}");
                         }));
+
+        // Add rate limit filters if Redis is available.
+        // The webhook filter is separate because the general limiter intentionally skips webhook paths.
+        if (webhookRateLimitingFilter.isPresent()) {
+            if (rateLimitFilter.isPresent()) {
+                http.addFilterBefore(webhookRateLimitingFilter.get(), RateLimitFilter.class);
+            } else {
+                http.addFilterBefore(webhookRateLimitingFilter.get(), UsernamePasswordAuthenticationFilter.class);
+            }
+        }
 
         // Add rate limit filter if Redis is available
         if (rateLimitFilter.isPresent()) {
