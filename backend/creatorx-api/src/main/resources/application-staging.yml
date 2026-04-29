@@ -1,14 +1,14 @@
 # This file is loaded when the backend runs with the staging profile.
 spring:
-  # Mark this configuration as the staging profile requested for the safe test environment.
-  profiles:
-    active: staging
-
   # Connect staging to its own database, never to production.
   datasource:
     url: ${STAGING_DATABASE_URL}
 
-  # Connect staging to its own Redis instance for cache and rate limiting.
+  # Keep the requested Redis property for staging deploy validation.
+  redis:
+    url: ${STAGING_REDIS_URL}
+
+  # Spring Boot 3 reads Redis settings from spring.data.redis, so this mirrors the same staging URL.
   data:
     redis:
       url: ${STAGING_REDIS_URL}
@@ -16,10 +16,13 @@ spring:
 # Use the staging Supabase project and staging storage bucket names.
 supabase:
   url: ${STAGING_SUPABASE_URL}
+  # Keep the requested flat anon-key property for deployment validation.
+  anon-key: ${STAGING_SUPABASE_ANON_KEY}
+  # The current backend config reads supabase.anon.key, so this mirrors the same staging anon key.
   anon:
     key: ${STAGING_SUPABASE_ANON_KEY}
   jwt:
-    secret: ${STAGING_JWT_SECRET}
+    secret: ${JWT_SECRET}
   service:
     role:
       key: ${STAGING_SUPABASE_SERVICE_ROLE_KEY:}
@@ -32,9 +35,7 @@ supabase:
       brand-verification: creatorx-staging
       exports: creatorx-staging
 
-# JWT secret must be set as environment variable JWT_SECRET
-# Generate one with: openssl rand -base64 64
-# This avoids deploying staging with a committed token-signing secret.
+# JWT secret must be set as environment variable JWT_SECRET.
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
@@ -53,10 +54,14 @@ razorpay:
     mode: test
     account-number: ${STAGING_RAZORPAY_ACCOUNT_NUMBER:}
 
-# Allow only the staging frontends and local test URLs that are listed in the environment variable.
+# Keep the requested flat CORS property for deployment validation.
+cors:
+  allowed-origins: ${STAGING_ALLOWED_ORIGINS:*}
+
+# The current SecurityConfig reads creatorx.cors.allowed-origins, so this mirrors the same staging origins.
 creatorx:
   cors:
-    allowed-origins: ${STAGING_ALLOWED_ORIGINS}
+    allowed-origins: ${STAGING_ALLOWED_ORIGINS:*}
 
 # Railway sends traffic to this port unless a PORT variable overrides it.
 server:
@@ -67,3 +72,13 @@ logging:
   level:
     com.creatorx: DEBUG
     root: INFO
+
+# Expose the health endpoint so Railway and GitHub Actions can verify startup.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always

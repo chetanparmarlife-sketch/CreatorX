@@ -1,12 +1,12 @@
 {
-  "service": "creatorx-backend-staging",
   "build": {
-    "command": "cd backend && ./gradlew build -x test"
+    "builder": "NIXPACKS",
+    "buildCommand": "cd backend && ./gradlew build -x test"
   },
   "deploy": {
-    "startCommand": "java -jar -Dspring.profiles.active=staging backend/creatorx-api/build/libs/creatorx-api.jar",
+    "startCommand": "java -jar -Dspring.profiles.active=staging backend/creatorx-api/build/libs/creatorx-api-1.0.0.jar",
     "healthcheckPath": "/actuator/health",
-    "restartPolicyType": "ON_FAILURE"
-  },
-  "environment": "staging"
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
 }

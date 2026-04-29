@@ -1,0 +1,41 @@
+# Validates that config files are well-formed on every pull request.
+# Does not deploy anything - just checks syntax and obvious committed secrets.
+name: Validate config files
+
+on:
+  # Run validation before config changes can be merged into main or develop.
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      # Download the repository so the workflow can inspect config files.
+      - uses: actions/checkout@v3
+
+      # Parse each deployment JSON file to catch invalid syntax before deployment.
+      - name: Validate JSON files
+        run: |
+          echo "Checking railway.json..."
+          cat railway.json | python3 -m json.tool > /dev/null
+          echo "Checking railway.staging.json..."
+          cat railway.staging.json | python3 -m json.tool > /dev/null
+          echo "Checking brand-dashboard/vercel.json..."
+          cat brand-dashboard/vercel.json | python3 -m json.tool > /dev/null
+          echo "Checking admin-dashboard/vercel.json..."
+          cat admin-dashboard/vercel.json | python3 -m json.tool > /dev/null
+          echo "All JSON files are valid."
+
+      # Scan common source/config file types for known placeholder or live secret patterns.
+      - name: Check no hardcoded secrets
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          if grep -r "s[k]_live\|r[z]p_live\|p[a]ssword123\|my[s]ecretkey\|default[s]ecret" \
+            --include="*.yml" --include="*.yaml" --include="*.json" \
+            --include="*.ts" --include="*.tsx" --include="*.java" \
+            --exclude-dir=node_modules --exclude-dir=.git .; then
+            echo "FAIL: Possible hardcoded secret found above."
+            exit 1
+          fi
+          echo "No hardcoded secrets found."

@@ -7,7 +7,7 @@ on:
       - develop
 
 permissions:
-  # Allow this workflow to read the repository contents.
+  # Allow this workflow to read repository files during the deploy jobs.
   contents: read
 
 jobs:
@@ -32,21 +32,28 @@ jobs:
 
       # Install Java 17 because the Spring Boot backend is built with Java 17.
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
-          distribution: temurin
-          cache: gradle
+          distribution: 'temurin'
 
-      # Make the Gradle launcher executable on Linux.
+      # Cache Gradle packages so repeated staging builds download far fewer dependencies.
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      # Make the Gradle launcher executable on Linux before building.
       - name: Make Gradle executable
-        working-directory: backend
-        run: chmod +x ./gradlew
+        run: chmod +x backend/gradlew
 
-      # Build the backend package without running tests because tests run in the separate CI workflow.
+      # Build the backend package from the backend folder so the Railway artifact exists before deploy.
       - name: Build backend
-        working-directory: backend
-        run: ./gradlew build -x test --no-daemon
+        run: cd backend && ./gradlew build -x test
 
       # Install the Railway command line tool so GitHub Actions can deploy to Railway.
       - name: Install Railway CLI
@@ -56,11 +63,11 @@ jobs:
       - name: Select Railway staging config
         run: cp railway.staging.json railway.json
 
-      # Upload the backend code to the Railway staging service.
+      # Upload the backend code to the Railway staging service using Railway CLI v3 syntax.
       - name: Deploy backend to Railway staging
+        run: railway up --service creatorx-backend-staging --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_TOKEN }}
-        run: railway up --service creatorx-backend-staging --environment staging --ci
 
   deploy-brand-dashboard:
     name: Deploy brand dashboard to Vercel staging
@@ -96,52 +103,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: npm
-          cache-dependency-path: brand-dashboard/package-lock.json
-
-      # Install the exact package versions listed in package-lock.json.
-      - name: Install brand dashboard dependencies
-        working-directory: brand-dashboard
-        run: npm ci
-
-      # Run the normal Next.js build so the workflow fails before deployment if the app cannot compile.
-      - name: Build brand dashboard
-        working-directory: brand-dashboard
-        run: npm run build
 
       # Install the Vercel command line tool so GitHub Actions can deploy to Vercel.
       - name: Install Vercel CLI
         run: npm install -g vercel
 
-      # Pull the staging environment settings from Vercel for the brand dashboard project.
-      - name: Pull Vercel staging settings for brand dashboard
-        working-directory: brand-dashboard
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BRAND_PROJECT_ID }}
-        run: vercel pull --yes --environment=staging --token="$VERCEL_TOKEN"
-
-      # Create the Vercel prebuilt output that the next deploy step uploads.
-      - name: Create Vercel prebuilt output for brand dashboard
-        working-directory: brand-dashboard
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BRAND_PROJECT_ID }}
-        run: vercel build --target=staging --token="$VERCEL_TOKEN"
-
-      # Deploy the already-built brand dashboard to the Vercel staging target.
+      # Pull preview settings, build, and deploy the brand dashboard as a Vercel prebuilt preview.
       - name: Deploy brand dashboard to Vercel staging
-        working-directory: brand-dashboard
+        run: |
+          cd brand-dashboard
+          npm ci
+          vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+          vercel build --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BRAND_PROJECT_ID }}
-        run: vercel deploy --prebuilt --target=staging --token="$VERCEL_TOKEN"
 
   deploy-admin-dashboard:
-    name: Deploy admin dashboard to Vercel staging (creatorx-admin-staging)
+    name: Deploy admin dashboard to Vercel staging
     runs-on: ubuntu-latest
 
     steps:
@@ -174,49 +154,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: npm
-          cache-dependency-path: admin-dashboard/package-lock.json
-
-      # Install the exact package versions listed in package-lock.json.
-      - name: Install admin dashboard dependencies
-        working-directory: admin-dashboard
-        run: npm ci
-
-      # Run the normal Next.js build so the workflow fails before deployment if the app cannot compile.
-      - name: Build admin dashboard
-        working-directory: admin-dashboard
-        run: npm run build
 
       # Install the Vercel command line tool so GitHub Actions can deploy to Vercel.
       - name: Install Vercel CLI
         run: npm install -g vercel
 
-      # Pull the staging environment settings from Vercel for the admin dashboard project.
-      - name: Pull Vercel staging settings for admin dashboard
-        working-directory: admin-dashboard
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
-        run: vercel pull --yes --environment=staging --token="$VERCEL_TOKEN"
-
-      # Create the Vercel prebuilt output that the next deploy step uploads.
-      - name: Create Vercel prebuilt output for admin dashboard
-        working-directory: admin-dashboard
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
-        run: vercel build --target=staging --token="$VERCEL_TOKEN"
-
-      # Deploy the already-built admin dashboard to the Vercel staging target.
+      # Pull preview settings, build, and deploy the admin dashboard as a Vercel prebuilt preview.
       - name: Deploy admin dashboard to Vercel staging
-        working-directory: admin-dashboard
+        run: |
+          cd admin-dashboard
+          npm ci
+          vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+          vercel build --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
-        run: vercel deploy --prebuilt --target=staging --token="$VERCEL_TOKEN"
 
   notify:
     name: Optional staging notification
@@ -228,7 +181,7 @@ jobs:
     if: always()
 
     steps:
-      # This is a ready-to-use notification shape. Remove the comment marks after adding a webhook secret.
+      # Leave a visible workflow note; webhook notifications can be enabled after adding a Slack or Discord secret.
       - name: Slack or Discord notification template
         run: |
           echo "Optional notification is currently disabled."

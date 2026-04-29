@@ -233,15 +233,14 @@ jobs:
             exit 1
           fi
 
-      # Ask the backend health endpoint if the production API is alive.
-      - name: Call production backend health endpoint
-        env:
-          PROD_API_URL: ${{ secrets.PROD_API_URL }}
+      # Wait for Railway to start the backend, then fail production deploys if health is not 200.
+      - name: Health check production backend
         run: |
-          STATUS_CODE=$(curl -s -o /tmp/creatorx-health.json -w "%{http_code}" "$PROD_API_URL/actuator/health")
-          if [ "$STATUS_CODE" != "200" ]; then
-            echo "Production health check failed with HTTP status $STATUS_CODE"
-            cat /tmp/creatorx-health.json
+          echo "Waiting 30 seconds for backend to start..."
+          sleep 30
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.PROD_API_URL }}/actuator/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed with status $STATUS"
             exit 1
           fi
-          echo "Production health check passed."
+          echo "Health check passed"
