@@ -36,7 +36,6 @@ import {
     type LoginResponse,
 } from '@/lib/api/auth'
 import {
-    tokenStorage,
     scheduleTokenRefresh,
     cancelTokenRefresh,
 } from '@/lib/auth/tokenStorage'
@@ -108,8 +107,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         try {
             setIsLoading(true)
 
-            // Check if we have a valid token
-            if (!checkIsAuthenticated()) {
+            // Check HttpOnly cookie-backed auth instead of localStorage token presence.
+            if (!(await checkIsAuthenticated())) {
                 setUser(null)
                 setIsLoading(false)
                 return

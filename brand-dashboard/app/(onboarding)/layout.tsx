@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/auth-store'
+import { tokenStorage } from '@/lib/auth/tokenStorage'
 
 const COMPLETED_STATUSES = ['APPROVED', 'SUBMITTED', 'UNDER_REVIEW']
 
@@ -16,17 +17,20 @@ export default function OnboardingLayout({
   const [hasToken, setHasToken] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const token =
-      localStorage.getItem('access_token') ||
-      localStorage.getItem('creatorx_access_token')
+    const checkAuth = async () => {
+      // Auth checks now read the HttpOnly cookie-backed token route instead of localStorage token keys.
+      const token = await tokenStorage.getAccessToken()
 
-    if (!token) {
-      setHasToken(false)
-      router.push('/login')
-      return
+      if (!token) {
+        setHasToken(false)
+        router.push('/login')
+        return
+      }
+
+      setHasToken(true)
     }
 
-    setHasToken(true)
+    checkAuth()
   }, [router])
 
   useEffect(() => {

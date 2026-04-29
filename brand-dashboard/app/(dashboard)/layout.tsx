@@ -8,6 +8,7 @@ import { OnboardingBanner } from '@/components/shared/onboarding-banner'
 import { getDashboardRouteTitle } from '@/components/layout/brand-nav'
 import { Menu, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { tokenStorage } from '@/lib/auth/tokenStorage'
 
 export default function DashboardLayout({
   children,
@@ -27,9 +28,8 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token =
-        localStorage.getItem('access_token') ||
-        localStorage.getItem('creatorx_access_token')
+      // Auth checks now read the HttpOnly cookie-backed token route instead of localStorage token keys.
+      const token = await tokenStorage.getAccessToken()
 
       if (token) {
         setHasToken(true)

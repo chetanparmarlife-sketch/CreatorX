@@ -28,6 +28,10 @@ const PUBLIC_ROUTES = [
 const PUBLIC_API_ROUTES = [
     '/api/auth/login',
     '/api/auth/register',
+    '/api/auth/set-tokens',
+    '/api/auth/clear-tokens',
+    '/api/auth/get-token',
+    '/api/auth/refresh-token',
     '/api/health',
     '/api/webhook',
 ]
@@ -121,8 +125,8 @@ export function middleware(request: NextRequest) {
         return NextResponse.next()
     }
 
-    // Get token from cookie
-    const accessToken = request.cookies.get('creatorx_access_token')?.value
+    // Read the HttpOnly cookie set by the auth API route instead of the old JS-readable localStorage cookie name.
+    const accessToken = request.cookies.get('access_token')?.value
 
     // Handle public routes
     if (isPublicRoute(pathname)) {

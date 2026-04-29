@@ -31,6 +31,7 @@ import {
   useSendMessage,
 } from '@/lib/hooks/use-messages'
 import { useWebSocket } from '@/lib/hooks/use-websocket'
+import { tokenStorage } from '@/lib/auth/tokenStorage'
 import type { Conversation, Message } from '@/lib/types'
 
 const formatMessageTime = (dateString?: string) => {
@@ -480,9 +481,8 @@ export default function MessagesPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    setToken(
-      localStorage.getItem('creatorx_access_token') || localStorage.getItem('access_token')
-    )
+    // WebSocket auth now gets the token from the HttpOnly cookie route instead of localStorage token keys.
+    tokenStorage.getAccessToken().then(setToken)
   }, [])
 
   useEffect(() => {

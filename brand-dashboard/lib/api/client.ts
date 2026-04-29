@@ -9,6 +9,7 @@
  */
 
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
+import { tokenStorage } from '@/lib/auth/tokenStorage'
 
 // ==================== Types ====================
 
@@ -20,15 +21,6 @@ export interface ApiError {
   path: string
   details?: Record<string, string>
 }
-
-// ==================== Storage Keys ====================
-
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'creatorx_access_token',
-  REFRESH_TOKEN: 'creatorx_refresh_token',
-  USER: 'creatorx_user',
-  TOKEN_EXPIRY: 'creatorx_token_expiry',
-} as const
 
 // ==================== API Client Class ====================
 
@@ -78,8 +70,8 @@ class ApiClient {
   private setupInterceptors() {
     // ==================== Request Interceptor ====================
     this.client.interceptors.request.use(
-      (config) => {
-        const token = this.getAccessToken()
+      async (config) => {
+        const token = await this.getAccessToken()
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`
         }
@@ -127,7 +119,7 @@ class ApiClient {
             const newToken = await this.performTokenRefresh()
 
             if (newToken) {
-              this.setTokens(newToken)
+              await this.setTokens(newToken)
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${newToken}`
               }
@@ -135,12 +127,12 @@ class ApiClient {
               return this.client(originalRequest)
             } else {
               // Refresh failed, redirect to login
-              this.handleAuthFailure()
+              await this.handleAuthFailure()
               return Promise.reject(this.formatError(error))
             }
           } catch (refreshError) {
             this.processQueue(refreshError, null)
-            this.handleAuthFailure()
+            await this.handleAuthFailure()
             return Promise.reject(refreshError)
           } finally {
             this.isRefreshing = false
@@ -162,35 +154,18 @@ class ApiClient {
    */
   private async performTokenRefresh(): Promise<string | null> {
     try {
-      const refreshToken = this.getRefreshToken()
+      // Refresh through a Next.js route that reads the HttpOnly refresh cookie instead of localStorage.
+      const response = await fetch('/api/auth/refresh-token', { method: 'POST' })
 
-      if (!refreshToken) {
-        console.warn('[API] No refresh token available')
-        return null
-      }
-
-      // Call backend refresh endpoint
-      const response = await axios.post<{ token: string; expiresIn: number }>(
-        `${this.client.defaults.baseURL}/auth/refresh-token`,
-        { refreshToken },
-        { headers: { 'Content-Type': 'application/json' } }
-      )
-
-      if (response.data?.token) {
-        // Update stored token and expiry
-        const expiryTime = Date.now() + (response.data.expiresIn * 1000)
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.token)
-          localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString())
-
-          // Also update cookie for middleware
-          const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-          document.cookie = `${STORAGE_KEYS.ACCESS_TOKEN}=${response.data.token}; Path=/; Max-Age=${response.data.expiresIn}${secure}; SameSite=Lax`
-        }
+      if (response.ok) {
+        const data = await response.json()
+        const token = data.token as string | undefined
+        if (!token) return null
+        // Store refreshed token in HttpOnly cookies via API route instead of localStorage.
+        await this.setTokens(token)
 
         console.log('[API] Token refreshed successfully')
-        return response.data.token
+        return token
       }
 
       return null
@@ -217,8 +192,8 @@ class ApiClient {
   /**
    * Handle authentication failure - clear data and redirect
    */
-  private handleAuthFailure() {
-    this.clearAuth()
+  private async handleAuthFailure() {
+    await this.clearAuth()
 
     if (typeof window !== 'undefined') {
       // Store current path for redirect after login
@@ -245,36 +220,19 @@ class ApiClient {
 
   // ==================== Token Management ====================
 
-  private getAccessToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+  private async getAccessToken(): Promise<string | null> {
+    // Read access token through the HttpOnly cookie route instead of localStorage.
+    return tokenStorage.getAccessToken()
   }
 
-  private getRefreshToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
+  public async setTokens(accessToken: string, refreshToken?: string): Promise<void> {
+    // Store tokens through secure HttpOnly cookie route instead of localStorage.setItem.
+    await tokenStorage.setTokens(accessToken, refreshToken)
   }
 
-  public setTokens(accessToken: string, refreshToken?: string): void {
-    if (typeof window === 'undefined') return
-
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
-
-    if (refreshToken) {
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
-    }
-  }
-
-  public clearAuth(): void {
-    if (typeof window === 'undefined') return
-
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.USER)
-    localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY)
-
-    // Clear cookie
-    document.cookie = `${STORAGE_KEYS.ACCESS_TOKEN}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  public async clearAuth(): Promise<void> {
+    // Clear tokens through secure HttpOnly cookie route instead of localStorage.removeItem.
+    await tokenStorage.clearTokens()
   }
 
   // ==================== HTTP Methods ====================
