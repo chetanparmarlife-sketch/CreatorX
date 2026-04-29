@@ -3,10 +3,11 @@
  * 
  * Handles all HTTP requests with JWT token management,
  * automatic token refresh, and error handling.
- * Uses admin-specific storage keys.
+ * Uses HttpOnly cookie-backed token storage instead of localStorage token keys.
  */
 
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
+import { tokenStorage } from '@/lib/auth/tokenStorage'
 
 // ==================== Types ====================
 
@@ -18,14 +19,6 @@ export interface ApiError {
   path: string
   details?: Record<string, string>
 }
-
-// Admin-specific storage keys (separate from brand dashboard)
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'creatorx_admin_access_token',
-  REFRESH_TOKEN: 'creatorx_admin_refresh_token',
-  USER: 'creatorx_admin_user',
-  TOKEN_EXPIRY: 'creatorx_admin_token_expiry',
-} as const
 
 class ApiClient {
   private client: AxiosInstance
@@ -63,10 +56,10 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Request interceptor - add JWT token
+    // Request interceptor - add JWT token from HttpOnly cookie route instead of localStorage.
     this.client.interceptors.request.use(
-      (config) => {
-        const token = this.getAccessToken()
+      async (config) => {
+        const token = await this.getAccessToken()
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`
         }
@@ -107,19 +100,19 @@ class ApiClient {
             const newToken = await this.performTokenRefresh()
 
             if (newToken) {
-              this.setTokens(newToken)
+              // Refresh route already rotated HttpOnly cookies, so do not rewrite tokens in localStorage.
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${newToken}`
               }
               this.processQueue(null, newToken)
               return this.client(originalRequest)
             } else {
-              this.handleAuthFailure()
+              await this.handleAuthFailure()
               return Promise.reject(this.formatError(error))
             }
           } catch (refreshError) {
             this.processQueue(refreshError, null)
-            this.handleAuthFailure()
+            await this.handleAuthFailure()
             return Promise.reject(refreshError)
           } finally {
             this.isRefreshing = false
@@ -133,28 +126,16 @@ class ApiClient {
 
   private async performTokenRefresh(): Promise<string | null> {
     try {
-      const refreshToken = this.getRefreshToken()
-      if (!refreshToken) return null
+      // Refresh through a Next.js route that reads the HttpOnly refresh cookie instead of localStorage.
+      const response = await fetch('/api/auth/refresh-token', { method: 'POST' })
 
-      const response = await axios.post<{ token: string; expiresIn: number }>(
-        `${this.client.defaults.baseURL}/auth/refresh-token`,
-        { refreshToken },
-        { headers: { 'Content-Type': 'application/json' } }
-      )
+      if (response.ok) {
+        const data = await response.json()
+        const token = data.token as string | undefined
+        if (!token) return null
+        // Refresh route already stores the refreshed admin token in HttpOnly cookies instead of localStorage.
 
-      if (response.data?.token) {
-        const expiresAt = Date.now() + (response.data.expiresIn * 1000)
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.token)
-          localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiresAt.toString())
-
-          // Update cookie for middleware
-          const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-          document.cookie = `${STORAGE_KEYS.ACCESS_TOKEN}=${response.data.token}; Path=/; Max-Age=${response.data.expiresIn}${secure}; SameSite=Lax`
-        }
-
-        return response.data.token
+        return token
       }
 
       return null
@@ -175,8 +156,9 @@ class ApiClient {
     this.failedQueue = []
   }
 
-  private handleAuthFailure() {
-    this.clearAuth()
+  private async handleAuthFailure() {
+    // Clear HttpOnly token cookies via API route instead of localStorage token removal.
+    await this.clearAuth()
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname
       if (currentPath !== '/login') {
@@ -197,33 +179,19 @@ class ApiClient {
   }
 
   // Token management
-  private getAccessToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+  private async getAccessToken(): Promise<string | null> {
+    // Read access token through the HttpOnly cookie route instead of localStorage.
+    return tokenStorage.getAccessToken()
   }
 
-  private getRefreshToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
+  public async setTokens(accessToken: string, refreshToken?: string): Promise<void> {
+    // Store admin tokens through secure HttpOnly cookie route instead of localStorage.setItem.
+    await tokenStorage.setTokens(accessToken, refreshToken)
   }
 
-  public setTokens(accessToken: string, refreshToken?: string): void {
-    if (typeof window === 'undefined') return
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
-    if (refreshToken) {
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
-    }
-  }
-
-  public clearAuth(): void {
-    if (typeof window === 'undefined') return
-
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.USER)
-    localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY)
-
-    document.cookie = `${STORAGE_KEYS.ACCESS_TOKEN}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  public async clearAuth(): Promise<void> {
+    // Clear admin tokens through secure HttpOnly cookie route instead of localStorage.removeItem.
+    await tokenStorage.clearTokens()
   }
 
   // HTTP methods

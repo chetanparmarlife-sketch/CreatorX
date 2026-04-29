@@ -80,7 +80,8 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
         try {
             setIsLoading(true)
 
-            if (!checkIsAuthenticated()) {
+            // Auth status now checks HttpOnly cookie-backed token route instead of localStorage.
+            if (!(await checkIsAuthenticated())) {
                 setUser(null)
                 setIsLoading(false)
                 return

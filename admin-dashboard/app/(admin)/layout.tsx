@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { adminSystemService } from '@/lib/api/admin/system'
+import { getAccessToken } from '@/lib/api/auth'
 import { useAuthStore } from '@/lib/store/auth-store'
 import { AdminSidebar, getAdminRouteTitle } from '@/components/layout/admin-sidebar'
 
@@ -20,10 +21,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token =
-        localStorage.getItem('creatorx_admin_access_token') ||
-        localStorage.getItem('access_token') ||
-        localStorage.getItem('creatorx_access_token')
+      // Read the admin token through the HttpOnly cookie route instead of localStorage token keys.
+      const token = await getAccessToken()
 
       if (token) {
         // Decode JWT payload and verify ADMIN role

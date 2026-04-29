@@ -3,6 +3,7 @@
  *
  * PRODUCTION IMPLEMENTATION: Uses backend JWT authentication.
  * ADMIN ONLY: Verifies user has ADMIN role after login.
+ * Tokens are stored in HttpOnly cookies instead of localStorage to reduce XSS risk.
  *
  * Backend endpoints:
  * - POST /api/v1/auth/login → { token, user, expiresIn }
@@ -11,6 +12,7 @@
  */
 
 import { apiClient } from './client'
+import { tokenStorage } from '@/lib/auth/tokenStorage'
 
 // ==================== Types ====================
 
@@ -35,77 +37,34 @@ export interface RefreshResponse {
   expiresIn: number
 }
 
-// ==================== Storage Keys ====================
+// ==================== Non-Token Storage ====================
 
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'creatorx_admin_access_token',
-  REFRESH_TOKEN: 'creatorx_admin_refresh_token',
-  USER: 'creatorx_admin_user',
-  TOKEN_EXPIRY: 'creatorx_admin_token_expiry',
-} as const
+const USER_STORAGE_KEY = 'creatorx_admin_user'
 
-const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000
-
-// ==================== Cookie Helpers ====================
-
-function setCookie(name: string, value: string, maxAgeSeconds: number): void {
-  if (typeof document === 'undefined') return
-
-  const isHttps = window.location.protocol === 'https:'
-  let cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
-  if (isHttps) cookie += '; Secure'
-
-  document.cookie = cookie
+function storeUser(user: User): void {
+  if (typeof window === 'undefined') return
+  // User profile is non-token state; admin auth tokens moved from localStorage to HttpOnly cookies.
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
 }
 
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null
-
-  const cookies = document.cookie.split(';')
-  for (const cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.trim().split('=')
-    if (cookieName === name) {
-      return decodeURIComponent(cookieValue)
-    }
-  }
-  return null
-}
-
-function deleteCookie(name: string): void {
-  if (typeof document === 'undefined') return
-  document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+function clearStoredUser(): void {
+  if (typeof window === 'undefined') return
+  // Logout now clears only non-sensitive cached admin user data from localStorage.
+  localStorage.removeItem(USER_STORAGE_KEY)
 }
 
 // ==================== Token Storage ====================
 
-function storeAuthData(token: string, user: User, expiresIn: number): void {
-  if (typeof window === 'undefined') return
-
-  setCookie(STORAGE_KEYS.ACCESS_TOKEN, token, expiresIn)
-  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token)
-
-  const expiresAt = Date.now() + (expiresIn * 1000)
-  localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiresAt.toString())
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
-
-  apiClient.setTokens(token)
+async function storeAuthData(token: string, user: User, refreshToken?: string): Promise<void> {
+  // Store admin tokens in HttpOnly cookies via API route instead of localStorage token keys.
+  await apiClient.setTokens(token, refreshToken)
+  storeUser(user)
 }
 
-function storeRefreshToken(refreshToken: string): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
-}
-
-function clearAuthData(): void {
-  if (typeof window === 'undefined') return
-
-  deleteCookie(STORAGE_KEYS.ACCESS_TOKEN)
-  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
-  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
-  localStorage.removeItem(STORAGE_KEYS.USER)
-  localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY)
-
-  apiClient.clearAuth()
+async function clearAuthData(): Promise<void> {
+  // Clear HttpOnly token cookies via API route instead of localStorage.removeItem token calls.
+  await apiClient.clearAuth()
+  clearStoredUser()
 }
 
 // ==================== Public API ====================
@@ -116,7 +75,7 @@ function clearAuthData(): void {
  */
 export async function login(email: string, password: string): Promise<LoginResponse> {
   try {
-    const response = await apiClient.post<LoginResponse>('/auth/login', {
+    const response = await apiClient.post<LoginResponse & { refreshToken?: string }>('/auth/login', {
       email,
       password,
     })
@@ -133,11 +92,8 @@ export async function login(email: string, password: string): Promise<LoginRespo
       )
     }
 
-    storeAuthData(response.token, response.user, response.expiresIn)
-
-    if ((response as any).refreshToken) {
-      storeRefreshToken((response as any).refreshToken)
-    }
+    // Persist backend tokens in HttpOnly cookies rather than readable localStorage.
+    await storeAuthData(response.token, response.user, response.refreshToken)
 
     console.log('[Admin Auth] Login successful for:', response.user.email)
     return response
@@ -178,7 +134,8 @@ export async function logout(): Promise<void> {
   try {
     await apiClient.post('/auth/logout').catch(() => { })
   } finally {
-    clearAuthData()
+    // Always clear HttpOnly token cookies and cached non-token user data.
+    await clearAuthData()
     console.log('[Admin Auth] Logged out')
   }
 }
@@ -188,28 +145,23 @@ export async function logout(): Promise<void> {
  */
 export async function refreshToken(): Promise<string | null> {
   try {
-    const storedRefreshToken = getRefreshToken()
+    // Refresh through a Next.js route that reads the HttpOnly refresh cookie instead of localStorage.
+    const response = await fetch('/api/auth/refresh-token', { method: 'POST' })
 
-    if (storedRefreshToken) {
-      const response = await apiClient.post<RefreshResponse>('/auth/refresh-token', {
-        refreshToken: storedRefreshToken,
-      })
-
-      if (response.token) {
+    if (response.ok) {
+      const data = await response.json()
+      const token = data.token as string | undefined
+      if (token) {
         const user = getStoredUser()
 
         // Verify still has ADMIN role
         if (user && user.role !== 'ADMIN') {
-          clearAuthData()
+          await clearAuthData()
           throw new Error('Admin access revoked')
         }
 
-        if (user) {
-          storeAuthData(response.token, user, response.expiresIn)
-        }
-
         console.log('[Admin Auth] Token refreshed successfully')
-        return response.token
+        return token
       }
     }
 
@@ -231,28 +183,23 @@ export async function getCurrentUser(): Promise<User> {
 
   // Verify ADMIN role
   if (user.role !== 'ADMIN') {
-    clearAuthData()
+    await clearAuthData()
     throw new AdminAccessDeniedError('Admin access required', user.role)
   }
 
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
+  storeUser(user)
   return user
 }
 
 /**
  * Check if admin user is authenticated
  */
-export function isAuthenticated(): boolean {
+export async function isAuthenticated(): Promise<boolean> {
   if (typeof window === 'undefined') return false
 
-  const token = getAccessToken()
+  // Authentication now checks the HttpOnly cookie-backed token route instead of localStorage.
+  const token = await tokenStorage.getAccessToken()
   if (!token) return false
-
-  // Check expiry
-  const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY)
-  if (expiry && Date.now() >= parseInt(expiry, 10)) {
-    return false
-  }
 
   // Verify ADMIN role
   const user = getStoredUser()
@@ -267,31 +214,24 @@ export function isAuthenticated(): boolean {
  * Check if token needs refresh
  */
 export function needsTokenRefresh(): boolean {
-  if (typeof window === 'undefined') return false
-
-  const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY)
-  if (!expiry) return false
-
-  const expiryTime = parseInt(expiry, 10)
-  const now = Date.now()
-
-  return now >= expiryTime - TOKEN_REFRESH_BUFFER_MS && now < expiryTime
+  // Token expiry is no longer stored in localStorage; failed API requests handle auth expiry.
+  return false
 }
 
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || getCookie(STORAGE_KEYS.ACCESS_TOKEN)
+export async function getAccessToken(): Promise<string | null> {
+  // Read the admin access token through the API route backed by HttpOnly cookies.
+  return tokenStorage.getAccessToken()
 }
 
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
+export async function getRefreshToken(): Promise<string | null> {
+  // Refresh token remains unavailable to JavaScript after moving out of localStorage.
+  return tokenStorage.getRefreshToken()
 }
 
 export function getStoredUser(): User | null {
   if (typeof window === 'undefined') return null
 
-  const userData = localStorage.getItem(STORAGE_KEYS.USER)
+  const userData = localStorage.getItem(USER_STORAGE_KEY)
   if (!userData) return null
 
   try {

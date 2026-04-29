@@ -14,6 +14,13 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/forgot-password', '/unauthorized']
 
+const PUBLIC_API_ROUTES = [
+    '/api/auth/set-tokens',
+    '/api/auth/clear-tokens',
+    '/api/auth/get-token',
+    '/api/auth/refresh-token',
+]
+
 const EXCLUDED_PATHS = ['/_next', '/favicon.ico', '/images', '/icons', '/fonts']
 
 // ==================== Helper Functions ====================
@@ -24,6 +31,10 @@ function isExcludedPath(pathname: string): boolean {
 
 function isPublicRoute(pathname: string): boolean {
     return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))
+}
+
+function isPublicApiRoute(pathname: string): boolean {
+    return PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route))
 }
 
 /**
@@ -89,8 +100,13 @@ export function middleware(request: NextRequest) {
         return NextResponse.next()
     }
 
-    // Get token from cookie
-    const accessToken = request.cookies.get('creatorx_admin_access_token')?.value
+    // Allow auth cookie API routes to run before protected admin route checks.
+    if (isPublicApiRoute(pathname)) {
+        return NextResponse.next()
+    }
+
+    // Read the HttpOnly cookie set by the auth API route instead of the old JS-readable cookie name.
+    const accessToken = request.cookies.get('access_token')?.value
 
     // Handle public routes
     if (isPublicRoute(pathname)) {
