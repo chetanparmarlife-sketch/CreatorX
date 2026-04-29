@@ -17,12 +17,12 @@ This file records deployment issues found while reviewing the first staging depl
 | Fix 7 - CampaignContext mock branches | Mock application creation was removed, approve/reject use backend application APIs, and remaining unconnected process payment/deliverable helpers now throw clear errors. |
 | Fix 8 - Team invitations | Team invitation comments were updated, email send remains best-effort, and invitation tokens now expire after 7 days before acceptance. |
 | Fix 9 - Brand analytics ingestion | Brand analytics events now forward to the backend ingestion URL instead of only logging locally. |
+| Brand lists backend API | Created `BrandListController`, `BrandListService`, repositories, entities, tests, and `V64__create_brand_lists.sql` for shared brand shortlists. |
 
 ## Remaining Deployment Notes
 
 | Area | Note |
 | --- | --- |
-| Brand lists backend API | No backend route for `/api/v1/brands/lists` or `/api/v1/brands/lists/shortlist` was found. The brand dashboard now calls these endpoints for shared shortlists, but the backend lists controller still needs to be added or its route documented. |
 | Backend analytics ingestion | No backend route for `/api/v1/analytics/events` was found. The brand dashboard forwards events there non-fatally, but the backend ingestion endpoint still needs to be built. |
 | Web dashboard localStorage audit | `brand-dashboard/lib/api/auth.ts:40` stores non-token cached brand user data; `admin-dashboard/lib/api/auth.ts:47` stores non-token cached admin user data; `admin-dashboard/app/(admin)/layout.tsx:79` and `:84` store `admin_session_last` analytics state. No access/refresh token localStorage usage was found. |
 | Backend origin wildcard audit | No `setAllowedOriginPatterns("*")` or `setAllowedOrigins("*")` calls were found under `backend/`. |
@@ -39,6 +39,7 @@ This file records deployment issues found while reviewing the first staging depl
 | Staging Spring config | Staging config did not include every requested deploy placeholder shape, including flat `spring.redis`, `supabase.anon-key`, `cors.allowed-origins`, and management health details. | Added all requested placeholders while keeping the existing backend-compatible nested properties. |
 | Production health check | The production workflow had a health check, but it did not match the requested 30-second wait and status handling exactly. | Updated the health check step to the requested command shape. |
 | Config validation | There was no standalone pull request config validation workflow. | Added `.github/workflows/validate-config.yml` to validate JSON syntax and scan for obvious hardcoded secrets. |
+| Brand lists backend API | The brand dashboard called `/api/v1/brands/lists`, `/api/v1/brands/lists/shortlist`, and `/api/v1/brands/lists/shortlist/{creatorId}`, but the backend routes did not exist. | Added database tables, JPA entities, repositories, `BrandListService`, `BrandListController`, security route rules, and tests. |
 
 ## Notes For Manual Verification
 

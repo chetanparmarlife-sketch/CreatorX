@@ -57,6 +57,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
+                        // Brand lists endpoints require a brand account because shortlists are shared brand data.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/brands/lists/**").hasRole("BRAND")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/brands/lists/**").hasRole("BRAND")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/brands/lists/**").hasRole("BRAND")
                         // Public auth endpoints (login, register, password reset)
                         // Note: link-supabase-user, verify-email, verify-phone are permitAll
                         // at Spring Security level but protected by X-Webhook-Secret in controller

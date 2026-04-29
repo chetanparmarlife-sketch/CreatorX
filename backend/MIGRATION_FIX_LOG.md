@@ -44,3 +44,12 @@ SELECT 1;
 - Added: `backend/creatorx-api/src/test/java/com/creatorx/api/security/WebhookRateLimitingFilterTest.java`
 - What changed: `POST /api/v1/webhooks/razorpay` is now limited to 60 requests per minute per IP using the existing Redis template, with optional IP bypass entries from `razorpay.webhook.allowed-ips`.
 - Manual verification: confirm the deployed Redis instance is reachable and check webhook provider IP settings before enabling any whitelist.
+
+## V64 - Brand Lists
+
+- Date: 2026-04-29
+- Added: `V64__create_brand_lists.sql`
+- Version note: the requested V63 slot was already used by `V63__add_team_invitation_expiry.sql`, so the next available Flyway version is V64.
+- Tables created: `brand_lists` and `brand_list_creators`
+- Why: brand creator shortlists were moved from browser localStorage to the database so they persist across devices and can be shared by brand teams.
+- What it stores: brand-owned list metadata, optional campaign linkage, creator IDs inside each list, who created the list, and who added each creator.
