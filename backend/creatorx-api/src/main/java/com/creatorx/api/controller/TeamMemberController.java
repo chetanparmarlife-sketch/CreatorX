@@ -22,10 +22,11 @@ import java.util.List;
 /**
  * Team Member Controller
  * 
- * Note: This is a simplified implementation. In production, you would need:
- * - TeamMember entity and repository
- * - Email service for sending invitations
- * - Proper role management
+ * Production note:
+ * This started as a simplified controller. Team members and invitations are now
+ * persisted through TeamMemberService, invitation emails are sent best-effort,
+ * roles are validated, and invitation tokens expire after 7 days before they
+ * can create a team member record.
  */
 @Slf4j
 @RestController

@@ -1,48 +1,64 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { Plus, Users } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { BrandCreatorList, listsService, normalizeBrandLists } from '@/lib/api/listsService'
 
 interface ListCard {
-  id: number
+  id: string | number
   name: string
   count: number
   description: string
   color: string
 }
 
-const mockLists: ListCard[] = [
-  {
-    id: 1,
-    name: 'Fashion Influencers',
-    count: 24,
-    description: 'Top fashion and lifestyle creators for summer campaign',
-    color: 'bg-purple-100 text-purple-700',
-  },
-  {
-    id: 2,
-    name: 'Tech Reviewers',
-    count: 15,
-    description: 'Technology and gadget review specialists',
-    color: 'bg-blue-100 text-blue-700',
-  },
-  {
-    id: 3,
-    name: 'Food Bloggers',
-    count: 32,
-    description: 'Food and recipe content creators',
-    color: 'bg-orange-100 text-orange-700',
-  },
-  {
-    id: 4,
-    name: 'Fitness Coaches',
-    count: 18,
-    description: 'Health, fitness, and wellness influencers',
-    color: 'bg-green-100 text-green-700',
-  },
+const listColors = [
+  'bg-purple-100 text-purple-700',
+  'bg-blue-100 text-blue-700',
+  'bg-orange-100 text-orange-700',
+  'bg-green-100 text-green-700',
 ]
 
 export default function InfluencerListsPage() {
+  const [backendLists, setBackendLists] = useState<BrandCreatorList[]>([])
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    let isMounted = true
+    // Load influencer lists from backend instead of rendering mock data.
+    listsService
+      .getLists()
+      .then((response) => {
+        if (isMounted) {
+          setBackendLists(normalizeBrandLists(response))
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load backend influencer lists:', err)
+        if (isMounted) {
+          setLoadError('Could not load influencer lists. Please try again.')
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const listCards = useMemo<ListCard[]>(
+    // Backend list cards replace the old hardcoded mock list objects.
+    () =>
+      backendLists.map((list, index) => ({
+        id: list.id,
+        name: list.name ?? list.title ?? 'Untitled List',
+        count: list.count ?? list.creatorCount ?? list.totalCreators ?? list.creatorIds?.length ?? list.creators?.length ?? 0,
+        description: list.description ?? 'Creator shortlist saved to the backend.',
+        color: listColors[index % listColors.length],
+      })),
+    [backendLists]
+  )
+
   return (
     <div>
       <PageHeader
@@ -63,7 +79,13 @@ export default function InfluencerListsPage() {
           </p>
         </button>
 
-        {mockLists.map((list) => (
+        {loadError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+            {loadError}
+          </div>
+        )}
+
+        {listCards.map((list) => (
           <div
             key={list.id}
             className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"

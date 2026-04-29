@@ -4,6 +4,29 @@ Date: 2026-04-29
 
 This file records deployment issues found while reviewing the first staging deploy configuration. No real secrets or credential values are included.
 
+## Fixed on 2026-04-29
+
+| Item | Status |
+| --- | --- |
+| Fix 1 - Brand dashboard HttpOnly auth cookies | Brand access/refresh tokens moved out of localStorage and into HttpOnly cookies through Next.js auth routes. |
+| Fix 2 - Admin dashboard HttpOnly auth cookies | Admin access/refresh tokens moved out of localStorage and into HttpOnly cookies through Next.js auth routes. |
+| Fix 3 - WebSocket origin restriction | Backend WebSocket origins now read from configured staging/production origin allowlists instead of wildcard origins. |
+| Fix 4 - Push notification startup | Mobile notification service now initializes at app startup with safe no-op behavior until Firebase packages/config files are installed. |
+| Fix 5 - Creator onboarding backend sync | Onboarding profile data now syncs to the backend after preserving the local cache. |
+| Fix 6 - Brand creator shortlist backend sync | Brand shortlist data now uses the backend lists API instead of browser localStorage. |
+| Fix 7 - CampaignContext mock branches | Mock application creation was removed, approve/reject use backend application APIs, and remaining unconnected process payment/deliverable helpers now throw clear errors. |
+| Fix 8 - Team invitations | Team invitation comments were updated, email send remains best-effort, and invitation tokens now expire after 7 days before acceptance. |
+| Fix 9 - Brand analytics ingestion | Brand analytics events now forward to the backend ingestion URL instead of only logging locally. |
+
+## Remaining Deployment Notes
+
+| Area | Note |
+| --- | --- |
+| Brand lists backend API | No backend route for `/api/v1/brands/lists` or `/api/v1/brands/lists/shortlist` was found. The brand dashboard now calls these endpoints for shared shortlists, but the backend lists controller still needs to be added or its route documented. |
+| Backend analytics ingestion | No backend route for `/api/v1/analytics/events` was found. The brand dashboard forwards events there non-fatally, but the backend ingestion endpoint still needs to be built. |
+| Web dashboard localStorage audit | `brand-dashboard/lib/api/auth.ts:40` stores non-token cached brand user data; `admin-dashboard/lib/api/auth.ts:47` stores non-token cached admin user data; `admin-dashboard/app/(admin)/layout.tsx:79` and `:84` store `admin_session_last` analytics state. No access/refresh token localStorage usage was found. |
+| Backend origin wildcard audit | No `setAllowedOriginPatterns("*")` or `setAllowedOrigins("*")` calls were found under `backend/`. |
+
 ## Fixed
 
 | Area | Issue found | Fix applied |

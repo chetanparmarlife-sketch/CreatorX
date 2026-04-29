@@ -33,6 +33,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class TeamMemberService {
+    private static final int INVITATION_EXPIRY_DAYS = 7;
 
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
@@ -79,7 +80,7 @@ public class TeamMemberService {
             // Send notification email to existing user (they were added directly)
             sendInvitationEmail(email, user.getEmail(), brand.getEmail(), role, null);
         } else {
-            // User doesn't exist - create invitation with token
+            // User does not exist, so create a backend invitation instead of relying on a UI-only invite.
             String token = generateToken();
             TeamMemberInvitation invitation = invitationRepository
                     .findByBrandIdAndEmailAndStatus(brandId, email, "INVITED")
@@ -90,10 +91,25 @@ public class TeamMemberService {
             invitation.setStatus("INVITED");
             invitation.setInvitedBy(brand);
             invitation.setAcceptedAt(null);
+            invitation.setExpiresAt(LocalDateTime.now().plusDays(INVITATION_EXPIRY_DAYS));
             invitationRepository.save(invitation);
 
-            // Send invitation email with token to new user
-            sendInvitationEmail(email, null, brand.getEmail(), role, token);
+            /**
+             * Send invitation email when a brand invites a team member.
+             * Previously the invitation was created in DB but could expire silently
+             * without a production-ready expiry check, so the invitee flow was unreliable.
+             */
+            try {
+                emailService.sendTeamInvitation(
+                        invitation.getEmail(),
+                        brand.getEmail(),
+                        invitation.getToken(),
+                        invitation.getRole()
+                );
+            } catch (Exception e) {
+                // Non-fatal because the invitation is saved and email delivery is best-effort.
+                log.warn("Failed to send invitation email to {}: {}", invitation.getEmail(), e.getMessage());
+            }
         }
     }
 
@@ -189,7 +205,14 @@ public class TeamMemberService {
                 .orElseThrow(() -> new ResourceNotFoundException("TeamMemberInvitation", token));
 
         if (!"INVITED".equals(invitation.getStatus())) {
-            throw new BusinessException("Invitation is no longer valid");
+            throw new BusinessException("Invitation has already been used. Please ask for a new invitation.");
+        }
+
+        // Check invitation has not expired before creating the team member record.
+        if (invitation.getExpiresAt() == null || invitation.getExpiresAt().isBefore(LocalDateTime.now())) {
+            invitation.setStatus("EXPIRED");
+            invitationRepository.save(invitation);
+            throw new BusinessException("Invitation has expired. Please ask for a new invitation.");
         }
 
         User user = userRepository.findById(userId)
@@ -197,6 +220,10 @@ public class TeamMemberService {
 
         if (!user.getEmail().equalsIgnoreCase(invitation.getEmail())) {
             throw new BusinessException("Invitation email does not match authenticated user");
+        }
+
+        if (teamMemberRepository.findByBrandIdAndEmail(invitation.getBrand().getId(), invitation.getEmail()).isPresent()) {
+            throw new BusinessException("Invitation has already been used. Please ask for a new invitation.");
         }
 
         TeamMember member = TeamMember.builder()

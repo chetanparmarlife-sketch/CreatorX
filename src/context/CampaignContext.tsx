@@ -71,8 +71,8 @@ export interface CampaignContextType {
     getApplication: (campaignId: string) => CampaignApplication | undefined;
     withdrawApplication: (applicationId: string) => Promise<void>;
     fetchApplications: () => Promise<void>;
-    approveApplication: (campaignId: string) => void;
-    rejectApplication: (campaignId: string, feedback?: string) => void;
+    approveApplication: (campaignId: string) => Promise<void>;
+    rejectApplication: (campaignId: string, feedback?: string) => Promise<void>;
 
     // Actions - Active Campaigns
     updateActiveCampaign: (id: string, updates: Partial<ActiveCampaign>) => void;
@@ -420,43 +420,29 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
     const applyCampaign = useCallback(
         async (campaignId: string, applicationData: ApplicationFormData) => {
             try {
-                if (featureFlags.isEnabled('USE_API_APPLICATIONS')) {
-                    const request: ApplicationRequest = {
-                        campaignId,
-                        pitchText: applicationData.pitch,
-                        availability: applicationData.expectedTimeline,
-                        expectedTimeline: applicationData.expectedTimeline,
-                    };
+                // Removed mock application creation; applications now always go through the backend API.
+                const request: ApplicationRequest = {
+                    campaignId,
+                    pitchText: applicationData.pitch,
+                    availability: applicationData.expectedTimeline,
+                    expectedTimeline: applicationData.expectedTimeline,
+                };
 
-                    const apiApplication = await applicationService.submitApplication(request);
-                    const adapted = adaptApplication(apiApplication);
+                const apiApplication = await applicationService.submitApplication(request);
+                const adapted = adaptApplication(apiApplication);
 
-                    runIfMounted(() => setApplications((prev) => [adapted, ...prev]));
+                runIfMounted(() => setApplications((prev) => [adapted, ...prev]));
 
-                    // Update campaign status
-                    runIfMounted(() =>
-                        setCampaigns((prev) =>
-                            prev.map((c) =>
-                                c.id === campaignId
-                                    ? { ...c, userState: 'APPLIED', applicants: (c.applicants || 0) + 1 }
-                                    : c
-                            )
+                // Update local campaign state after the backend accepts the real application.
+                runIfMounted(() =>
+                    setCampaigns((prev) =>
+                        prev.map((c) =>
+                            c.id === campaignId
+                                ? { ...c, userState: 'APPLIED', applicants: (c.applicants || 0) + 1 }
+                                : c
                         )
-                    );
-                } else {
-                    // Mock application
-                    const mockApplication: CampaignApplication = {
-                        id: Date.now().toString(),
-                        campaignId,
-                        creatorId: 'mock-user',
-                        pitch: applicationData.pitch,
-                        expectedTimeline: applicationData.expectedTimeline,
-                        extraDetails: applicationData.extraDetails,
-                        status: 'APPLIED',
-                        submittedAt: new Date().toISOString(),
-                    };
-                    runIfMounted(() => setApplications((prev) => [mockApplication, ...prev]));
-                }
+                    )
+                );
             } catch (err) {
                 const apiError = handleAPIError(err);
                 runIfMounted(() => setCampaignError(apiError.message));
@@ -515,24 +501,44 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
     }, [loadingApplications, runIfMounted]);
 
     /**
-     * Approve application (legacy, local only)
+     * Approve application through backend instead of the removed local-only helper.
      */
-    const approveApplication = useCallback((campaignId: string) => {
-        setApplications((prev) =>
-            prev.map((a) => (a.campaignId === campaignId ? { ...a, status: 'APPROVED' as const } : a))
-        );
-    }, []);
+    const approveApplication = useCallback(async (campaignId: string) => {
+        const application = applications.find((a) => a.campaignId === campaignId);
+        if (!application) {
+            // Previously used mock data — real API call needs a real application ID here.
+            console.error('CampaignContext: approve action requires an existing backend application');
+            throw new Error('This action is not yet available');
+        }
 
-    /**
-     * Reject application (legacy, local only)
-     */
-    const rejectApplication = useCallback((campaignId: string, feedback?: string) => {
-        setApplications((prev) =>
-            prev.map((a) =>
-                a.campaignId === campaignId ? { ...a, status: 'REJECTED' as const, feedback } : a
+        await applicationService.selectApplication(application.id);
+        runIfMounted(() =>
+            setApplications((prev) =>
+                prev.map((a) => (a.id === application.id ? { ...a, status: 'SELECTED' as const } : a))
             )
         );
-    }, []);
+    }, [applications, runIfMounted]);
+
+    /**
+     * Reject application through backend instead of the removed local-only helper.
+     */
+    const rejectApplication = useCallback(async (campaignId: string, feedback?: string) => {
+        const application = applications.find((a) => a.campaignId === campaignId);
+        if (!application) {
+            // Previously used mock data — real API call needs a real application ID here.
+            console.error('CampaignContext: reject action requires an existing backend application');
+            throw new Error('This action is not yet available');
+        }
+
+        await applicationService.rejectApplication(application.id, feedback);
+        runIfMounted(() =>
+            setApplications((prev) =>
+                prev.map((a) =>
+                    a.id === application.id ? { ...a, status: 'REJECTED' as const, brandFeedback: feedback } : a
+                )
+            )
+        );
+    }, [applications, runIfMounted]);
 
     /**
      * Update active campaign
@@ -575,37 +581,36 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
     );
 
     /**
-     * Process payment (local simulation)
+     * Process payment is not connected to backend yet.
      */
     const processPayment = useCallback(
         async (activeCampaignId: string) => {
-            runIfMounted(() =>
-                setActiveCampaigns((prev) =>
-                    prev.map((ac) =>
-                        ac.id === activeCampaignId ? { ...ac, paymentStatus: 'paid' as const } : ac
-                    )
-                )
-            );
+            // Previously used mock data by marking a campaign paid on the device only.
+            // TODO: connect to the backend payment release endpoint when available.
+            console.error('CampaignContext: process payment action not yet connected to backend');
+            throw new Error('This action is not yet available');
         },
-        [runIfMounted]
+        []
     );
 
     /**
-     * Add deliverable (legacy, local only)
+     * Add deliverable is not connected to backend yet.
      */
     const addDeliverable = useCallback((deliverable: Omit<Deliverable, 'id'>) => {
-        const newDeliverable: Deliverable = {
-            ...deliverable,
-            id: Date.now().toString(),
-        };
-        setDeliverables((prev) => [...prev, newDeliverable]);
+        // Previously used mock data by creating a device-only deliverable ID.
+        // TODO: connect to the backend deliverables create endpoint when available.
+        console.error('CampaignContext: add deliverable action not yet connected to backend');
+        throw new Error('This action is not yet available');
     }, []);
 
     /**
-     * Update deliverable (legacy, local only)
+     * Update deliverable is not connected to backend yet.
      */
     const updateDeliverable = useCallback((id: string, updates: Partial<Deliverable>) => {
-        setDeliverables((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+        // Previously used mock data by mutating the device-only deliverable list.
+        // TODO: connect to the backend deliverables update endpoint when available.
+        console.error('CampaignContext: update deliverable action not yet connected to backend');
+        throw new Error('This action is not yet available');
     }, []);
 
     /**

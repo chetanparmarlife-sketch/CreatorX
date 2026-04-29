@@ -58,4 +58,18 @@ export const applicationService = {
   async withdrawApplication(id: string): Promise<void> {
     await apiClient.delete(`/applications/${id}`);
   },
+
+  /**
+   * Select application through the backend instead of updating CampaignContext locally only.
+   */
+  async selectApplication(id: string): Promise<void> {
+    await apiClient.post(`/applications/${id}/select`);
+  },
+
+  /**
+   * Reject application through the backend instead of updating CampaignContext locally only.
+   */
+  async rejectApplication(id: string, reason?: string): Promise<void> {
+    await apiClient.post(`/applications/${id}/reject`, { reason });
+  },
 };

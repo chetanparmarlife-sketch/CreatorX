@@ -251,4 +251,11 @@ public interface EmailService {
         String html = EmailTemplates.teamInvitation(inviteeName, brandName, role, inviteLink);
         sendHtmlEmail(to, subject, html);
     }
+
+    /**
+     * Send team member invitation email from the production invitation flow.
+     */
+    default void sendTeamInvitation(String to, String brandName, String inviteToken, String role) {
+        sendTeamInvitationEmail(to, to, brandName, role, inviteToken);
+    }
 }

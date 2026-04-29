@@ -12,6 +12,7 @@ This file lists remaining mock/TODO/dev/hardcoded comments found in `app/` and `
 | KYC back image picker missing | Added an optional back image picker and preview to the existing KYC upload modal, then passed it to the backend as `backFile` / `backImage`. |
 | Chat tab hidden | Removed the chat tab `href: null` and wired `messagingUnreadCount` to `tabBarBadge`. |
 | Campaign mock fallback | Removed the mock-data fallback branch from `CampaignContext` and now surfaces an error state when campaign data is malformed. |
+| CampaignContext application mock branches | Removed mock application creation, replaced local-only approve/reject with backend application calls, and changed remaining unconnected process payment/deliverable helpers to throw clear errors. |
 | Error reporting TODO | Added optional Sentry initialization and crash capture with a safe no-op wrapper when `@sentry/react-native` is not installed. |
 
 ## Needs Manual Review
@@ -61,6 +62,12 @@ This file lists remaining mock/TODO/dev/hardcoded comments found in `app/` and `
 | `src/context/MessagingContext.tsx` | 185 | Chat list loads backend conversations instead of mock conversations. |
 | `src/context/MessagingContext.tsx` | 239 | Conversation screen loads backend messages instead of a mock message array. |
 | `src/screens/__tests__/explore.test.tsx` | 94 | Test defaults still use mock values. |
-| `src/context/CampaignContext.tsx` | 228 | Resolved 2026-04-29: mock-data fallback was removed and malformed API data now sets an error state. |
+| `src/context/CampaignContext.tsx` | 204 | Resolved 2026-04-29: mock-data fallback was removed and malformed API data now sets an error state. |
+| `src/context/CampaignContext.tsx` | 423 | Resolved 2026-04-29: mock application creation was removed and real application submit is always used. |
+| `src/context/CampaignContext.tsx` | 509 | Resolved 2026-04-29: approve no longer mutates local-only state and requires a real backend application ID. |
+| `src/context/CampaignContext.tsx` | 528 | Resolved 2026-04-29: reject no longer mutates local-only state and requires a real backend application ID. |
+| `src/context/CampaignContext.tsx` | 588 | Resolved 2026-04-29: process payment no longer marks payment as paid locally and now throws until a backend endpoint is wired. |
+| `src/context/CampaignContext.tsx` | 600 | Resolved 2026-04-29: add deliverable no longer creates device-only deliverable IDs and now throws until a backend endpoint is wired. |
+| `src/context/CampaignContext.tsx` | 610 | Resolved 2026-04-29: update deliverable no longer mutates device-only deliverable state and now throws until a backend endpoint is wired. |
 | `src/config/featureFlags.ts` | 53 | WebSocket messaging flag is on for real backend chat. |
 | `src/lib/websocket.ts` | 39 | Legacy websocket helper now uses configured backend URL instead of localhost. |

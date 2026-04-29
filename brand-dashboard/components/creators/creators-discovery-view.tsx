@@ -22,6 +22,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useCampaigns } from '@/lib/hooks/use-campaigns'
 import { useInviteCreator } from '@/lib/hooks/use-creators'
+import { extractShortlistedCreatorIds, listsService } from '@/lib/api/listsService'
 
 type CreatorCard = {
   id: string | number
@@ -76,6 +77,7 @@ export default function CreatorsDiscoveryView({
   const [sort, setSort] = useState<'RELEVANCE' | 'FOLLOWERS' | 'ENGAGEMENT'>('RELEVANCE')
   const [showShortlistOnly, setShowShortlistOnly] = useState(false)
   const [shortlistedIds, setShortlistedIds] = useState<string[]>([])
+  const [shortlistError, setShortlistError] = useState('')
   const [compareOpen, setCompareOpen] = useState(false)
   const [inviteCreatorId, setInviteCreatorId] = useState<string | number | null>(null)
   const [inviteMessage, setInviteMessage] = useState('')
@@ -121,12 +123,13 @@ export default function CreatorsDiscoveryView({
   const { data: campaignsData } = useCampaigns({}, 0)
   const inviteMutation = useInviteCreator()
   const campaigns = campaignsData?.items ?? []
+  const activeCampaignId = useMemo(
+    // Shortlists are campaign-scoped in the backend, replacing the old global browser-local ID list.
+    () => inviteCampaignId || defaultCampaignId || (campaigns[0]?.id ? String(campaigns[0].id) : ''),
+    [campaigns, defaultCampaignId, inviteCampaignId]
+  )
 
   useEffect(() => {
-    const storedShortlist = localStorage.getItem('brand_creator_shortlist')
-    if (storedShortlist) {
-      setShortlistedIds(JSON.parse(storedShortlist))
-    }
     const storedCampaign = localStorage.getItem('brand_invite_campaign')
     if (storedCampaign) {
       setDefaultCampaignId(storedCampaign)
@@ -135,8 +138,32 @@ export default function CreatorsDiscoveryView({
   }, [])
 
   useEffect(() => {
-    localStorage.setItem('brand_creator_shortlist', JSON.stringify(shortlistedIds))
-  }, [shortlistedIds])
+    if (!activeCampaignId) {
+      // Without a campaign, there is no backend shortlist scope to load from localStorage anymore.
+      setShortlistedIds([])
+      return
+    }
+
+    let isMounted = true
+    // Load shortlist from backend on mount and campaign change, replacing localStorage.getItem.
+    listsService
+      .getShortlist(activeCampaignId)
+      .then((response) => {
+        if (isMounted) {
+          setShortlistedIds(extractShortlistedCreatorIds(response))
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load backend shortlist:', err)
+        if (isMounted) {
+          setShortlistError('Could not load shortlist. Please try again.')
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeCampaignId])
 
   useEffect(() => {
     if (inviteCampaignId) {
@@ -215,8 +242,50 @@ export default function CreatorsDiscoveryView({
     }
   }
 
+  const showShortlistFailure = (message: string) => {
+    // Show a lightweight error toast when backend shortlist sync fails instead of silently losing localStorage data.
+    setShortlistError(message)
+    window.setTimeout(() => setShortlistError(''), 4000)
+  }
+
+  const handleShortlistToggle = async (creatorId: string) => {
+    if (!activeCampaignId) {
+      // Backend shortlists need a campaign ID, unlike the old browser-only global localStorage list.
+      showShortlistFailure('Select or create a campaign before shortlisting creators.')
+      return
+    }
+
+    const wasShortlisted = shortlistedIds.includes(creatorId)
+    const previousShortlist = shortlistedIds
+    const nextShortlist = wasShortlisted
+      ? shortlistedIds.filter((item) => item !== creatorId)
+      : [...shortlistedIds, creatorId]
+
+    // Optimistically update the UI first, then persist the creator ID to the backend.
+    setShortlistedIds(nextShortlist)
+    setShortlistError('')
+
+    try {
+      if (wasShortlisted) {
+        await listsService.removeFromShortlist(creatorId, activeCampaignId)
+      } else {
+        await listsService.addToShortlist(creatorId, activeCampaignId)
+      }
+    } catch (err) {
+      console.error('Failed to sync backend shortlist:', err)
+      // Revert the optimistic state because the backend, not localStorage, is now the source of truth.
+      setShortlistedIds(previousShortlist)
+      showShortlistFailure('Shortlist update failed. Please try again.')
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {shortlistError && (
+        <div className="fixed right-6 top-6 z-50 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+          {shortlistError}
+        </div>
+      )}
       <div>
         <h1 className="text-3xl font-semibold text-slate-900">{title}</h1>
         <p className="text-sm text-slate-500">{subtitle}</p>
@@ -471,12 +540,7 @@ export default function CreatorsDiscoveryView({
                       variant="ghost"
                       size="sm"
                       className="w-full justify-center text-slate-600"
-                      onClick={() => {
-                        const id = String(creator.id)
-                        setShortlistedIds((prev) =>
-                          prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-                        )
-                      }}
+                      onClick={() => handleShortlistToggle(String(creator.id))}
                     >
                       <Star className="mr-2 h-4 w-4" />
                       {shortlistedIds.includes(String(creator.id))

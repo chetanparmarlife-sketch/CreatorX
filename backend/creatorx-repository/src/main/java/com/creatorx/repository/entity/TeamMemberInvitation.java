@@ -43,6 +43,9 @@ public class TeamMemberInvitation extends BaseEntity {
     @Column(name = "invited_at", nullable = false, updatable = false)
     private LocalDateTime invitedAt;
 
+    @Column(name = "expires_at", nullable = false)
+    private LocalDateTime expiresAt;
+
     @Column(name = "accepted_at")
     private LocalDateTime acceptedAt;
 
