@@ -1,13 +1,34 @@
 /**
- * Notification Service for React Native
- * Handles FCM push notifications and in-app notifications
+ * NotificationService.ts
+ *
+ * SETUP REQUIRED before push notifications will work:
+ * Run these commands:
+ *   npx expo install @react-native-firebase/messaging
+ *   npx expo install react-native-device-info
+ *
+ * Also required:
+ *   - Add google-services.json to the root (Android) - get from Firebase Console
+ *   - Add GoogleService-Info.plist to the root (iOS) - get from Firebase Console
+ *   - Add firebase config to app.json plugins section
+ *
+ * Why this matters: without push notifications, creators don't know when
+ * their campaign is approved, payment received, or new message arrives.
  */
 
-import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../api/client';
-import DeviceInfo from 'react-native-device-info';
+
+// Safe Firebase import - app works without push notifications if package is not installed.
+let messaging: any = null;
+let DeviceInfo: any = null;
+try {
+  messaging = require('@react-native-firebase/messaging').default;
+  const deviceInfoModule = require('react-native-device-info');
+  DeviceInfo = deviceInfoModule.default ?? deviceInfoModule;
+} catch {
+  console.log('Push notification packages not installed - notifications disabled');
+}
 
 export interface NotificationData {
   type?: string;
@@ -29,11 +50,17 @@ class NotificationService {
    */
   async initialize(): Promise<void> {
     try {
+      if (!messaging || !DeviceInfo) {
+        // Push setup is optional until Firebase packages and config files are installed.
+        return;
+      }
+
       // Get device ID
       this.deviceId = await DeviceInfo.getUniqueId();
       
       // Request notification permission
-      const authStatus = await messaging().requestPermission();
+      const messagingClient = messaging();
+      const authStatus = await messagingClient.requestPermission();
       const enabled =
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
@@ -44,7 +71,7 @@ class NotificationService {
       }
 
       // Get FCM token
-      this.fcmToken = await messaging().getToken();
+      this.fcmToken = await messagingClient.getToken();
       console.log('FCM Token:', this.fcmToken);
 
       // Register token with backend
@@ -56,7 +83,7 @@ class NotificationService {
       this.setupNotificationListeners();
 
       // Handle token refresh
-      messaging().onTokenRefresh(async (token) => {
+      messagingClient.onTokenRefresh(async (token: string) => {
         console.log('FCM token refreshed:', token);
         this.fcmToken = token;
         if (this.deviceId) {
@@ -89,9 +116,16 @@ class NotificationService {
    * Setup notification listeners
    */
   private setupNotificationListeners(): void {
+    if (!messaging) {
+      // Listener setup is skipped safely when Firebase messaging is not installed.
+      return;
+    }
+
+    const messagingClient = messaging();
+
     // Foreground messages - show in-app notification
-    const unsubscribeForeground = messaging().onMessage(
-      async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+    const unsubscribeForeground = messagingClient.onMessage(
+      async (remoteMessage: any) => {
         console.log('Foreground notification received:', remoteMessage);
         
         if (remoteMessage.notification) {
@@ -114,25 +148,25 @@ class NotificationService {
     );
 
     // Background messages - handled by setBackgroundMessageHandler
-    messaging().setBackgroundMessageHandler(
-      async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+    messagingClient.setBackgroundMessageHandler(
+      async (remoteMessage: any) => {
         console.log('Background notification received:', remoteMessage);
         // Background messages are handled automatically by FCM
       }
     );
 
     // Notification opened app (when app was in background/quit)
-    const unsubscribeOpened = messaging().onNotificationOpenedApp(
-      (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+    const unsubscribeOpened = messagingClient.onNotificationOpenedApp(
+      (remoteMessage: any) => {
         console.log('Notification opened app:', remoteMessage);
         this.handleNotificationTap(remoteMessage.data);
       }
     );
 
     // Check if app was opened from a notification (when app was quit)
-    messaging()
+    messagingClient
       .getInitialNotification()
-      .then((remoteMessage: FirebaseMessagingTypes.RemoteMessage | null) => {
+      .then((remoteMessage: any | null) => {
         if (remoteMessage) {
           console.log('App opened from notification:', remoteMessage);
           this.handleNotificationTap(remoteMessage.data);
@@ -164,6 +198,11 @@ class NotificationService {
    */
   async getToken(): Promise<string | null> {
     try {
+      if (!messaging) {
+        // Token lookup is a safe no-op until Firebase messaging is installed.
+        return null;
+      }
+
       if (!this.fcmToken) {
         this.fcmToken = await messaging().getToken();
       }
@@ -185,7 +224,7 @@ class NotificationService {
       }
       
       // Delete token
-      if (this.fcmToken) {
+      if (this.fcmToken && messaging) {
         await messaging().deleteToken();
         this.fcmToken = null;
       }
@@ -205,4 +244,3 @@ class NotificationService {
 
 // Export singleton instance
 export const notificationService = new NotificationService();
-

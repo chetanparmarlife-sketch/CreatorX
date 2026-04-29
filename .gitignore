@@ -39,4 +39,5 @@ admin-dashboard/.env*
 
 # EAS / Expo
 google-services-key.json
+google-services.json
 GoogleService-Info.plist

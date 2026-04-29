@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { colors } from '@/src/theme';
 type PlatformId = 'instagram' | 'youtube' | 'linkedin' | 'facebook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/src/api/client';
 
 const STORAGE_KEYS = {
   CREATOR_PROFILE: '@creator_profile',
@@ -87,7 +88,27 @@ export default function OnboardingFormScreen() {
 
       await AsyncStorage.setItem(STORAGE_KEYS.CREATOR_PROFILE, JSON.stringify(creatorProfile));
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      try {
+        // Save onboarding profile to backend so data persists across devices and reinstalls.
+        // This was previously saving to AsyncStorage only, so data was lost on reinstall.
+        await apiClient.put('/profile', {
+          fullName: creatorProfile.fullName,
+          displayName: creatorProfile.fullName,
+          bio,
+          location: creatorProfile.city,
+          city: creatorProfile.city,
+          phone: creatorProfile.phoneNumber,
+          phoneNumber: creatorProfile.phoneNumber,
+          niche: creatorProfile.category,
+          category: creatorProfile.category,
+          primaryPlatform: creatorProfile.primaryPlatform,
+          socialHandle: creatorProfile.socialHandle,
+          followerCount: creatorProfile.followerCount,
+        });
+      } catch (error) {
+        // Non-fatal: local cache still lets onboarding continue and profile can sync on next edit.
+        console.error('Onboarding profile sync failed:', error);
+      }
 
       router.push('/(auth)/onboarding-social');
     } catch (err) {

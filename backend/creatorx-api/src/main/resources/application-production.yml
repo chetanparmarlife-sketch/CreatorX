@@ -58,6 +58,10 @@ creatorx:
   cors:
     allowed-origins: ${PROD_ALLOWED_ORIGINS}
 
+# Restrict production WebSocket connections to explicit production frontend URLs only.
+websocket:
+  allowed-origins: ${PROD_ALLOWED_ORIGINS}
+
 # Railway sends traffic to this port unless a PORT variable overrides it.
 server:
   port: 8080

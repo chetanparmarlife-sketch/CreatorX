@@ -63,6 +63,12 @@ creatorx:
   cors:
     allowed-origins: ${STAGING_ALLOWED_ORIGINS:*}
 
+# Restrict staging WebSocket connections to known frontend URLs instead of allowing every origin.
+websocket:
+  # Comma-separated list of frontend URLs allowed to connect to WebSocket.
+  # Add your Vercel staging URLs here after first deploy.
+  allowed-origins: ${STAGING_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
+
 # Railway sends traffic to this port unless a PORT variable overrides it.
 server:
   port: 8080

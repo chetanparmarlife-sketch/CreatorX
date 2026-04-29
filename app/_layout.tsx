@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL_READY } from '@/src/config/env';
 import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import { initSentry } from '@/src/config/sentry';
+import { notificationService as NotificationService } from '@/src/services/NotificationService';
 
 const DEFAULT_APP_ROUTE = '/(app)/(tabs)/explore';
 const STORAGE_KEYS = {
@@ -101,6 +102,13 @@ function AuthGuard() {
 
 export default function RootLayout() {
   initSentry();
+
+  useEffect(() => {
+    // Initialise push notifications on app startup; this is a safe no-op if Firebase packages are not installed.
+    NotificationService.initialize().catch((err) =>
+      console.log('Push notification init failed (non-fatal):', err)
+    );
+  }, []);
 
   return (
     <ErrorBoundary>
