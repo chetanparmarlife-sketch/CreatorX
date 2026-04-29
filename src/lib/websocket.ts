@@ -4,8 +4,7 @@
  */
 
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import { STORAGE_KEYS } from '@/src/config/env';
-import { API_BASE_URL } from '@/src/config/env';
+import { STORAGE_KEYS, API_BASE_URL, WS_BASE_URL } from '@/src/config/env';
 import { getSecureItem } from '@/src/lib/secureStore';
 
 let stompClient: Client | null = null;
@@ -37,23 +36,21 @@ export async function connectWebSocket(
       throw new Error('No access token available');
     }
 
-    // Use WS_BASE_URL from environment config (handles localhost properly)
+    // Use configured WebSocket URL so real backend connections do not depend on hardcoded localhost.
     let wsUrl = WS_BASE_URL;
     
-    // Fallback: Convert HTTP URL to WebSocket URL if WS_BASE_URL not set
-    if (!wsUrl || wsUrl === 'ws://localhost:8080/ws') {
+    // Fallback: Convert the configured API URL to WebSocket URL if WS_BASE_URL is not set.
+    if (!wsUrl) {
       let baseUrl = API_BASE_URL.replace('/api/v1', '');
       if (baseUrl.startsWith('http://')) {
         wsUrl = baseUrl.replace('http://', 'ws://') + '/ws';
       } else if (baseUrl.startsWith('https://')) {
         wsUrl = baseUrl.replace('https://', 'wss://') + '/ws';
-      } else {
-        wsUrl = 'ws://localhost:8080/ws'; // Default fallback
       }
     }
 
     stompClient = new Client({
-      brokerURL: `${wsUrl}/ws`,
+      brokerURL: wsUrl,
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
@@ -125,7 +122,7 @@ export function subscribeToMessages(
     return null;
   }
 
-  const destination = `/user/${userId}/queue/messages`;
+  const destination = '/user/queue/messages';
   const subscription = stompClient.subscribe(destination, (message: IMessage) => {
     try {
       const data = JSON.parse(message.body);

@@ -4,6 +4,7 @@
 
 import { apiClient } from '../client';
 import { PaginatedResponse } from '../types';
+import { transformPage } from '@/src/utils/pagination';
 
 export type InvoiceStatus = 'paid' | 'pending' | 'overdue';
 
@@ -100,9 +101,11 @@ export const invoiceService = {
     if (status && status !== 'all') {
       params.append('status', status.toUpperCase());
     }
-    return await apiClient.get<PaginatedResponse<InvoiceDTO>>(
+    const response = await apiClient.get<any>(
       `/invoices?${params.toString()}`
     );
+    // Spring sends { content, totalElements, totalPages }; invoice lists need normalized items.
+    return transformPage<InvoiceDTO>(response);
   },
 
   /**

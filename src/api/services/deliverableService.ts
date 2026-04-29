@@ -9,15 +9,18 @@ import {
   SubmitDeliverableRequest,
   PaginatedResponse,
 } from '../types';
+import { transformPage } from '@/src/utils/pagination';
 
 export const deliverableService = {
   /**
    * Get deliverables for the current creator
    */
   async getDeliverables(page = 0, size = 20): Promise<PaginatedResponse<DeliverableSubmission>> {
-    return await apiClient.get<PaginatedResponse<DeliverableSubmission>>(
+    const response = await apiClient.get<any>(
       `/deliverables?page=${page}&size=${size}`
     );
+    // Spring sends { content, totalElements, totalPages }; deliverable lists need normalized items.
+    return transformPage<DeliverableSubmission>(response);
   },
 
   /**

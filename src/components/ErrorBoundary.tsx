@@ -1,3 +1,4 @@
+// To enable Sentry: run: npx expo install @sentry/react-native
 /**
  * ErrorBoundary - Global error handling component
  * Catches JavaScript errors in child component tree and displays fallback UI
@@ -22,6 +23,10 @@ interface ErrorBoundaryState {
 const PRIMARY = '#135bec';
 const BG_DARK = '#0a0a0a';
 const SURFACE = '#1a1a1a';
+const Sentry = (() => {
+    try { return require('@sentry/react-native'); }
+    catch { return { captureException: () => {}, captureMessage: () => {} }; }
+})();
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     constructor(props: ErrorBoundaryProps) {
@@ -49,7 +54,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         // Call optional error handler
         this.props.onError?.(error, errorInfo);
 
-        // TODO: Send to error reporting service (Sentry, Crashlytics, etc.)
+        // Report crash to Sentry so the team is notified when real users hit errors.
+        Sentry.captureException(error, {
+            contexts: { react: { componentStack: errorInfo.componentStack } },
+        });
     }
 
     handleReset = (): void => {

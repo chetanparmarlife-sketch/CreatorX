@@ -20,6 +20,7 @@ import { colors, spacing, borderRadius, typography } from '@/src/theme';
 import { Avatar, Button } from '@/src/components';
 import { useApp } from '@/src/context';
 import { SocialLink, Address } from '@/src/types';
+import { profileService } from '@/src/api/services/profileService';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -53,36 +54,50 @@ export default function EditProfileScreen() {
     }
 
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    const hasAddress = address.line1 || address.city || address.state || address.postalCode || address.country;
-    
-    updateUser({
-      name: name.trim(),
-      username: username.trim(),
-      email: email.trim(),
-      bio: bio.trim(),
-      categories,
-      socialLinks,
-      preferences,
-      avatarUri,
-      birthDate: birthDate.trim() || undefined,
-      address: hasAddress ? address : undefined,
-    });
-    
-    addNotification({
-      type: 'system',
-      title: 'Profile Updated',
-      description: 'Your profile changes have been saved successfully',
-      time: 'Just now',
-      read: true,
-    });
-    
-    setIsSaving(false);
-    Alert.alert('Success', 'Your profile has been updated!', [
-      { text: 'OK', onPress: () => router.back() }
-    ]);
-  }, [name, username, email, bio, categories, socialLinks, preferences, avatarUri, birthDate, address, updateUser, addNotification, router]);
+    try {
+      const hasAddress = address.line1 || address.city || address.state || address.postalCode || address.country;
+      let savedAvatarUri = avatarUri;
+      if (avatarUri && avatarUri !== user.avatarUri) {
+        // Real avatar upload sends the selected image to the backend instead of leaving it only on this device.
+        const uploaded = await profileService.uploadAvatar({
+          uri: avatarUri,
+          type: 'image/jpeg',
+          name: 'creator_avatar.jpg',
+        });
+        savedAvatarUri = uploaded.avatarUrl;
+      }
+
+      // Profile save now waits for the backend update path instead of pretending a timer saved local data.
+      await updateUser({
+        name: name.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        bio: bio.trim(),
+        categories,
+        socialLinks,
+        preferences,
+        avatarUri: savedAvatarUri,
+        birthDate: birthDate.trim() || undefined,
+        address: hasAddress ? address : undefined,
+      });
+
+      addNotification({
+        type: 'system',
+        title: 'Profile Updated',
+        description: 'Your profile changes have been saved successfully',
+        time: 'Just now',
+        read: true,
+      });
+
+      Alert.alert('Success', 'Your profile has been updated!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [name, username, email, bio, categories, socialLinks, preferences, avatarUri, birthDate, address, user.avatarUri, updateUser, addNotification, router]);
 
   const handleChangePhoto = useCallback(async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();

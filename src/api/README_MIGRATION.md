@@ -10,7 +10,8 @@ npm install axios
 ### 2. Configure Environment
 Create `.env` file:
 ```env
-EXPO_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
+# The mobile app now reads the real backend from EXPO_PUBLIC_API_URL instead of the old mock base URL variable.
+EXPO_PUBLIC_API_URL=YOUR_API_URL_HERE
 EXPO_PUBLIC_ENV=dev
 ```
 
@@ -110,4 +111,3 @@ See `app/(tabs)/explore.migrated.tsx` for a complete example with:
 5. **Phase 5**: Messaging & Notifications
 
 See `MIGRATION_STRATEGY.md` for detailed steps.
-

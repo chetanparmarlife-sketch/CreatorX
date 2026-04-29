@@ -15,6 +15,10 @@ import { API_BASE_URL, WS_BASE_URL } from '@/src/config/env';
 import { APIError, normalizeApiError } from '@/src/api/errors';
 import type { Conversation, Message } from '@/src/api/types';
 
+// sockjs-client is already installed; require keeps React Native TypeScript builds from needing extra type packages.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const SockJS = require('sockjs-client');
+
 export type ThreadEvent = Conversation | { thread: Conversation };
 export type MessageEvent = Message;
 export type ThreadHandler = (event: ThreadEvent) => void;
@@ -89,11 +93,14 @@ class WebSocketService {
       this.notifyError(new APIError(0, 'WebSocket URL is missing', 'CONFIG_MISSING'));
       return;
     }
+    // SockJS expects the HTTP form of the endpoint; this keeps the real /ws backend path while avoiding old mock socket URLs.
+    const sockJsUrl = wsUrl.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:');
 
     this.isConnecting = true;
 
     this.client = new Client({
-      brokerURL: wsUrl,
+      // Real backend chat uses STOMP over /ws with SockJS instead of the previous polling-only/mock path.
+      webSocketFactory: () => new SockJS(sockJsUrl),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
@@ -176,11 +183,12 @@ class WebSocketService {
       return null;
     }
 
-    const destination = '/user/queue/threads';
+    const destination = '/user/queue/messages';
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
-        const payload = JSON.parse(message.body) as ThreadEvent;
-        onThreadEvent(payload);
+        const payload = JSON.parse(message.body) as MessageEvent;
+        // The backend sends message events to /user/queue/messages, so update the chat list from the message conversation.
+        onThreadEvent(payload as unknown as ThreadEvent);
       } catch (error) {
         this.notifyError(error);
       }
@@ -208,6 +216,20 @@ class WebSocketService {
 
     this.subscriptions.set(destination, { destination, subscription });
     return () => this.unsubscribe(destination);
+  }
+
+  sendMessage(conversationId: string, content: string): boolean {
+    if (!this.client || !this.isConnected) {
+      this.notifyError(new APIError(0, 'WebSocket not connected', 'WS_NOT_CONNECTED'));
+      return false;
+    }
+
+    // Real sends publish to /app/chat.send instead of creating a local mock message only.
+    this.client.publish({
+      destination: '/app/chat.send',
+      body: JSON.stringify({ conversationId, content }),
+    });
+    return true;
   }
 
   unsubscribe(destination: string): void {

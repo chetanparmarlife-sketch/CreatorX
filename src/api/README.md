@@ -35,7 +35,7 @@ src/api/
 
 2. **Configure environment:**
    - Copy `.env.example` to `.env`
-   - Set `EXPO_PUBLIC_API_BASE_URL` to your backend URL
+   - Set `EXPO_PUBLIC_API_URL` to your backend URL so the app uses the real backend instead of legacy mock configuration
    - Set `EXPO_PUBLIC_ENV` to `dev`, `staging`, or `prod`
 
 3. **Update AppContext:**
@@ -208,7 +208,7 @@ await deliverableService.submitDeliverable(deliverableId, {
 ## Testing
 
 To test with mock backend:
-1. Set `EXPO_PUBLIC_API_BASE_URL` to your local backend
+1. Set `EXPO_PUBLIC_API_URL` to your local backend so the API client does not fall back to mock data
 2. Ensure backend is running on the specified port
 3. Use dev tools to inspect network requests
 
@@ -219,4 +219,3 @@ To test with mock backend:
 3. Implement background sync for offline changes
 4. Add request cancellation for component unmounts
 5. Implement pagination for large lists
-

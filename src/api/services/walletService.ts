@@ -10,6 +10,7 @@ import {
   AddBankAccountRequest,
   PaginatedResponse,
 } from '../types';
+import { transformPage } from '@/src/utils/pagination';
 
 export type WalletDTO = {
   id: string;
@@ -64,18 +65,22 @@ export const walletService = {
    * Get transaction history
    */
   async getTransactions(page = 0, size = 20): Promise<PaginatedResponse<TransactionDTO>> {
-    return await apiClient.get<PaginatedResponse<TransactionDTO>>(
+    const response = await apiClient.get<any>(
       `/wallet/transactions?page=${page}&size=${size}`
     );
+    // Spring sends { content, totalElements, totalPages }; wallet history needs normalized items.
+    return transformPage<TransactionDTO>(response);
   },
 
   /**
    * Get withdrawals list
    */
   async getWithdrawals(page = 0, size = 20): Promise<PaginatedResponse<WithdrawalDTO>> {
-    return await apiClient.get<PaginatedResponse<WithdrawalDTO>>(
+    const response = await apiClient.get<any>(
       `/wallet/withdrawals?page=${page}&size=${size}`
     );
+    // Spring sends { content, totalElements, totalPages }; withdrawal history needs normalized items.
+    return transformPage<WithdrawalDTO>(response);
   },
 
   /**

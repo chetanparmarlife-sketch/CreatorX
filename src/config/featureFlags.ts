@@ -43,16 +43,16 @@ interface FeatureFlags {
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
-  USE_API_AUTH: false, // Controls auth path: true = API backend, false = Supabase only
+  USE_API_AUTH: true, // Real login now links Supabase users to the backend instead of skipping backend auth.
   USE_API_CAMPAIGNS: true,
   USE_API_APPLICATIONS: true,
   USE_API_DELIVERABLES: true,
   USE_API_WALLET: true,
   USE_API_MESSAGING: true,
   USE_API_MESSAGING_POLLING: true,
-  USE_WS_MESSAGING: false,
+  USE_WS_MESSAGING: true, // Real chat now opens the backend WebSocket instead of relying on polling-only mock behavior.
   USE_POLLING_MESSAGES: true,
-  USE_WS_MESSAGES: false,
+  USE_WS_MESSAGES: true, // Legacy WebSocket flag stays on so older chat hooks also use real backend messages.
   USE_API_NOTIFICATIONS: true,
   USE_API_PROFILE: true,
   USE_API_SOCIAL_CONNECT: true, // Controls social account connect flows

@@ -1,3 +1,4 @@
+// To enable Sentry: run: npx expo install @sentry/react-native
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet, Text } from 'react-native';
@@ -9,6 +10,7 @@ import { useTheme } from '@/src/hooks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL_READY } from '@/src/config/env';
 import { ErrorBoundary } from '@/src/components/ErrorBoundary';
+import { initSentry } from '@/src/config/sentry';
 
 const DEFAULT_APP_ROUTE = '/(app)/(tabs)/explore';
 const STORAGE_KEYS = {
@@ -35,7 +37,7 @@ function DegradedModeBanner() {
   return (
     <View style={styles.degradedBanner}>
       <Text style={styles.degradedText}>
-        Degraded mode: API base URL not set. Configure EXPO_PUBLIC_API_BASE_URL.
+        Degraded mode: API base URL not set. Configure EXPO_PUBLIC_API_URL.
       </Text>
     </View>
   );
@@ -98,6 +100,8 @@ function AuthGuard() {
 }
 
 export default function RootLayout() {
+  initSentry();
+
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>

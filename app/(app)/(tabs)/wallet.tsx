@@ -405,11 +405,11 @@ export default function MoneyScreen() {
         };
         const mappedStatus = statusMap[doc.status] || 'pending';
 
-        if (doc.documentType === 'PAN_CARD' || doc.documentType === 'AADHAAR_CARD') {
+        if (doc.documentType === 'PAN' || doc.documentType === 'AADHAAR') {
           newStatus.identity = mappedStatus;
-        } else if (doc.documentType === 'ADDRESS_PROOF') {
+        } else if (doc.documentType === 'PASSPORT' || doc.documentType === 'DRIVING_LICENSE') {
           newStatus.address = mappedStatus;
-        } else if (doc.documentType === 'BANK_STATEMENT' || doc.documentType === 'CANCELLED_CHEQUE') {
+        } else if (doc.documentType === 'GST') {
           newStatus.bank = mappedStatus;
         }
       });

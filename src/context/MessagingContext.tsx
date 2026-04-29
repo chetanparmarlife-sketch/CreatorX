@@ -40,6 +40,8 @@ export interface MessagingContextType {
     messagesByConversation: Record<string, Message[]>;
     loadingChats: boolean;
     messagingError: string | null;
+    messagingConnectionState: 'offline' | 'reconnecting' | 'connected';
+    messagingUnreadCount: number;
 
     // Actions
     fetchConversations: () => Promise<void>;
@@ -79,6 +81,8 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
     const [messagesByConversation, setMessagesByConversation] = useState<Record<string, Message[]>>({});
     const [loadingChats, setLoadingChats] = useState(false);
     const [messagingError, setMessagingError] = useState<string | null>(null);
+    const [messagingConnectionState, setMessagingConnectionState] = useState<'offline' | 'reconnecting' | 'connected'>('offline');
+    const [messagingUnreadCount, setMessagingUnreadCount] = useState(0);
 
     // Refs for polling
     const conversationsPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -180,11 +184,17 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
                     return;
                 }
 
+                // Chat list now loads real backend conversations instead of mock conversations.
                 const apiConversations = await messagingService.getConversations();
+                // Unread count now comes from the backend focus refresh endpoint instead of summing mock chat rows.
+                const unreadCount = await messagingService.getUnreadCount().catch(() => null);
                 const adaptedChats = apiConversations.map((conv) =>
                     adaptConversationToChatPreview(conv, userId)
                 );
                 runIfMounted(() => {
+                    if (typeof unreadCount === 'number') {
+                        setMessagingUnreadCount(unreadCount);
+                    }
                     setChats((prev) => {
                         const prevById = new Map(prev.map((item) => [item.id, item]));
                         const merged = adaptedChats.map((chat) => {
@@ -233,6 +243,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
                         return;
                     }
 
+                    // Conversation screen now loads real backend messages instead of a mock message array.
                     const response = await messagingService.getMessages(conversationId, page, size);
                     const items = Array.isArray(response) ? response : response.items ?? [];
                     const adapted = items.map((message) => adaptMessage(message, userId));
@@ -288,13 +299,30 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
         async (chatId: string, text: string) => {
             try {
                 if (featureFlags.isEnabled('USE_API_MESSAGING')) {
-                    const apiMessage = await messagingService.sendMessage(chatId, text);
-                    const adapted = adaptMessage(apiMessage, userId);
+                    let adapted: Message | null = null;
+                    if (isWebSocketEnabled() && webSocketService.connected) {
+                        // Real-time send uses STOMP /app/chat.send; REST is only a fallback when the socket is unavailable.
+                        webSocketService.sendMessage(chatId, text);
+                        adapted = {
+                            id: `pending-${Date.now()}`,
+                            text,
+                            sender: 'user',
+                            time: 'Just now',
+                            status: 'sending',
+                            chatId,
+                            conversationId: chatId,
+                            createdAt: new Date().toISOString(),
+                        };
+                    } else {
+                        // REST fallback keeps sending possible when WebSocket is reconnecting or offline.
+                        const apiMessage = await messagingService.sendMessage(chatId, text);
+                        adapted = adaptMessage(apiMessage, userId);
+                    }
 
                     runIfMounted(() => {
                         setMessagesByConversation((prev) => {
                             const existing = prev[chatId] ?? [];
-                            return { ...prev, [chatId]: normalizeMessages([...existing, adapted]) };
+                            return adapted ? { ...prev, [chatId]: normalizeMessages([...existing, adapted]) } : prev;
                         });
                     });
 
@@ -329,7 +357,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
                 throw apiError;
             }
         },
-        [runIfMounted, userId]
+        [runIfMounted, userId, isWebSocketEnabled]
     );
 
     /**
@@ -346,6 +374,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
     const markChatRead = useCallback(
         async (chatId: string) => {
             runIfMounted(() => setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, unread: 0 } : c))));
+            runIfMounted(() => setMessagingUnreadCount((prev) => Math.max(0, prev - (chats.find((c) => c.id === chatId)?.unread ?? 0))));
             try {
                 if (featureFlags.isEnabled('USE_API_MESSAGING')) {
                     await messagingService.markConversationRead(chatId);
@@ -354,7 +383,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
                 console.error('Error marking chat read:', err);
             }
         },
-        [runIfMounted]
+        [chats, runIfMounted]
     );
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -465,6 +494,10 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
                         };
                     })
                 );
+                if (adapted.sender === 'other' && activeConversationRef.current !== adapted.chatId) {
+                    // Incoming backend messages update the unread total used by the chat badge data layer.
+                    setMessagingUnreadCount((prev) => prev + 1);
+                }
             });
         },
         [runIfMounted, userId]
@@ -516,6 +549,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
 
         const start = async () => {
             if (!(await canStartWebSocketMessaging())) {
+                runIfMounted(() => setMessagingConnectionState('offline'));
                 wsFailedRef.current = true;
                 startMessagesPollingInterval();
                 return;
@@ -523,21 +557,34 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
 
             const token = await resolveMessagingToken();
             if (!token) {
+                runIfMounted(() => setMessagingConnectionState('offline'));
                 wsFailedRef.current = true;
                 startMessagesPollingInterval();
                 return;
             }
 
             try {
+                runIfMounted(() => setMessagingConnectionState('reconnecting'));
                 await webSocketService.connect(token);
                 if (webSocketService.connected && !wsThreadsUnsubRef.current) {
-                    wsThreadsUnsubRef.current = webSocketService.subscribeToThreads(handleThreadEvent);
+                    wsThreadsUnsubRef.current = webSocketService.subscribeToThreads((event) => {
+                        // Backend user queue sends message events, so update messages directly when no thread wrapper exists.
+                        if ('conversationId' in (event as any)) {
+                            handleMessageEvent(event as unknown as MessageEvent);
+                            return;
+                        }
+                        handleThreadEvent(event);
+                    });
+                }
+                if (webSocketService.connected) {
+                    runIfMounted(() => setMessagingConnectionState('connected'));
                 }
                 wsFailedRef.current = false;
             } catch (error) {
                 wsFailedRef.current = true;
                 const apiError = normalizeApiError(error);
                 runIfMounted(() => setMessagingError(apiError.message));
+                runIfMounted(() => setMessagingConnectionState('reconnecting'));
                 startMessagesPollingInterval();
             }
         };
@@ -610,6 +657,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
 
             const start = async () => {
                 if (!(await canStartWebSocketMessaging())) {
+                    runIfMounted(() => setMessagingConnectionState('offline'));
                     wsFailedRef.current = true;
                     startConversationPollingInterval(conversationId);
                     return;
@@ -617,21 +665,27 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
 
                 const token = await resolveMessagingToken();
                 if (!token) {
+                    runIfMounted(() => setMessagingConnectionState('offline'));
                     wsFailedRef.current = true;
                     startConversationPollingInterval(conversationId);
                     return;
                 }
 
                 try {
+                    runIfMounted(() => setMessagingConnectionState('reconnecting'));
                     await webSocketService.connect(token);
                     if (webSocketService.connected && !wsMessagesUnsubRef.current) {
                         wsMessagesUnsubRef.current = webSocketService.subscribeToThreadMessages(conversationId, handleMessageEvent);
+                    }
+                    if (webSocketService.connected) {
+                        runIfMounted(() => setMessagingConnectionState('connected'));
                     }
                     wsFailedRef.current = false;
                 } catch (error) {
                     wsFailedRef.current = true;
                     const apiError = normalizeApiError(error);
                     runIfMounted(() => setMessagingError(apiError.message));
+                    runIfMounted(() => setMessagingConnectionState('reconnecting'));
                     startConversationPollingInterval(conversationId);
                 }
             };
@@ -679,6 +733,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
             const apiError = normalizeApiError(error);
             wsFailedRef.current = true;
             runIfMounted(() => setMessagingError(apiError.message));
+            runIfMounted(() => setMessagingConnectionState('reconnecting'));
             if (chatListActiveRef.current) {
                 startMessagesPollingInterval();
             }
@@ -690,6 +745,7 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
         const unsubscribeDisconnect = webSocketService.onDisconnect(() => {
             wsThreadsUnsubRef.current = null;
             wsMessagesUnsubRef.current = null;
+            runIfMounted(() => setMessagingConnectionState('reconnecting'));
             if (chatListActiveRef.current) {
                 startMessagesPollingInterval();
             }
@@ -700,9 +756,17 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
 
         const unsubscribeConnect = webSocketService.onConnect(() => {
             wsFailedRef.current = false;
+            runIfMounted(() => setMessagingConnectionState('connected'));
             stopPollingIntervalsOnly();
             if (chatListActiveRef.current && !wsThreadsUnsubRef.current) {
-                wsThreadsUnsubRef.current = webSocketService.subscribeToThreads(handleThreadEvent);
+                wsThreadsUnsubRef.current = webSocketService.subscribeToThreads((event) => {
+                    // Backend user queue sends message events, so update messages directly when no thread wrapper exists.
+                    if ('conversationId' in (event as any)) {
+                        handleMessageEvent(event as unknown as MessageEvent);
+                        return;
+                    }
+                    handleThreadEvent(event);
+                });
             }
             if (activeConversationRef.current && !wsMessagesUnsubRef.current) {
                 wsMessagesUnsubRef.current = webSocketService.subscribeToThreadMessages(
@@ -726,6 +790,8 @@ export function MessagingProvider({ children, userId = '' }: MessagingProviderPr
         messagesByConversation,
         loadingChats,
         messagingError,
+        messagingConnectionState,
+        messagingUnreadCount,
         fetchConversations,
         loadMessages,
         sendMessage,

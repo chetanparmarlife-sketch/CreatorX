@@ -126,6 +126,8 @@ export function useApp() {
         conversations: messaging.conversations,
         messagesByConversation: messaging.messagesByConversation,
         messagingError: messaging.messagingError,
+        messagingConnectionState: messaging.messagingConnectionState,
+        messagingUnreadCount: messaging.messagingUnreadCount,
         loadingChats: messaging.loadingChats,
         sendMessage: messaging.sendMessage,
         getConversation: messaging.getConversation,

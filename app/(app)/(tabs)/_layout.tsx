@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View, Platform, StyleSheet, Text } from 'react-native';
 import { useTheme } from '@/src/hooks';
+import { useApp } from '@/src/context';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
 const HomeIcon = ({ size = 24, color = '#888', focused = false }: { size?: number; color?: string; focused?: boolean }) => (
@@ -179,6 +180,7 @@ const IconGlow = ({ focused, children }: { focused: boolean; children: React.Rea
 
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
+  const { messagingUnreadCount } = useApp();
 
   const navBarBg = isDark ? '#0a0a0a' : '#ffffff';
   const activeColor = isDark ? '#ffffff' : colors.primary;
@@ -278,7 +280,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          href: null,
+          // Chat tab was hidden (href: null) while messaging was mocked — now real backend is connected
+          tabBarBadge: messagingUnreadCount > 0 ? messagingUnreadCount : undefined,
         }}
       />
       <Tabs.Screen

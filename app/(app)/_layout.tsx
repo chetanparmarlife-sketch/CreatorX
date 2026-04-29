@@ -27,6 +27,7 @@ export default function AppLayout() {
       <Stack.Screen name="refer-earn" />
       <Stack.Screen name="transaction-detail" />
       <Stack.Screen name="withdraw" />
+      <Stack.Screen name="add-bank-account" />
       <Stack.Screen name="event-details" />
     </Stack>
   );

@@ -75,6 +75,7 @@ Add every secret listed in the table below.
 | `VERCEL_BRAND_PROJECT_ID` | Vercel project ID for the brand dashboard | Vercel project settings for the brand dashboard |
 | `VERCEL_ADMIN_PROJECT_ID` | Vercel project ID for the admin dashboard | Vercel project settings for the admin dashboard |
 | `PROD_API_URL` | Public production backend URL | Railway production service public URL |
+| `EXPO_PUBLIC_SENTRY_DSN` | Optional mobile Sentry DSN for creator app crash reporting | Sentry project settings, Client Keys / DSN |
 | `SLACK_WEBHOOK_URL` | Optional Slack webhook for deployment messages | Slack app or incoming webhook settings |
 | `DISCORD_WEBHOOK_URL` | Optional Discord webhook for deployment messages | Discord channel integration settings |
 

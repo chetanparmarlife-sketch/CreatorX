@@ -8,6 +8,7 @@ import { API_BASE_URL, API_BASE_URL_READY, API_TIMEOUT, STORAGE_KEYS } from '@/s
 import { APIError, normalizeApiError } from './errors';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '@/src/lib/secureStore';
 import { getSession } from '@/src/lib/supabase';
+import { AUTH_CONFIG } from '@/src/config/auth';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -39,7 +40,7 @@ class ApiClient {
       async (config: InternalAxiosRequestConfig) => {
         if (!API_BASE_URL_READY) {
           return Promise.reject(
-            normalizeApiError({ code: 'CONFIG_MISSING', message: 'API base URL missing. Configure EXPO_PUBLIC_API_BASE_URL.' })
+            normalizeApiError({ code: 'CONFIG_MISSING', message: 'API base URL missing. Configure EXPO_PUBLIC_API_URL.' })
           );
         }
 
@@ -55,7 +56,7 @@ class ApiClient {
         const baseURL = config.baseURL || API_BASE_URL;
         if (!__DEV__ && baseURL?.startsWith('http://')) {
           throw new Error(
-            'Refusing to use insecure HTTP API base URL. Set EXPO_PUBLIC_API_BASE_URL=https://<host>/api/v1.'
+            'Refusing to use insecure HTTP API base URL. Set EXPO_PUBLIC_API_URL=https://<host>.'
           );
         }
         if (__DEV__ && baseURL?.startsWith('http://') && !baseURL.includes('localhost')) {
@@ -63,13 +64,16 @@ class ApiClient {
         }
 
         try {
-          const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
+          // Real API calls read the Supabase token from the shared auth key instead of the old screen-local mock token.
+          const storedToken = await getSecureItem(STORAGE_KEYS.ACCESS_TOKEN) ?? await AsyncStorage.getItem(AUTH_CONFIG.tokenKey);
           let token = storedToken;
           if (!token) {
             const session = await getSession().catch(() => null);
             token = session?.access_token ?? null;
             if (token) {
               await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+              // Store a plain AsyncStorage copy for existing API helpers that still read the shared auth config.
+              await AsyncStorage.setItem(AUTH_CONFIG.tokenKey, token);
             }
           }
           if (token && config.headers) {
@@ -174,8 +178,12 @@ class ApiClient {
 
             // Store new tokens
             await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+            // Refresh stores the real backend token under the shared auth key instead of leaving stale mock data.
+            await AsyncStorage.setItem(AUTH_CONFIG.tokenKey, accessToken);
             if (newRefreshToken) {
               await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
+              // Refresh token storage now uses the shared auth key so logout can clear it consistently.
+              await AsyncStorage.setItem(AUTH_CONFIG.refreshTokenKey, newRefreshToken);
             }
 
             // Update authorization header
@@ -232,7 +240,8 @@ class ApiClient {
     try {
       await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
       await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
-      await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
+      // Logout clears real Supabase/API tokens instead of leaving old mock auth values behind.
+      await AsyncStorage.multiRemove([STORAGE_KEYS.USER, AUTH_CONFIG.tokenKey, AUTH_CONFIG.refreshTokenKey, AUTH_CONFIG.userKey]);
     } catch (error) {
       console.error('Error clearing auth:', error);
     }

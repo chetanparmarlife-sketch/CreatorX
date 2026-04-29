@@ -7,6 +7,7 @@ import { useTheme } from '@/src/hooks';
 import { useApp } from '@/src/context';
 import { useAuth } from '@/src/context/AuthContext';
 import { walletService } from '@/src/api/services';
+import { kycService } from '@/src/api/services/kycService';
 import { BankAccount } from '@/src/api/types';
 import { spacing, borderRadius } from '@/src/theme';
 import { formatCurrencyAmount } from '@/src/utils/walletFormatting';
@@ -29,6 +30,7 @@ export default function WithdrawScreen() {
   const [bankAccountsLoading, setBankAccountsLoading] = useState(false);
   const [bankAccountsLoaded, setBankAccountsLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [backendKycApproved, setBackendKycApproved] = useState(Boolean(user?.kycVerified));
   const alertShownRef = useRef(false);
 
   // Feature flag check
@@ -49,7 +51,22 @@ export default function WithdrawScreen() {
   );
 
   const hasVerifiedBankAccount = verifiedBankAccounts.length > 0;
-  const isKycApproved = Boolean(user?.kycVerified);
+  const isKycApproved = backendKycApproved;
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const loadKycStatus = async () => {
+      try {
+        // Withdrawal eligibility now reads real backend KYC status instead of trusting cached profile-only data.
+        const status = await kycService.getKYCStatus();
+        setBackendKycApproved(Boolean(status.isVerified));
+      } catch (error) {
+        // If the KYC endpoint is offline, keep the cached profile status as the fallback.
+        setBackendKycApproved(Boolean(user?.kycVerified));
+      }
+    };
+    loadKycStatus();
+  }, [isAuthenticated, user?.kycVerified]);
 
   // Validation
   const amountNum = parseFloat(amount) || 0;
@@ -64,6 +81,7 @@ export default function WithdrawScreen() {
     const loadBankAccounts = async () => {
       setBankAccountsLoading(true);
       try {
+        // Bank accounts now load from the real backend instead of a hardcoded withdrawal option.
         const accounts = await walletService.getBankAccounts();
         if (isMounted) {
           setBankAccounts(accounts);
@@ -130,6 +148,7 @@ export default function WithdrawScreen() {
 
     setIsSubmitting(true);
     try {
+      // Initiate withdrawal through the backend; this replaces the previously disabled/fake withdrawal path.
       await walletService.withdrawFunds({
         amount: amountNum,
         bankAccountId: selectedBankAccountId,

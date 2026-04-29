@@ -7,7 +7,8 @@
 
 import { rest } from 'msw';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+// Tests read the API host from EXPO_PUBLIC_API_URL so no hardcoded local backend URL remains in app code.
+const API_BASE_URL = `${process.env.EXPO_PUBLIC_API_URL ?? ''}/api/v1`;
 
 // ==================== Mock Data ====================
 

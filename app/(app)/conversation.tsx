@@ -57,6 +57,7 @@ export default function ConversationScreen() {
     startConversationPolling,
     stopConversationPolling,
     messagingError,
+    messagingConnectionState,
   } = useApp();
   const { isAuthenticated } = useAuth();
   
@@ -201,14 +202,18 @@ export default function ConversationScreen() {
       <View style={styles.campaignBanner}>
         <Text style={styles.campaignBannerText}>Campaign Active</Text>
       </View>
-      {(!API_BASE_URL_READY || !isAuthenticated || messagingError) ? (
+      {(!API_BASE_URL_READY || !isAuthenticated || messagingError || messagingConnectionState === 'offline' || messagingConnectionState === 'reconnecting') ? (
         <View style={styles.noticeBanner}>
           <Text style={styles.noticeText}>
             {!API_BASE_URL_READY
               ? 'Messaging unavailable in degraded mode.'
               : !isAuthenticated
                 ? 'Login required to view messages.'
-                : messagingError}
+                : messagingConnectionState === 'offline'
+                  ? "You're offline — messages will send when reconnected"
+                  : messagingConnectionState === 'reconnecting'
+                    ? 'Reconnecting...'
+                    : messagingError}
           </Text>
         </View>
       ) : null}

@@ -4,23 +4,27 @@
 
 import { apiClient } from '../client';
 import { Conversation, Message, PaginatedResponse } from '../types';
+import { transformPage } from '@/src/utils/pagination';
 
 export const messagingService = {
   /**
    * Get conversations for the current user
    */
   async getConversations(): Promise<Conversation[]> {
-    const response = await apiClient.get<{ conversations?: Conversation[] }>('/conversations');
-    return response.conversations ?? [];
+    const response = await apiClient.get<any>('/conversations');
+    // Backend may send { conversations } or a Spring page; normalize before chat list rendering.
+    return response.conversations ?? transformPage<Conversation>(response).items;
   },
 
   /**
    * Get messages for a conversation
    */
   async getMessages(conversationId: string, page = 0, size = 50): Promise<PaginatedResponse<Message>> {
-    return await apiClient.get<PaginatedResponse<Message>>(
+    const response = await apiClient.get<any>(
       `/conversations/${conversationId}/messages?page=${page}&size=${size}`
     );
+    // Spring sends { content, totalElements, totalPages }; conversation screens need app-format messages.
+    return transformPage<Message>(response);
   },
 
   /**
@@ -45,8 +49,8 @@ export const messagingService = {
    * Get unread message count
    */
   async getUnreadCount(): Promise<number> {
-    const response = await apiClient.get<{ conversations?: Conversation[] }>('/conversations');
-    const conversations = response.conversations ?? [];
-    return conversations.reduce((sum, convo) => sum + ((convo as any).unreadCount ?? 0), 0);
+    const response = await apiClient.get<number>('/conversations/unread-count');
+    // The backend now exposes a real unread-count endpoint instead of deriving count from mock conversations.
+    return response;
   },
 };

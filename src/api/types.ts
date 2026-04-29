@@ -36,6 +36,10 @@ export interface PaginatedResponse<T> {
   page: number;
   size: number;
   total: number;
+  pages?: number;
+  currentPage?: number;
+  totalPages?: number;
+  hasMore?: boolean;
 }
 
 // Alias for Page (matches backend Page response)
@@ -336,6 +340,7 @@ export interface AddBankAccountRequest {
   accountHolderName: string;
   accountNumber: string;
   ifscCode: string;
+  accountType?: 'SAVINGS' | 'CURRENT';
   upiId?: string;
   bankName?: string;
   branchName?: string;
@@ -351,17 +356,26 @@ export interface KYCDocument {
   userId: string;
   documentType: DocumentType;
   documentUrl: string;
+  fileUrl?: string;
   status: DocumentStatus;
   verifiedBy?: string;
   verifiedAt?: string;
   rejectionReason?: string;
+  submittedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface SubmitKYCRequest {
   documentType: DocumentType;
+  // Real KYC submission sends the front image to the backend instead of storing only a local mock file URI.
   file: {
+    uri: string;
+    type: string;
+    name: string;
+  };
+  // Back image is optional because some real document types only require one side.
+  backFile?: {
     uri: string;
     type: string;
     name: string;

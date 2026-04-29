@@ -5,6 +5,7 @@
 
 import { apiClient } from '../client';
 import { Campaign, Page } from '../types';
+import { transformPage } from '@/src/utils/pagination';
 
 export interface CampaignFilters {
   category?: string;
@@ -40,7 +41,9 @@ export const campaignService = {
       }
     });
 
-    return await apiClient.get<Page<Campaign>>('/campaigns', { params });
+    const response = await apiClient.get<any>('/campaigns', { params });
+    // Spring sends { content, totalElements, totalPages }; campaign lists need normalized items.
+    return transformPage<Campaign>(response);
   },
 
   /**
@@ -64,9 +67,11 @@ export const campaignService = {
     page: number = 0,
     size: number = 20
   ): Promise<Page<Campaign>> {
-    return await apiClient.get<Page<Campaign>>('/campaigns', {
+    const response = await apiClient.get<any>('/campaigns', {
       params: { search: query, page, size },
     });
+    // Spring sends { content, totalElements, totalPages }; search lists need normalized items.
+    return transformPage<Campaign>(response);
   },
 
   /**

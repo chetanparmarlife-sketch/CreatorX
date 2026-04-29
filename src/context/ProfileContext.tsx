@@ -86,6 +86,21 @@ const defaultUser: UserProfile = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+const CACHED_PROFILE_KEY = 'cached_profile';
+
+const mapApiProfileToUser = (apiProfile: any, fallback: UserProfile): UserProfile => ({
+    ...fallback,
+    id: apiProfile?.id ?? apiProfile?.userId ?? fallback.id,
+    name: apiProfile?.displayName ?? apiProfile?.fullName ?? apiProfile?.name ?? fallback.name,
+    username: apiProfile?.username ?? fallback.username,
+    email: apiProfile?.email ?? fallback.email,
+    bio: apiProfile?.bio ?? fallback.bio,
+    avatarUri: apiProfile?.avatarUrl ?? apiProfile?.avatarUri ?? fallback.avatarUri,
+    categories: apiProfile?.niche ? [apiProfile.niche] : apiProfile?.categories ?? fallback.categories,
+    birthDate: apiProfile?.dateOfBirth ?? fallback.birthDate,
+    kycVerified: apiProfile?.kycVerified ?? apiProfile?.isVerified ?? fallback.kycVerified,
+    address: apiProfile?.location ? { ...(fallback.address ?? { line1: '', line2: '', city: '', state: '', postalCode: '', country: '' }), city: apiProfile.location } : fallback.address,
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider
@@ -124,8 +139,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                     runIfMounted(() => setDarkMode(safeParseJSON<boolean>(darkRaw, true)));
                 }
 
-                // Load user profile
-                const userRaw = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+                // Load cached profile first so the UI has offline data before the real backend profile returns.
+                const userRaw = await AsyncStorage.getItem(CACHED_PROFILE_KEY) ?? await AsyncStorage.getItem(STORAGE_KEYS.USER);
                 if (userRaw) {
                     runIfMounted(() => setUser(safeParseJSON<UserProfile>(userRaw, defaultUser)));
                 }
@@ -144,6 +159,34 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         loadCachedData();
     }, [runIfMounted]);
 
+    useEffect(() => {
+        const loadBackendProfile = async () => {
+            if (!featureFlags.isEnabled('USE_API_PROFILE')) return;
+            const token = await resolveAuthToken();
+            if (!token) return;
+
+            try {
+                // Load profile from backend on mount; this replaces the old AsyncStorage-only startup data.
+                const response = await profileService.getProfile();
+                const mapped = mapApiProfileToUser(response, user);
+                runIfMounted(() => setUser(mapped));
+                // Cache the real backend profile locally only as an offline fallback.
+                await AsyncStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(mapped));
+                await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(mapped));
+            } catch (err) {
+                // Offline fallback: if the backend is unreachable, use the last cached real profile.
+                const cached = await AsyncStorage.getItem(CACHED_PROFILE_KEY);
+                if (cached) {
+                    runIfMounted(() => setUser(safeParseJSON<UserProfile>(cached, defaultUser)));
+                    return;
+                }
+                console.error('[ProfileContext] Error loading backend profile:', err);
+            }
+        };
+
+        loadBackendProfile();
+    }, [resolveAuthToken, runIfMounted]);
+
     /**
      * Update user profile
      */
@@ -151,20 +194,33 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         async (updates: Partial<UserProfile>) => {
             const updated = { ...user, ...updates };
             setUser(updated);
+            // The local write is now only an optimistic/offline cache, not the source of truth.
+            await AsyncStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(updated));
             await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
 
             try {
                 if (featureFlags.isEnabled('USE_API_PROFILE')) {
-                    await profileService.updateProfile({
+                    // Save profile to backend; this replaces the old AsyncStorage-only profile save.
+                    const response = await profileService.updateProfile({
                         fullName: updates.name,
                         bio: updates.bio,
+                        location: updates.address?.city,
+                        dateOfBirth: updates.birthDate,
+                        email: updates.email,
                     });
+                    const mapped = mapApiProfileToUser(response, updated);
+                    runIfMounted(() => setUser(mapped));
+                    // Cache the backend response locally so offline profile loads still work.
+                    await AsyncStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(mapped));
+                    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(mapped));
                 }
             } catch (err) {
                 console.error('Error updating profile:', err);
+                // Failed backend saves must surface to the screen instead of silently keeping the old local-only mock success path.
+                throw normalizeApiError(err);
             }
         },
-        [user]
+        [runIfMounted, user]
     );
 
     /**

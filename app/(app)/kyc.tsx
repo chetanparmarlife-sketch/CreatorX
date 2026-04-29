@@ -2,6 +2,7 @@ import { useState, useCallback, memo, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -68,6 +69,7 @@ const DOCUMENT_CONFIG: Omit<LocalDocument, 'status' | 'backendId'>[] = [
     description: 'For business accounts',
   },
 ];
+const MAX_KYC_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
 // ==================== Document Card Component ====================
 
@@ -226,6 +228,7 @@ export default function KYCScreen() {
     docType: DocumentType;
     docId: string;
     imageResult: ImagePicker.ImagePickerAsset;
+    backImageResult?: ImagePicker.ImagePickerAsset;
   } | null>(null);
   const [documentNumber, setDocumentNumber] = useState('');
 
@@ -251,8 +254,8 @@ export default function KYCScreen() {
           return {
             ...config,
             status: backendDoc.status,
-            uploadedAt: backendDoc.createdAt
-              ? new Date(backendDoc.createdAt).toLocaleDateString('en-US', {
+            uploadedAt: (backendDoc.submittedAt ?? backendDoc.createdAt)
+              ? new Date(backendDoc.submittedAt ?? backendDoc.createdAt ?? '').toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
@@ -305,6 +308,12 @@ export default function KYCScreen() {
   // ==================== Handle Upload ====================
 
   const handleUpload = useCallback(async (doc: LocalDocument) => {
+    if (doc.status === 'PENDING' || doc.status === 'APPROVED') {
+      // Pending/approved documents already exist on the backend, so the old resubmit-anytime mock path is blocked.
+      Alert.alert('Already Submitted', 'This document is already submitted or approved.');
+      return;
+    }
+
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
@@ -319,19 +328,45 @@ export default function KYCScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      // For AADHAAR and PAN, ask for document number
-      if (doc.type === 'AADHAAR' || doc.type === 'PAN') {
-        setPendingUpload({
-          docType: doc.type,
-          docId: doc.id,
-          imageResult: result.assets[0],
-        });
-        setDocumentNumber('');
-        setShowDocNumberModal(true);
-      } else {
-        // Direct upload for other documents
-        await submitDocument(doc.id, doc.type, result.assets[0]);
+      if (result.assets[0].fileSize && result.assets[0].fileSize > MAX_KYC_IMAGE_SIZE_BYTES) {
+        // Real backend uploads reject oversized files; show the creator the required 5MB limit before upload.
+        Alert.alert('Image too large', 'Image must be under 5MB');
+        return;
       }
+
+      // Front image opens the existing submit modal so creators can optionally add a backend backImage too.
+      setPendingUpload({
+        docType: doc.type,
+        docId: doc.id,
+        imageResult: result.assets[0],
+      });
+      setDocumentNumber('');
+      setShowDocNumberModal(true);
+    }
+  }, []);
+
+  const handleBackImagePick = useCallback(async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photos to upload documents.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      if (result.assets[0].fileSize && result.assets[0].fileSize > MAX_KYC_IMAGE_SIZE_BYTES) {
+        // Real backend uploads reject oversized back images too, so the same 5MB limit applies here.
+        Alert.alert('Image too large', 'Image must be under 5MB');
+        return;
+      }
+
+      setPendingUpload((prev) => prev ? { ...prev, backImageResult: result.assets[0] } : prev);
     }
   }, []);
 
@@ -341,12 +376,14 @@ export default function KYCScreen() {
     docId: string,
     docType: DocumentType,
     imageAsset: ImagePicker.ImagePickerAsset,
-    docNumber?: string
+    docNumber?: string,
+    backImageAsset?: ImagePicker.ImagePickerAsset
   ) => {
     setUploadingDocId(docId);
     setShowDocNumberModal(false);
 
     try {
+      // Submit KYC documents to backend instead of showing a fake local success state.
       const response = await kycService.submitKYC({
         documentType: docType,
         documentNumber: docNumber,
@@ -355,6 +392,13 @@ export default function KYCScreen() {
           type: imageAsset.mimeType || 'image/jpeg',
           name: imageAsset.fileName || `kyc_${docType}_${Date.now()}.jpg`,
         },
+        backFile: backImageAsset
+          ? {
+            uri: backImageAsset.uri,
+            type: backImageAsset.mimeType || 'image/jpeg',
+            name: backImageAsset.fileName || `kyc_${docType}_back_${Date.now()}.jpg`,
+          }
+          : undefined,
       });
 
       // Update local state
@@ -388,6 +432,8 @@ export default function KYCScreen() {
         'Document Uploaded',
         `Your ${getDocTitle(docType)} has been submitted for verification. This typically takes 24-48 hours.`
       );
+      // Refresh the real backend status so the confirmation state reflects PENDING from the server.
+      await loadKYCStatus();
     } catch (err: any) {
       console.error('[KYC] Upload failed:', err);
 
@@ -395,9 +441,9 @@ export default function KYCScreen() {
       if (err.status === 400) {
         errorMessage = err.message || 'Invalid document format or details.';
       } else if (err.status === 413) {
-        errorMessage = 'File size too large. Please use a smaller image.';
+        errorMessage = 'Image must be under 5MB';
       } else if (err.code === 'NETWORK_ERROR') {
-        errorMessage = 'Network error. Please check your connection.';
+        errorMessage = 'Network error. Please check your connection and retry.';
       }
 
       Alert.alert('Upload Failed', errorMessage);
@@ -417,7 +463,7 @@ export default function KYCScreen() {
   const handleDocNumberSubmit = () => {
     if (!pendingUpload) return;
 
-    const { docType, docId, imageResult } = pendingUpload;
+    const { docType, docId, imageResult, backImageResult } = pendingUpload;
 
     // Validate document number format
     if (docType === 'AADHAAR' && !/^\d{12}$/.test(documentNumber.replace(/\s/g, ''))) {
@@ -430,7 +476,7 @@ export default function KYCScreen() {
       return;
     }
 
-    submitDocument(docId, docType, imageResult, documentNumber);
+    submitDocument(docId, docType, imageResult, documentNumber, backImageResult);
   };
 
   // ==================== Handle View ====================
@@ -441,11 +487,12 @@ export default function KYCScreen() {
       `Status: ${doc.status === 'APPROVED' ? 'Verified' : doc.status}\nUploaded: ${doc.uploadedAt}\n\nThis document is on file.`,
       [
         { text: 'Close', style: 'cancel' },
-        {
+        doc.status === 'REJECTED' ? {
           text: 'Re-upload',
           onPress: () => handleUpload(doc),
-        },
+        } : undefined,
       ]
+        .filter(Boolean) as any
     );
   }, [handleUpload]);
 
@@ -627,23 +674,44 @@ export default function KYCScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              Enter {pendingUpload?.docType === 'AADHAAR' ? 'Aadhaar' : 'PAN'} Number
+              Upload {pendingUpload ? getDocTitle(pendingUpload.docType) : 'Document'}
             </Text>
             <Text style={styles.modalSubtitle}>
-              {pendingUpload?.docType === 'AADHAAR'
-                ? 'Enter your 12-digit Aadhaar number'
-                : 'Enter your 10-character PAN number'}
+              Add the front image and optionally add the back image before submitting to the backend.
             </Text>
-            <TextInput
-              style={styles.modalInput}
-              value={documentNumber}
-              onChangeText={setDocumentNumber}
-              placeholder={pendingUpload?.docType === 'AADHAAR' ? '1234 5678 9012' : 'ABCDE1234F'}
-              placeholderTextColor={colors.textMuted}
-              keyboardType={pendingUpload?.docType === 'AADHAAR' ? 'numeric' : 'default'}
-              autoCapitalize="characters"
-              maxLength={pendingUpload?.docType === 'AADHAAR' ? 14 : 10}
-            />
+
+            {pendingUpload && (
+              <View style={styles.documentPreviewRow}>
+                <View style={styles.documentPreviewBlock}>
+                  <Text style={styles.previewLabel}>Front of document</Text>
+                  <Image source={{ uri: pendingUpload.imageResult.uri }} style={styles.documentPreviewImage} />
+                </View>
+                <TouchableOpacity style={styles.documentPreviewBlock} onPress={handleBackImagePick}>
+                  <Text style={styles.previewLabel}>Back of document (optional)</Text>
+                  {pendingUpload.backImageResult ? (
+                    <Image source={{ uri: pendingUpload.backImageResult.uri }} style={styles.documentPreviewImage} />
+                  ) : (
+                    <View style={styles.backImagePlaceholder}>
+                      <Feather name="plus" size={20} color={colors.textSecondary} />
+                      <Text style={styles.backImagePlaceholderText}>Add back</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {(pendingUpload?.docType === 'AADHAAR' || pendingUpload?.docType === 'PAN') && (
+              <TextInput
+                style={styles.modalInput}
+                value={documentNumber}
+                onChangeText={setDocumentNumber}
+                placeholder={pendingUpload?.docType === 'AADHAAR' ? '1234 5678 9012' : 'ABCDE1234F'}
+                placeholderTextColor={colors.textMuted}
+                keyboardType={pendingUpload?.docType === 'AADHAAR' ? 'numeric' : 'default'}
+                autoCapitalize="characters"
+                maxLength={pendingUpload?.docType === 'AADHAAR' ? 14 : 10}
+              />
+            )}
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.modalCancelButton}
@@ -979,6 +1047,43 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     marginBottom: spacing.lg,
+  },
+  documentPreviewRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  documentPreviewBlock: {
+    flex: 1,
+  },
+  previewLabel: {
+    ...typography.smallMedium,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  documentPreviewImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  backImagePlaceholder: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backImagePlaceholderText: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   modalButtons: {
     flexDirection: 'row',

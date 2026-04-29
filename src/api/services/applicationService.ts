@@ -5,6 +5,7 @@
 
 import { apiClient } from '../client';
 import { Application, Page } from '../types';
+import { transformPage } from '@/src/utils/pagination';
 
 export interface ApplicationRequest {
   campaignId: string;
@@ -34,9 +35,11 @@ export const applicationService = {
     page: number = 0,
     size: number = 20
   ): Promise<Page<Application>> {
-    return await apiClient.get<Page<Application>>('/applications', {
+    const response = await apiClient.get<any>('/applications', {
       params: { page, size },
     });
+    // Spring sends { content, totalElements, totalPages }; application lists need normalized items.
+    return transformPage<Application>(response);
   },
 
   /**

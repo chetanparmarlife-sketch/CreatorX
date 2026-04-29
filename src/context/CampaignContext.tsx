@@ -22,6 +22,7 @@ import { API_BASE_URL_READY } from '@/src/config/env';
 import { getSecureItem } from '@/src/lib/secureStore';
 import { getSession } from '@/src/lib/supabase';
 import { cacheUtils } from '@/src/api/utils/cache';
+import { transformPage } from '@/src/utils/pagination';
 import {
     useRunIfMounted,
     STORAGE_KEYS,
@@ -197,8 +198,19 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
                 if (featureFlags.isEnabled('USE_API_CAMPAIGNS')) {
                     const page = reset ? 0 : campaignsPage;
                     const result = await campaignService.getCampaigns(filters, page, 20);
+                    const normalizedResult = transformPage(result as any);
 
-                    const adapted = adaptCampaignsResponse(result);
+                    if (!normalizedResult || !Array.isArray(normalizedResult.items)) {
+                        // Removed mock data fallback — real errors should surface, not be hidden behind fake campaigns.
+                        console.error('CampaignContext: unexpected API response format', result);
+                        runIfMounted(() => {
+                            setCampaigns([]);
+                            setCampaignError('Could not load campaigns. Please try again.');
+                        });
+                        return;
+                    }
+
+                    const adapted = adaptCampaignsResponse(normalizedResult);
                     const adaptedCampaigns = adapted.campaigns.map((c) => ({
                         ...c,
                         userState: savedCampaigns.includes(c.id) ? 'SAVED' : c.userState,
@@ -224,10 +236,6 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
                     // Cache campaigns
                     await cacheUtils.set('campaigns', adaptedCampaigns);
                     await AsyncStorage.setItem(STORAGE_KEYS.CAMPAIGNS, JSON.stringify(adaptedCampaigns));
-                } else {
-                    // Use mock data (fallback)
-                    const mockCampaigns: Campaign[] = [];
-                    runIfMounted(() => setCampaigns(mockCampaigns));
                 }
             } catch (err) {
                 const apiError = handleAPIError(err);

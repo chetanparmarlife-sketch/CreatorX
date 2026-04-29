@@ -13,6 +13,7 @@ import { authService } from '@/src/api/services';
 import { deleteSecureItem, setSecureItem } from '@/src/lib/secureStore';
 import { useApp } from '@/src/context';
 import { featureFlags } from '@/src/config/featureFlags';
+import { AUTH_CONFIG } from '@/src/config/auth';
 
 interface AuthContextType {
   // State
@@ -65,7 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBackendUserId(null); // Clear backend user ID
       await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
       await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
-      await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
+      // Real logout clears Supabase/API auth data instead of preserving the old mock user payload.
+      await AsyncStorage.multiRemove([STORAGE_KEYS.USER, AUTH_CONFIG.tokenKey, AUTH_CONFIG.refreshTokenKey, AUTH_CONFIG.userKey]);
       await resetAppState();
     } catch (error) {
       console.error('Error signing out:', error);
@@ -150,9 +152,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Store tokens
           if (session?.access_token) {
             await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, session.access_token);
+            // Auth state changes now persist the real Supabase access token for API interceptors.
+            await AsyncStorage.setItem(AUTH_CONFIG.tokenKey, session.access_token);
           }
           if (session?.refresh_token) {
             await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, session.refresh_token);
+            // Auth state changes now persist the real Supabase refresh token instead of a mock refresh value.
+            await AsyncStorage.setItem(AUTH_CONFIG.refreshTokenKey, session.refresh_token);
           }
 
           // Link user to Spring Boot backend if needed
@@ -166,7 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
           await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
-          await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
+          // Supabase sign-out clears every real auth key so no stale mock token can authorize requests.
+          await AsyncStorage.multiRemove([STORAGE_KEYS.USER, AUTH_CONFIG.tokenKey, AUTH_CONFIG.refreshTokenKey, AUTH_CONFIG.userKey]);
           await resetAppState();
         }
 
@@ -221,7 +228,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         linkedAt: new Date().toISOString(),
       };
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+      // Backend link stores real user data under both legacy and shared auth keys for existing screens.
+      await AsyncStorage.multiSet([[STORAGE_KEYS.USER, JSON.stringify(userData)], [AUTH_CONFIG.userKey, JSON.stringify(userData)]]);
       setBackendUserId(response.user.id);
 
       console.log('Successfully linked to backend. User ID:', response.user.id);
@@ -264,9 +272,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setUser(data.user);
 
-      // Store tokens
+      // Real Supabase login replaces the old fake login token and stores the session token for API calls.
       await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
       await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token);
+      await AsyncStorage.setItem(AUTH_CONFIG.tokenKey, data.session.access_token);
+      await AsyncStorage.setItem(AUTH_CONFIG.refreshTokenKey, data.session.refresh_token);
 
       // Link to backend
       if (data.user) {
@@ -290,7 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = getSupabaseClient();
 
-      // Register in Supabase
+      // Real Supabase signup replaces the old device-only mock account creation.
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -316,8 +326,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session) {
         setSession(data.session);
         setUser(data.user);
+        // Real signup stores Supabase session tokens for backend API calls instead of mock credentials.
         await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
         await setSecureItem(STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token);
+        await AsyncStorage.setItem(AUTH_CONFIG.tokenKey, data.session.access_token);
+        await AsyncStorage.setItem(AUTH_CONFIG.refreshTokenKey, data.session.refresh_token);
       }
     } catch (error) {
       const authError = error as AuthError;
@@ -362,7 +375,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
+        // Refresh writes the real Supabase access token back to shared storage for API calls.
         await setSecureItem(STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token);
+        await AsyncStorage.setItem(AUTH_CONFIG.tokenKey, data.session.access_token);
       }
     } catch (error) {
       console.error('Error refreshing session:', error);
@@ -371,23 +386,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const devLogin = useCallback(() => {
-    const mockUser = {
-      id: 'dev-user-123',
-      email: 'dev@creatorx.app',
-      email_confirmed_at: new Date().toISOString(),
-      user_metadata: { name: 'Dev User', role: 'CREATOR' },
-      app_metadata: { role: 'CREATOR' },
-    } as unknown as SupabaseUser;
-
-    const mockSession = {
-      access_token: 'dev-token',
-      refresh_token: 'dev-refresh',
-      user: mockUser,
-    } as unknown as Session;
-
-    setUser(mockUser);
-    setSession(mockSession);
-    console.log('Dev login activated');
+    // Dev preview no longer creates a fake session; real creators must authenticate with Supabase.
+    Alert.alert('Login required', 'Please sign in with Supabase to use the creator app.');
   }, []);
 
   const value: AuthContextType = {

@@ -34,6 +34,7 @@ export default function MessagesScreen() {
     startMessagesPolling,
     stopMessagesPolling,
     messagingError,
+    messagingConnectionState,
   } = useApp();
   const { isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,8 +123,14 @@ export default function MessagesScreen() {
     if (!isAuthenticated) {
       return 'Login required to view messages.';
     }
+    if (messagingConnectionState === 'offline') {
+      return "You're offline — messages will send when reconnected";
+    }
+    if (messagingConnectionState === 'reconnecting') {
+      return 'Reconnecting...';
+    }
     return messagingError;
-  }, [isAuthenticated, messagingError]);
+  }, [isAuthenticated, messagingConnectionState, messagingError]);
 
   const ListHeader = useMemo(() => (
     <>

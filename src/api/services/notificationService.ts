@@ -4,15 +4,18 @@
 
 import { apiClient } from '../client';
 import { Notification, UnreadCountResponse, PaginatedResponse } from '../types';
+import { transformPage } from '@/src/utils/pagination';
 
 export const notificationService = {
   /**
    * Get notifications
    */
   async getNotifications(page = 0, size = 20): Promise<PaginatedResponse<Notification>> {
-    return await apiClient.get<PaginatedResponse<Notification>>(
+    const response = await apiClient.get<any>(
       `/notifications?page=${page}&size=${size}`
     );
+    // Spring sends { content, totalElements, totalPages }; the app list reads { items, total, pages }.
+    return transformPage<Notification>(response);
   },
 
   /**

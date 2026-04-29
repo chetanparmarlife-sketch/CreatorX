@@ -17,6 +17,7 @@ export const profileService = {
    * Get user profile
    */
   async getProfile(): Promise<UserProfile> {
+    // Backend exposes /profile for creator profiles; /creators/profile is not available in this Spring Boot app.
     return await apiClient.get<UserProfile>('/profile');
   },
 
@@ -24,6 +25,7 @@ export const profileService = {
    * Update user profile
    */
   async updateProfile(data: UpdateProfileRequest): Promise<UserProfile> {
+    // Backend profile save replaces AsyncStorage-only edits with a real PUT to the authenticated user profile.
     return await apiClient.put<UserProfile>('/profile', data);
   },
 
@@ -38,6 +40,7 @@ export const profileService = {
       name: file.name,
     } as any);
 
+    // Avatar upload now goes through the backend so Supabase Storage receives the real creator image.
     return await apiClient.postFormData<{ avatarUrl: string }>('/profile/avatar', formData);
   },
 
@@ -67,4 +70,3 @@ export const profileService = {
     return await apiClient.postFormData<PortfolioItem>('/profile/portfolio', formData);
   },
 };
-
