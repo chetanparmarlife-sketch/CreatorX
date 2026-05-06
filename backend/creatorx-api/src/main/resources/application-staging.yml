@@ -71,7 +71,7 @@ websocket:
 
 # Railway sends traffic to this port unless a PORT variable overrides it.
 server:
-  port: 8080
+  port: ${PORT:${SERVER_PORT:8080}}
 
 # Show detailed CreatorX logs in staging so bugs are easier to diagnose.
 logging:

@@ -5,7 +5,7 @@
   },
   "deploy": {
     "startCommand": "java -jar -Dspring.profiles.active=staging backend/creatorx-api/build/libs/creatorx-api-1.0.0.jar",
-    "healthcheckPath": "/actuator/health",
+    "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }

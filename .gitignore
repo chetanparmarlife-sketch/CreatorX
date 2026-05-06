@@ -34,6 +34,9 @@ admin-dashboard/.env*
 # Railway
 .railway/
 
+# Supabase CLI local metadata
+supabase/.temp/
+
 # Vercel
 .vercel/
 
