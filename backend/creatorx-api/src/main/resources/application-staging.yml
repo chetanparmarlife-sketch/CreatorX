@@ -69,10 +69,6 @@ websocket:
   # Add your Vercel staging URLs here after first deploy.
   allowed-origins: ${STAGING_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
 
-# Railway sends traffic to this port unless a PORT variable overrides it.
-server:
-  port: ${PORT:${SERVER_PORT:8080}}
-
 # Show detailed CreatorX logs in staging so bugs are easier to diagnose.
 logging:
   level:
