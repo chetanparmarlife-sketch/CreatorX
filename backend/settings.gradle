@@ -1,3 +1,10 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
 rootProject.name = 'creatorx-backend'
 
 include 'creatorx-api'
@@ -9,7 +16,5 @@ project(':creatorx-api').projectDir = file('creatorx-api')
 project(':creatorx-service').projectDir = file('creatorx-service')
 project(':creatorx-repository').projectDir = file('creatorx-repository')
 project(':creatorx-common').projectDir = file('creatorx-common')
-
-
 
 
