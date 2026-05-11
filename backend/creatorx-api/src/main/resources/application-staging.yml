@@ -42,8 +42,8 @@ jwt:
 
 # Use Razorpay test keys only in staging.
 razorpay:
-  key-id: ${STAGING_RAZORPAY_KEY_ID}
-  key-secret: ${STAGING_RAZORPAY_SECRET}
+  key-id: ${STAGING_RAZORPAY_KEY_ID:}
+  key-secret: ${STAGING_RAZORPAY_SECRET:}
   webhook-secret: ${STAGING_RAZORPAY_WEBHOOK_SECRET:}
   webhook:
     # Staging may whitelist Razorpay IPs later, but the empty default keeps rate limiting active.
