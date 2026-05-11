@@ -6,12 +6,12 @@ spring:
 
   # Keep the requested Redis property for staging deploy validation.
   redis:
-    url: ${STAGING_REDIS_URL}
+    url: ${STAGING_REDIS_URL:${REDIS_URL:redis://localhost:6379}}
 
   # Spring Boot 3 reads Redis settings from spring.data.redis, so this mirrors the same staging URL.
   data:
     redis:
-      url: ${STAGING_REDIS_URL}
+      url: ${STAGING_REDIS_URL:${REDIS_URL:redis://localhost:6379}}
 
 # Use the staging Supabase project and staging storage bucket names.
 supabase:
