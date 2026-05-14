@@ -243,7 +243,6 @@ export default function AdminCampaignManagementDetailPage() {
             </p>
           </div>
           <StatusChip
-            status={campaign.escrowStatus}
             tone={
               campaign.escrowStatus === EscrowStatus.FUNDED ? 'approved'
                 : campaign.escrowStatus === EscrowStatus.RELEASED ? 'approved'
@@ -251,7 +250,9 @@ export default function AdminCampaignManagementDetailPage() {
                 : campaign.escrowStatus === EscrowStatus.REFUNDED ? 'info'
                 : 'needs_action'
             }
-          />
+          >
+            {campaign.escrowStatus}
+          </StatusChip>
         </div>
       )}
 
