@@ -43,7 +43,7 @@ public class StartupValidator implements ApplicationRunner {
       missing.add("SUPABASE_URL (STAGING_ or PROD_ prefixed)");
     }
     if (razorpayKeyId.isBlank()) {
-      missing.add("RAZORPAY_KEY_ID (STAGING_ or PROD_ prefixed)");
+      log.warn("RAZORPAY_KEY_ID is not set - payment/payout features will be disabled.");
     }
 
     if (!missing.isEmpty()) {
