@@ -44,12 +44,17 @@ class ApiClient {
   }
 
   private resolveBaseUrl(): string {
-    // Use environment variable or fallback to placeholder that gets replaced at runtime
-    // Support both NEXT_PUBLIC_API_URL and NEXT_PUBLIC_API_BASE_URL for compatibility
     const baseURL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ''
+    const isProd = process.env.NODE_ENV === 'production'
+    const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build'
 
-    if (!baseURL && typeof window !== 'undefined') {
-      console.warn('[Admin API] NEXT_PUBLIC_API_URL is not set. API calls will fail.')
+    if (!baseURL) {
+      if (isProd && !isBuildTime) {
+        console.error('[API] NEXT_PUBLIC_API_BASE_URL is not set in production runtime. Falling back to staging URL.')
+        return 'https://creatorx-staging.up.railway.app/api/v1'
+      } else if (!isProd) {
+        console.warn('[Admin API] NEXT_PUBLIC_API_URL is not set. API calls will fail.')
+      }
     }
 
     return baseURL

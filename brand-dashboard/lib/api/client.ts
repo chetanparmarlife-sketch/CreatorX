@@ -56,7 +56,8 @@ class ApiClient {
 
     if (!baseURL) {
       if (isProd && !isBuildTime) {
-        console.error('[API] NEXT_PUBLIC_API_BASE_URL is not set in production runtime.')
+        console.error('[API] NEXT_PUBLIC_API_BASE_URL is not set in production runtime. Falling back to staging URL.')
+        return 'https://creatorx-staging.up.railway.app/api/v1'
       } else if (!isProd) {
         console.warn('[API] NEXT_PUBLIC_API_BASE_URL is not set; API calls will fail.')
       }
