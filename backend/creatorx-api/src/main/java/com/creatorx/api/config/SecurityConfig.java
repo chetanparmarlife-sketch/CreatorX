@@ -80,6 +80,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/social/connect/*/callback").permitAll()
                         // Other public endpoints
                         .requestMatchers(
+                                "/health",
                                 "/api/v1/health",
                                 "/actuator/health",
                                 "/swagger-ui/**",
