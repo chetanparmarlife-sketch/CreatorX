@@ -132,6 +132,8 @@ public class SecurityConfig {
                 "https://creator-x.club",
                 "https://www.creator-x.club",
                 "https://brand-creatorx.vercel.app",
+                "https://creatorx-brand-staging.vercel.app",
+                "https://creatorx-admin-staging.vercel.app",
                 "https://admin-dashboard-*.vercel.app");
         List<String> extraOrigins = parseAllowedOrigins(allowedOrigins);
         List<String> allPatterns = new ArrayList<>(basePatterns);
