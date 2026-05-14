@@ -1,5 +1,3 @@
--- Grant all permissions to any user with role 'ADMIN' that doesn't have them yet
-
 INSERT INTO admin_permissions (admin_id, permission)
 SELECT u.id, p.permission
 FROM users u
@@ -24,4 +22,7 @@ CROSS JOIN (
         ('ADMIN_CAMPAIGN_REVIEW')
 ) AS p(permission)
 WHERE u.role = 'ADMIN'
-ON CONFLICT (admin_id, permission) DO NOTHING;
+AND NOT EXISTS (
+    SELECT 1 FROM admin_permissions ap 
+    WHERE ap.admin_id = u.id AND ap.permission = p.permission
+);
