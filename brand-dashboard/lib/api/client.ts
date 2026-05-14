@@ -52,12 +52,16 @@ class ApiClient {
     const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
     const isProd = process.env.NODE_ENV === 'production'
     const isLocal = baseURL.includes('localhost') || baseURL.includes('127.0.0.1')
+    const isBuildTime = typeof window === 'undefined'
 
     if (!baseURL) {
-      if (isProd) {
-        throw new Error('NEXT_PUBLIC_API_BASE_URL is required in production.')
+      if (isProd && !isBuildTime) {
+        console.error('[API] NEXT_PUBLIC_API_BASE_URL is not set in production runtime.')
+      } else if (!isProd) {
+        console.warn('[API] NEXT_PUBLIC_API_BASE_URL is not set; API calls will fail.')
       }
-      console.warn('[API] NEXT_PUBLIC_API_BASE_URL is not set; API calls will fail.')
+      // Return empty — build-time prerendering doesn't need a real URL.
+      return ''
     }
 
     if (isProd && isLocal) {
