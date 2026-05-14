@@ -83,9 +83,13 @@ public class AuthService {
         String tempSupabaseId = "temp_" + UUID.randomUUID().toString();
         user.setSupabaseId(tempSupabaseId);
 
-        // Set password hash (in production, password is handled by Supabase)
-        // We store a placeholder here
-        user.setPasswordHash("supabase_managed");
+        // Set password hash if provided (allows direct login for testing/staging)
+        // In production, password should be handled entirely by Supabase
+        if (password != null && !password.isEmpty()) {
+            user.setPasswordHash(passwordEncoder.encode(password));
+        } else {
+            user.setPasswordHash("supabase_managed");
+        }
 
         User savedUser = userRepository.save(user);
 
