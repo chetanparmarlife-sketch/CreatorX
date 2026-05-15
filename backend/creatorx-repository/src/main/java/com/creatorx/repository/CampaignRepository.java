@@ -113,5 +113,11 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
     
     @Query("SELECT COUNT(c) FROM Campaign c WHERE c.brand.id = :brandId AND c.status = :status")
     long countByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") CampaignStatus status);
-}
 
+    @Query("SELECT COUNT(c) FROM Campaign c WHERE c.brand.id = :brandId AND c.escrowStatus = :escrowStatus AND c.status IN :statuses")
+    long countBrandCampaignsByEscrowStatusAndStatuses(
+        @Param("brandId") String brandId,
+        @Param("escrowStatus") String escrowStatus,
+        @Param("statuses") List<CampaignStatus> statuses
+    );
+}

@@ -16,6 +16,7 @@ import {
 import { StatCardsSkeleton } from '@/components/shared/skeleton'
 import { adminSystemService } from '@/lib/api/admin/system'
 import { adminFinanceService } from '@/lib/api/admin/finance'
+import { adminWorkspaceService } from '@/lib/api/admin/workspace'
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminOverviewPage() {
@@ -28,6 +29,21 @@ export default function AdminOverviewPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin-system-summary'],
     queryFn: () => adminSystemService.getSummary(),
+    placeholderData: (previousData) => previousData,
+  })
+  const { data: workspaceSummary, isLoading: workspaceLoading } = useQuery({
+    queryKey: ['admin-workspace-summary'],
+    queryFn: () => adminWorkspaceService.getSummary(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+  })
+  const { data: actionQueueData } = useQuery({
+    queryKey: ['admin-action-queue', 0],
+    queryFn: () => adminWorkspaceService.getActionQueue(0, 6),
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
   })
   const { data: financeSummary } = useQuery({
     queryKey: ['admin-finance-summary-overview'],
@@ -57,9 +73,9 @@ export default function AdminOverviewPage() {
       { label: 'Brands', value: data?.totalBrands ?? '—', icon: Building2, color: 'bg-blue-600 text-white' },
       { label: 'Total Campaigns', value: data?.totalCampaigns ?? '—', icon: Flag, color: 'bg-emerald-600 text-white' },
       { label: 'Payouts', value: financeSummary?.totalWithdrawals ?? '—', icon: ClipboardList, color: 'bg-indigo-600 text-white' },
-      { label: 'Pending KYC', value: data?.pendingKyc ?? '—', icon: FileCheck, color: 'bg-amber-500 text-white' },
-      { label: 'Brand Verifications', value: data?.pendingBrandVerifications ?? '—', icon: Building2, color: 'bg-violet-600 text-white' },
-      { label: 'Campaign Flags', value: data?.openCampaignFlags ?? '—', icon: AlertTriangle, color: 'bg-orange-500 text-white' },
+      { label: 'Pending KYC', value: workspaceSummary?.pendingKyc ?? data?.pendingKyc ?? '—', icon: FileCheck, color: 'bg-amber-500 text-white' },
+      { label: 'Brand Verifications', value: workspaceSummary?.pendingBrandVerifications ?? data?.pendingBrandVerifications ?? '—', icon: Building2, color: 'bg-violet-600 text-white' },
+      { label: 'Campaign Flags', value: workspaceSummary?.flaggedCampaigns ?? data?.openCampaignFlags ?? '—', icon: AlertTriangle, color: 'bg-orange-500 text-white' },
       { label: 'Open Appeals', value: data?.openAppeals ?? '—', icon: ClipboardList, color: 'bg-pink-600 text-white' },
       { label: 'GDPR Requests', value: data?.pendingGdprRequests ?? '—', icon: ClipboardList, color: 'bg-cyan-600 text-white' },
       { label: 'Admin DAU', value: data?.adminDailyActiveUsers ?? '—', icon: Activity, color: 'bg-slate-700 text-white' },
@@ -70,7 +86,7 @@ export default function AdminOverviewPage() {
         color: 'bg-amber-500 text-white',
       },
     ]
-  }, [data, financeSummary])
+  }, [data, financeSummary, workspaceSummary])
   const statsPerPage = 4
   const totalStatsPages = Math.max(1, Math.ceil(stats.length / statsPerPage))
   const pagedStats = showAllStats
@@ -83,19 +99,24 @@ export default function AdminOverviewPage() {
     {
       label: 'KYC Review',
       href: '/admin/kyc',
-      count: data?.pendingKyc,
-      slaBreaches: data?.kycSlaBreaches,
+      count: workspaceSummary?.pendingKyc ?? data?.pendingKyc,
+      slaBreaches: workspaceSummary?.slaBreaches ?? data?.kycSlaBreaches,
     },
     {
       label: 'Campaign Flags',
       href: '/admin/campaigns',
-      count: data?.openCampaignFlags,
+      count: workspaceSummary?.flaggedCampaigns ?? data?.openCampaignFlags,
     },
     {
       label: 'Disputes',
       href: '/admin/disputes',
-      count: data?.openDisputes,
+      count: workspaceSummary?.openDisputes ?? data?.openDisputes,
       slaBreaches: data?.disputeSlaBreaches,
+    },
+    {
+      label: 'Payout Alerts',
+      href: '/admin/finance',
+      count: workspaceSummary?.payoutAlerts,
     },
     {
       label: 'GDPR Requests',
@@ -104,6 +125,7 @@ export default function AdminOverviewPage() {
       slaBreaches: data?.gdprSlaBreaches,
     },
   ]
+  const topActions = actionQueueData?.items ?? workspaceSummary?.topActions ?? []
 
   const getSlaTone = (breaches?: number) => {
     if (!breaches) return 'bg-slate-100 text-slate-600'
@@ -129,18 +151,18 @@ export default function AdminOverviewPage() {
           </div>
           <div className="rounded-xl border border-slate-200/80 bg-white/90 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pending KYC</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{data?.pendingKyc ?? '—'}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{workspaceSummary?.pendingKyc ?? data?.pendingKyc ?? '—'}</p>
             <p className="text-xs text-slate-500">Verification queue</p>
           </div>
           <div className="rounded-xl border border-slate-200/80 bg-white/90 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">KYC SLA Breaches</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{data?.kycSlaBreaches ?? '—'}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{workspaceSummary?.slaBreaches ?? data?.kycSlaBreaches ?? '—'}</p>
             <p className="text-xs text-slate-500">Immediate attention</p>
           </div>
         </div>
       </div>
 
-      {isLoading && !data ? (
+      {(isLoading || workspaceLoading) && !data && !workspaceSummary ? (
         <StatCardsSkeleton />
       ) : (
         <div className="space-y-4">
@@ -233,6 +255,40 @@ export default function AdminOverviewPage() {
           ))}
         </div>
       </div>
+
+      {topActions.length > 0 && (
+        <div className="section-card">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Next Best Actions</h2>
+              <p className="text-sm text-slate-500">Unified queue items ordered by urgency and waiting time.</p>
+            </div>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+              {actionQueueData?.total ?? topActions.length} open
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {topActions.map((item) => (
+              <a
+                key={item.id}
+                href={item.href}
+                className="rounded-xl border border-slate-200 bg-white/80 p-4 transition hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                    {item.subtitle ? <p className="mt-1 text-xs text-slate-500">{item.subtitle}</p> : null}
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-xs ${getSlaTone(item.severity === 'blocked' ? 1 : 0)}`}>
+                    {item.dueState}
+                  </span>
+                </div>
+                <p className="mt-3 text-xs font-semibold text-slate-600">{item.primaryAction}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="section-card">

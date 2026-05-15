@@ -289,6 +289,42 @@ export interface Page<T> {
   size: number
   total: number
   totalPages: number
+  hasMore?: boolean
+}
+
+export interface ActionQueueItem {
+  id: string
+  type: string
+  severity: 'blocked' | 'needs_action' | 'on_track' | 'info' | string
+  dueState: 'overdue' | 'due_soon' | 'pending' | 'waiting' | 'ready' | string
+  entityId: string
+  title: string
+  subtitle?: string
+  primaryAction: string
+  href: string
+  createdAt?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface WorkspaceSummary {
+  scope: string
+  generatedAt: string
+  systemHealth: string
+  pendingApplications: number
+  pendingDeliverables: number
+  draftCampaigns: number
+  pendingReviewCampaigns: number
+  activeCampaigns: number
+  walletBlockers: number
+  unreadMessages: number
+  pendingKyc?: number
+  pendingBrandVerifications?: number
+  openDisputes?: number
+  flaggedCampaigns?: number
+  payoutAlerts?: number
+  slaBreaches?: number
+  priorityCounts?: Record<string, number>
+  topActions?: ActionQueueItem[]
 }
 
 // API Error Types

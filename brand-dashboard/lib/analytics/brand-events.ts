@@ -1,6 +1,13 @@
 'use client'
 
 export const BRAND_EVENTS = [
+  'workspace_viewed',
+  'action_queue_item_opened',
+  'bulk_action_started',
+  'bulk_action_completed',
+  'deliverable_review_completed',
+  'application_status_changed',
+  'campaign_funded',
   'dashboard_viewed',
   'priority_card_clicked',
   'quick_action_clicked',

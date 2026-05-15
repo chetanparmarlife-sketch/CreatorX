@@ -96,6 +96,9 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Count applications by campaign and status
     @Query("SELECT COUNT(a) FROM Application a WHERE a.campaign.id = :campaignId AND a.status = :status")
     long countByCampaignIdAndStatus(@Param("campaignId") String campaignId, @Param("status") ApplicationStatus status);
+
+    @Query("SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId AND a.status = :status")
+    long countByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") ApplicationStatus status);
     
     @Query("SELECT COUNT(a) FROM Application a WHERE a.campaign.id = :campaignId")
     long countByCampaignId(@Param("campaignId") String campaignId);

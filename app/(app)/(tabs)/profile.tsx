@@ -101,6 +101,7 @@ export default function ProfileScreen() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const togglePreference = async (key: string) => {
     const newPreferences = { ...preferences, [key]: !preferences[key as keyof typeof preferences] };
@@ -321,11 +322,20 @@ export default function ProfileScreen() {
   }, [socialAccountsError]);
 
   const handleLogout = () => {
+    if (isSigningOut) return;
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Logout', style: 'destructive', onPress: async () => {
-        await signOut();
-        router.replace('/(auth)/login');
+        setIsSigningOut(true);
+        try {
+          await signOut();
+          router.replace('/(auth)/login');
+        } catch (error: any) {
+          console.error('[Profile] Logout failed:', error);
+          Alert.alert('Logout Failed', error.message || 'Please try again.');
+        } finally {
+          setIsSigningOut(false);
+        }
       } },
     ]);
   };
@@ -612,9 +622,16 @@ export default function ProfileScreen() {
               style={styles.simpleMenuItem}
               onPress={handleLogout}
               activeOpacity={0.7}
+              disabled={isSigningOut}
             >
-              <Text style={[styles.simpleMenuLabel, { color: '#ef4444' }]}>Log Out</Text>
-              <Feather name="log-out" size={20} color="#ef4444" />
+              <Text style={[styles.simpleMenuLabel, { color: '#ef4444' }]}>
+                {isSigningOut ? 'Logging Out...' : 'Log Out'}
+              </Text>
+              {isSigningOut ? (
+                <ActivityIndicator size="small" color="#ef4444" />
+              ) : (
+                <Feather name="log-out" size={20} color="#ef4444" />
+              )}
             </TouchableOpacity>
           </View>
         </View>

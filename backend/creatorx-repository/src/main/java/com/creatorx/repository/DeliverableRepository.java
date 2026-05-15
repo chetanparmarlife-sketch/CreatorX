@@ -127,6 +127,9 @@ public interface DeliverableRepository extends JpaRepository<DeliverableSubmissi
 
     @Query("SELECT COUNT(ds) FROM DeliverableSubmission ds WHERE ds.application.campaign.id = :campaignId AND ds.status = :status")
     long countByCampaignIdAndStatus(@Param("campaignId") String campaignId, @Param("status") SubmissionStatus status);
+
+    @Query("SELECT COUNT(ds) FROM DeliverableSubmission ds WHERE ds.application.campaign.brand.id = :brandId AND ds.status = :status")
+    long countByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") SubmissionStatus status);
     
     // Find deliverables by campaign deliverable
     @Query("SELECT ds FROM DeliverableSubmission ds WHERE ds.campaignDeliverable.id = :campaignDeliverableId")

@@ -34,6 +34,9 @@ public interface ConversationRepository extends JpaRepository<Conversation, Stri
     // Find conversations by brand
     @Query("SELECT c FROM Conversation c WHERE c.brand.id = :brandId ORDER BY c.lastMessageAt DESC NULLS LAST")
     List<Conversation> findByBrandId(@Param("brandId") String brandId);
+
+    @Query("SELECT COALESCE(SUM(c.brandUnreadCount), 0) FROM Conversation c WHERE c.brand.id = :brandId")
+    long sumBrandUnreadCount(@Param("brandId") String brandId);
     
     // Find conversation by participants
     @Query("SELECT c FROM Conversation c WHERE " +
@@ -86,5 +89,4 @@ public interface ConversationRepository extends JpaRepository<Conversation, Stri
     @Query("UPDATE Conversation c SET c.brandUnreadCount = 0 WHERE c.id = :conversationId")
     int resetBrandUnreadCount(@Param("conversationId") String conversationId);
 }
-
 

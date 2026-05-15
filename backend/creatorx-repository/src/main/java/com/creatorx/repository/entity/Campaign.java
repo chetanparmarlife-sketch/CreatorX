@@ -25,6 +25,8 @@ import java.util.List;
     @Index(name = "idx_campaigns_start_date", columnList = "start_date"),
     @Index(name = "idx_campaigns_end_date", columnList = "end_date"),
     @Index(name = "idx_campaigns_created_at", columnList = "created_at"),
+    @Index(name = "idx_campaigns_brand_status", columnList = "brand_id,status"),
+    @Index(name = "idx_campaigns_brand_escrow_status", columnList = "brand_id,escrow_status,status"),
     @Index(name = "idx_campaigns_status_dates", columnList = "status,start_date,end_date")
 })
 @Data
@@ -125,6 +127,5 @@ public class Campaign extends BaseEntity {
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ActiveCampaign> activeCampaigns = new ArrayList<>();
 }
-
 
 

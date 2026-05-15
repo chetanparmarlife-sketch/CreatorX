@@ -18,6 +18,7 @@ import { useCampaigns } from '@/lib/hooks/use-campaigns'
 import { useCreators } from '@/lib/hooks/use-creators'
 import { useBrandWallet } from '@/lib/hooks/use-wallet'
 import { deliverableService } from '@/lib/api/deliverables'
+import { workspaceService } from '@/lib/api/workspace'
 import { ActionBar } from '@/components/shared/action-bar'
 import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -54,6 +55,20 @@ const formatCurrency = (value: number) =>
 export default function DashboardPage() {
   const router = useRouter()
   const { data: walletData } = useBrandWallet()
+  const { data: workspaceSummary, isLoading: workspaceLoading } = useQuery({
+    queryKey: ['brand-workspace-summary'],
+    queryFn: () => workspaceService.getSummary(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+  })
+  const { data: actionQueueData, isLoading: actionQueueLoading } = useQuery({
+    queryKey: ['brand-action-queue', 0],
+    queryFn: () => workspaceService.getActionQueue(0, 8),
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+  })
   const { data: campaignsData, isLoading: campaignsLoading } = useCampaigns({}, 0)
   const { data: creatorsData, isLoading: creatorsLoading } = useCreators({ page: 0, size: 20 })
   const { data: deliverablesData, isLoading: deliverablesLoading } = useQuery({
@@ -108,24 +123,27 @@ export default function DashboardPage() {
     {}
   )
 
-  const pendingApprovals = deliverableCounts.PENDING || 0
+  const pendingApprovals = workspaceSummary?.pendingDeliverables ?? deliverableCounts.PENDING ?? 0
   const revisionsRequested = deliverableCounts.REVISION_REQUESTED || 0
   const deliverablesQueue = pendingApprovals + revisionsRequested
-  const reviewQueue = draftCampaigns.length + reviewCampaigns.length
+  const reviewQueue =
+    (workspaceSummary?.draftCampaigns ?? draftCampaigns.length) +
+    (workspaceSummary?.pendingReviewCampaigns ?? reviewCampaigns.length)
   const lifecycleProgress = campaigns.length
     ? Math.round(((activeCampaigns.length + completedCampaigns.length) / campaigns.length) * 100)
     : 0
 
-  const inProgressTasks = deliverables
-    .filter((item: any) => item.status === 'PENDING' || item.status === 'REVISION_REQUESTED')
+  const queueItems = actionQueueData?.items ?? workspaceSummary?.topActions ?? []
+  const inProgressTasks = queueItems
+    .filter((item: any) => item.type === 'deliverable' || item.type === 'application')
     .slice(0, 5)
 
   const priorityItems: PriorityItem[] = [
     {
       id: 'review_campaigns',
       label: 'Campaigns waiting review',
-      value: reviewCampaigns.length,
-      severity: reviewCampaigns.length > 0 ? 'needs_action' : 'on_track',
+      value: workspaceSummary?.pendingReviewCampaigns ?? reviewCampaigns.length,
+      severity: (workspaceSummary?.pendingReviewCampaigns ?? reviewCampaigns.length) > 0 ? 'needs_action' : 'on_track',
       ctaLabel: 'Review',
       href: '/campaigns',
     },
@@ -136,6 +154,14 @@ export default function DashboardPage() {
       severity: pendingApprovals > 0 ? 'needs_action' : 'on_track',
       ctaLabel: 'Approve',
       href: '/deliverables',
+    },
+    {
+      id: 'review_applications',
+      label: 'Applications waiting decision',
+      value: workspaceSummary?.pendingApplications ?? 0,
+      severity: (workspaceSummary?.pendingApplications ?? 0) > 0 ? 'needs_action' : 'on_track',
+      ctaLabel: 'Review',
+      href: '/applications',
     },
     {
       id: 'resolve_revisions',
@@ -195,6 +221,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (hasTrackedDashboardView.current) return
+    if (workspaceLoading) return
     hasTrackedDashboardView.current = true
 
     track('dashboard_viewed', {
@@ -204,6 +231,13 @@ export default function DashboardPage() {
       deliverables_queue: deliverablesQueue,
       wallet_balance: walletData?.balance ?? null,
     })
+    track('workspace_viewed', {
+      surface: 'brand_dashboard_home',
+      pending_applications: workspaceSummary?.pendingApplications ?? null,
+      pending_deliverables: workspaceSummary?.pendingDeliverables ?? null,
+      wallet_blockers: workspaceSummary?.walletBlockers ?? null,
+      unread_messages: workspaceSummary?.unreadMessages ?? null,
+    })
   }, [
     activeCampaigns.length,
     campaigns.length,
@@ -211,11 +245,16 @@ export default function DashboardPage() {
     reviewQueue,
     track,
     walletData?.balance,
+    workspaceLoading,
+    workspaceSummary?.pendingApplications,
+    workspaceSummary?.pendingDeliverables,
+    workspaceSummary?.unreadMessages,
+    workspaceSummary?.walletBlockers,
   ])
-  const priorityLoading = campaignsLoading || deliverablesLoading
-  const healthLoading = campaignsLoading
+  const priorityLoading = workspaceLoading && !workspaceSummary
+  const healthLoading = campaignsLoading && !workspaceSummary
   const lifecycleLoading = campaignsLoading
-  const tasksLoading = deliverablesLoading
+  const tasksLoading = (actionQueueLoading && queueItems.length === 0) || (deliverablesLoading && deliverables.length === 0)
 
   return (
     <div className="space-y-6">
@@ -474,14 +513,14 @@ export default function DashboardPage() {
                 <div key={task.id} className="task-card">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-slate-900">
-                      {task.campaignTitle || 'Campaign'}
+                      {task.title || task.campaignTitle || 'Campaign'}
                     </p>
                     <StatusChip tone="needs_action" size="compact">
-                      {task.status || 'PENDING'}
+                      {task.dueState || task.status || 'PENDING'}
                     </StatusChip>
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
-                    {task.creatorName || 'Creator'} | {task.campaignDeliverable?.title || 'Deliverable'}
+                    {task.subtitle || `${task.creatorName || 'Creator'} | ${task.campaignDeliverable?.title || 'Deliverable'}`}
                   </p>
                 </div>
               ))}

@@ -20,7 +20,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_applications_status", columnList = "status"),
         @Index(name = "idx_applied_at", columnList = "applied_at"),
         @Index(name = "idx_campaign_status", columnList = "campaign_id,status"),
-        @Index(name = "idx_creator_status", columnList = "creator_id,status")
+        @Index(name = "idx_creator_status", columnList = "creator_id,status"),
+        @Index(name = "idx_applications_status_applied_at", columnList = "status,applied_at")
 })
 @Data
 @SuperBuilder

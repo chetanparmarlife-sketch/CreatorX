@@ -28,6 +28,8 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
     @Query("SELECT wr FROM WithdrawalRequest wr WHERE wr.status = :status ORDER BY wr.requestedAt ASC")
     Page<WithdrawalRequest> findByStatus(@Param("status") WithdrawalStatus status, Pageable pageable);
 
+    long countByStatus(WithdrawalStatus status);
+
     /**
      * Find withdrawal by Razorpay payout ID (for webhook processing)
      * Phase 4: Real Money Payouts
@@ -45,4 +47,3 @@ public interface WithdrawalRequestRepository extends JpaRepository<WithdrawalReq
             @Param("since") LocalDateTime since
     );
 }
-
