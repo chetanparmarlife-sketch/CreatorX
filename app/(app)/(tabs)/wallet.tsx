@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks';
@@ -14,7 +13,7 @@ import {
   TransactionItemSkeleton,
 } from '@/src/components';
 import { TransactionDTO, WithdrawalDTO } from '@/src/api/services/walletService';
-import { kycService, KYCStatusResponse } from '@/src/api/services/kycService';
+import { kycService } from '@/src/api/services/kycService';
 import { invoiceService, FormattedInvoice, InvoiceCountsDTO } from '@/src/api/services/invoiceService';
 import { useApp } from '@/src/context';
 import { useAuth } from '@/src/context/AuthContext';
@@ -434,10 +433,18 @@ export default function MoneyScreen() {
 
   const handleRefresh = useCallback(async () => {
     if (!isAuthenticated) return;
+    if (selectedTab === 'invoices') {
+      await fetchInvoices();
+      return;
+    }
+    if (selectedTab === 'kyc') {
+      await fetchKycStatus();
+      return;
+    }
     lastRequestedTransactionsPageRef.current = -1;
     lastRequestedWithdrawalsPageRef.current = -1;
     await refreshWalletAll();
-  }, [isAuthenticated, refreshWalletAll]);
+  }, [isAuthenticated, selectedTab, fetchInvoices, fetchKycStatus, refreshWalletAll]);
 
   const { refreshing, handleRefresh: onRefresh } = useRefresh(handleRefresh);
 
@@ -824,9 +831,7 @@ export default function MoneyScreen() {
 
   const handleDownloadInvoice = useCallback(async (invoiceId: string) => {
     try {
-      const blob = await invoiceService.downloadInvoicePdf(invoiceId);
-      // In React Native, we'd use a file system library to save/share the PDF
-      // For now, just log success
+      await invoiceService.downloadInvoicePdf(invoiceId);
       console.log('[Wallet] Invoice PDF downloaded:', invoiceId);
     } catch (err) {
       console.error('[Wallet] Failed to download invoice:', err);
@@ -940,6 +945,14 @@ export default function MoneyScreen() {
       style={styles.scrollView}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={kycLoading}
+          onRefresh={fetchKycStatus}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
+      }
     >
       <View style={[styles.kycProgressCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <View style={styles.kycProgressHeader}>
@@ -1005,6 +1018,12 @@ export default function MoneyScreen() {
     </ScrollView>
   );
 
+  const renderActiveContent = () => {
+    if (selectedTab === 'invoices') return renderInvoicesContent();
+    if (selectedTab === 'kyc') return renderKYCContent();
+    return renderWalletContent();
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: backgroundColor }]} edges={['top']}>
       <View style={[styles.walletHeader, { backgroundColor: backgroundColor }]}>
@@ -1017,20 +1036,36 @@ export default function MoneyScreen() {
         </TouchableOpacity>
       </View>
 
-      {renderWalletContent()}
-
-      <View style={[styles.withdrawFooter, { bottom: 84 + insets.bottom, paddingBottom: spacing.lg + insets.bottom }]}>
-        <TouchableOpacity
-          style={[styles.withdrawButton, { backgroundColor: colors.primary }]}
-          activeOpacity={0.85}
-          onPress={() => router.push('/withdraw')}
-        >
-          <Feather name="credit-card" size={18} color="#ffffff" />
-          <Text style={styles.withdrawButtonText}>
-            Withdraw Funds
-          </Text>
-        </TouchableOpacity>
+      <View style={[styles.stickyHeader, { backgroundColor: backgroundColor }]}>
+        <View style={styles.headerTabsContainer}>
+          {headerTabs.map((tab) => (
+            <HeaderTabButton
+              key={tab.id}
+              label={tab.label}
+              isActive={selectedTab === tab.id}
+              onPress={() => setSelectedTab(tab.id)}
+              colors={colorsWithDark}
+            />
+          ))}
+        </View>
       </View>
+
+      {renderActiveContent()}
+
+      {selectedTab === 'wallet' && (
+        <View style={[styles.withdrawFooter, { bottom: 84 + insets.bottom, paddingBottom: spacing.lg + insets.bottom }]}>
+          <TouchableOpacity
+            style={[styles.withdrawButton, { backgroundColor: colors.primary }]}
+            activeOpacity={0.85}
+            onPress={() => router.push('/withdraw')}
+          >
+            <Feather name="credit-card" size={18} color="#ffffff" />
+            <Text style={styles.withdrawButtonText}>
+              Withdraw Funds
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

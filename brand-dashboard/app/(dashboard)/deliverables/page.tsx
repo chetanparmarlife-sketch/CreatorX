@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { deliverableService, DeliverableReviewStatus } from '@/lib/api/deliverables'
@@ -87,13 +87,28 @@ const getDueStatus = (deliverable: DeliverableItem) => {
   return 'on_track'
 }
 
+const updateDeliverablesPage = (
+  oldData: { items?: DeliverableItem[] } | undefined,
+  ids: string[],
+  updater: (deliverable: DeliverableItem) => DeliverableItem
+) => {
+  if (!oldData?.items) return oldData
+  const idSet = new Set(ids)
+  return {
+    ...oldData,
+    items: oldData.items.map((deliverable) => (idSet.has(deliverable.id) ? updater(deliverable) : deliverable)),
+  }
+}
+
 export default function DeliverablesOverviewPage() {
   const [statusFilter, setStatusFilter] = useState<DeliverableReviewStatus | 'ALL'>('ALL')
   const [dueFilter, setDueFilter] = useState<'ALL' | 'OVERDUE' | 'DUE_SOON' | 'ON_TRACK' | 'NO_DUE_DATE'>('ALL')
+  const [previewDeliverable, setPreviewDeliverable] = useState<DeliverableItem | null>(null)
   const [reviewDeliverable, setReviewDeliverable] = useState<DeliverableItem | null>(null)
   const [reviewStatus, setReviewStatus] = useState<DeliverableReviewStatus>('APPROVED')
   const [feedback, setFeedback] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
   const [isBulkReviewing, setIsBulkReviewing] = useState(false)
   const [bulkResult, setBulkResult] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const queryClient = useQueryClient()
@@ -106,6 +121,9 @@ export default function DeliverablesOverviewPage() {
         page: 0,
         size: 100,
       }),
+    staleTime: 30_000,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
   })
   const { data: pendingData } = useQuery({
     queryKey: ['brand-deliverables-pending-count'],
@@ -181,6 +199,16 @@ export default function DeliverablesOverviewPage() {
     )
   }
 
+  useEffect(() => {
+    if (!previewDeliverable && visibleDeliverables.length > 0) {
+      setPreviewDeliverable(visibleDeliverables[0])
+      return
+    }
+    if (previewDeliverable && !visibleDeliverables.some((deliverable) => deliverable.id === previewDeliverable.id)) {
+      setPreviewDeliverable(visibleDeliverables[0] ?? null)
+    }
+  }, [previewDeliverable, visibleDeliverables])
+
   const reviewMutation = useMutation({
     mutationFn: ({
       id,
@@ -191,10 +219,49 @@ export default function DeliverablesOverviewPage() {
       status: DeliverableReviewStatus
       feedbackText: string
     }) => deliverableService.reviewDeliverable(id, status, feedbackText),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['brand-deliverables'] })
+    onMutate: async ({ id, status }) => {
+      setPendingIds((current) => new Set(current).add(id))
+      await queryClient.cancelQueries({ queryKey: ['brand-deliverables'] })
+      const previous = queryClient.getQueriesData({ queryKey: ['brand-deliverables'] })
+
+      queryClient.setQueriesData({ queryKey: ['brand-deliverables'] }, (oldData) =>
+        updateDeliverablesPage(oldData as any, [id], (deliverable) => ({
+          ...deliverable,
+          status,
+        }))
+      )
+      setPreviewDeliverable((current) => (current?.id === id ? { ...current, status } : current))
+      setReviewDeliverable((current) => (current?.id === id ? { ...current, status } : current))
+
+      return { previous, previousPreview: previewDeliverable, previousReview: reviewDeliverable }
+    },
+    onError: (_error, _variables, context) => {
+      context?.previous?.forEach(([queryKey, value]) => {
+        queryClient.setQueryData(queryKey, value)
+      })
+      setPreviewDeliverable(context?.previousPreview ?? null)
+      setReviewDeliverable(context?.previousReview ?? null)
+    },
+    onSuccess: (updatedDeliverable: DeliverableItem, variables) => {
+      queryClient.setQueriesData({ queryKey: ['brand-deliverables'] }, (oldData) =>
+        updateDeliverablesPage(oldData as any, [variables.id], () => updatedDeliverable)
+      )
+      setPreviewDeliverable((current) => (current?.id === variables.id ? updatedDeliverable : current))
+      track('deliverable_review_completed', {
+        deliverable_id: variables.id,
+        review_status: variables.status,
+      })
       setReviewDeliverable(null)
       setFeedback('')
+    },
+    onSettled: (_data, _error, variables) => {
+      setPendingIds((current) => {
+        const next = new Set(current)
+        if (variables?.id) next.delete(variables.id)
+        return next
+      })
+      queryClient.invalidateQueries({ queryKey: ['brand-deliverables'] })
+      queryClient.invalidateQueries({ queryKey: ['brand-deliverables-pending-count'] })
     },
   })
 
@@ -205,6 +272,7 @@ export default function DeliverablesOverviewPage() {
       current_status: deliverable.status || 'PENDING',
       review_target_status: status,
     })
+    setPreviewDeliverable(deliverable)
     setReviewDeliverable(deliverable)
     setReviewStatus(status)
     setFeedback('')
@@ -214,29 +282,62 @@ export default function DeliverablesOverviewPage() {
     if (selectedIds.length === 0) return
     setBulkResult(null)
     setIsBulkReviewing(true)
-    let successCount = 0
-    let failedCount = 0
+    setPendingIds((current) => new Set([...Array.from(current), ...selectedIds]))
+    track('bulk_action_started', {
+      action_type: 'DELIVERABLE_REVIEW',
+      item_count: selectedIds.length,
+      review_status: status,
+    })
+
+    const previous = queryClient.getQueriesData({ queryKey: ['brand-deliverables'] })
+    queryClient.setQueriesData({ queryKey: ['brand-deliverables'] }, (oldData) =>
+      updateDeliverablesPage(oldData as any, selectedIds, (deliverable) => ({
+        ...deliverable,
+        status,
+      }))
+    )
+
     try {
-      await Promise.all(
-        selectedIds.map(async (id) => {
-          try {
-            await reviewMutation.mutateAsync({ id, status, feedbackText: '' })
-            successCount += 1
-          } catch {
-            failedCount += 1
-          }
+      const result = await deliverableService.bulkReviewDeliverables(selectedIds, status)
+      const successfulIds = result.results.filter((item) => item.success).map((item) => item.entityId)
+
+      queryClient.setQueriesData({ queryKey: ['brand-deliverables'] }, (oldData) =>
+        updateDeliverablesPage(oldData as any, successfulIds, (deliverable) => {
+          const resultItem = result.results.find((item) => item.entityId === deliverable.id)
+          return (resultItem?.updated as DeliverableItem | undefined) || { ...deliverable, status }
         })
       )
-      setSelectedIds([])
+      setSelectedIds(result.results.filter((item) => !item.success).map((item) => item.entityId))
       setBulkResult({
-        tone: failedCount > 0 ? 'error' : 'success',
+        tone: result.failed > 0 ? 'error' : 'success',
         message:
-          failedCount > 0
-            ? `Updated ${successCount} deliverable(s), ${failedCount} failed.`
-            : `Updated ${successCount} deliverable(s).`,
+          result.failed > 0
+            ? `Updated ${result.succeeded} deliverable(s), ${result.failed} failed.`
+            : `Updated ${result.succeeded} deliverable(s).`,
+      })
+      track('bulk_action_completed', {
+        action_type: 'DELIVERABLE_REVIEW',
+        requested: result.requested,
+        succeeded: result.succeeded,
+        failed: result.failed,
+      })
+    } catch (error) {
+      previous.forEach(([queryKey, value]) => {
+        queryClient.setQueryData(queryKey, value)
+      })
+      setBulkResult({
+        tone: 'error',
+        message: 'Bulk review failed. No deliverables were updated.',
       })
     } finally {
+      setPendingIds((current) => {
+        const next = new Set(current)
+        selectedIds.forEach((id) => next.delete(id))
+        return next
+      })
       setIsBulkReviewing(false)
+      queryClient.invalidateQueries({ queryKey: ['brand-deliverables'] })
+      queryClient.invalidateQueries({ queryKey: ['brand-deliverables-pending-count'] })
     }
   }
 
@@ -370,11 +471,12 @@ export default function DeliverablesOverviewPage() {
                 <div className="divide-y">
                   {group.items.map((deliverable) => {
                     const dueState = getDueState(deliverable)
+                    const isPending = pendingIds.has(deliverable.id)
                     return (
                     <div
                       key={deliverable.id}
                       className="flex flex-wrap items-center gap-4 p-4 cursor-pointer hover:bg-slate-50"
-                      onClick={() => setReviewDeliverable(deliverable)}
+                      onClick={() => setPreviewDeliverable(deliverable)}
                     >
               <input
                 type="checkbox"
@@ -454,7 +556,7 @@ export default function DeliverablesOverviewPage() {
                   : 'N/A'}
               </div>
               <Badge className={statusStyles[deliverable.status || 'PENDING']}>
-                {deliverable.status || 'PENDING'}
+                {isPending ? 'Updating...' : deliverable.status || 'PENDING'}
               </Badge>
               <div className="flex flex-wrap items-center gap-2">
                 {deliverable.applicationId ? (
@@ -462,13 +564,14 @@ export default function DeliverablesOverviewPage() {
                     <Link href={`/messages?applicationId=${deliverable.applicationId}`}>Message</Link>
                   </Button>
                 ) : null}
-                <Button size="sm" onClick={() => openReview(deliverable, 'APPROVED')}>
+                <Button size="sm" onClick={() => openReview(deliverable, 'APPROVED')} disabled={isPending}>
                   Approve
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => openReview(deliverable, 'REVISION_REQUESTED')}
+                  disabled={isPending}
                 >
                   Request revision
                 </Button>
@@ -476,6 +579,7 @@ export default function DeliverablesOverviewPage() {
                   size="sm"
                   variant="destructive"
                   onClick={() => openReview(deliverable, 'REJECTED')}
+                  disabled={isPending}
                 >
                   Reject
                 </Button>
@@ -497,26 +601,36 @@ export default function DeliverablesOverviewPage() {
               <p className="text-sm font-semibold text-slate-900">Inline preview</p>
               <p className="text-xs text-slate-500">Select a deliverable to review without switching pages.</p>
             </div>
-            {reviewDeliverable ? (
+            {previewDeliverable ? (
               <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
                 <ContextPanel
                   title="Deliverable"
-                  description={reviewDeliverable.campaignDeliverable?.title || 'Deliverable'}
+                  description={previewDeliverable.campaignDeliverable?.title || 'Deliverable'}
                 >
-                  {reviewDeliverable.campaignTitle || 'Campaign'}
+                  {previewDeliverable.campaignTitle || 'Campaign'}
                 </ContextPanel>
                 <ContextPanel
                   title="Creator"
-                  description={reviewDeliverable.creatorName || 'Creator'}
+                  description={previewDeliverable.creatorName || 'Creator'}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => openReview(reviewDeliverable, 'APPROVED')}>
+                  <Button size="sm" onClick={() => openReview(previewDeliverable, 'APPROVED')} disabled={pendingIds.has(previewDeliverable.id)}>
                     Approve
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => openReview(reviewDeliverable, 'REVISION_REQUESTED')}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openReview(previewDeliverable, 'REVISION_REQUESTED')}
+                    disabled={pendingIds.has(previewDeliverable.id)}
+                  >
                     Request revision
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => openReview(reviewDeliverable, 'REJECTED')}>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => openReview(previewDeliverable, 'REJECTED')}
+                    disabled={pendingIds.has(previewDeliverable.id)}
+                  >
                     Reject
                   </Button>
                 </div>

@@ -9,6 +9,7 @@ import { Campaign } from '@/src/types';
 import { useApp } from '@/src/context';
 import { useRefresh, useTheme } from '@/src/hooks';
 import { campaignService } from '@/src/api/services/campaignService';
+import { adaptCampaign } from '@/src/api/adapters';
 
 const platformFilters = [
   { id: 'all', label: 'All' },
@@ -148,7 +149,7 @@ const SavedCampaignCard = memo(function SavedCampaignCard({ campaign, colors, is
 export default function SavedScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const { saveCampaign, unsaveCampaign, isCampaignSaved, addNotification } = useApp();
+  const { saveCampaign, unsaveCampaign, addNotification } = useApp();
 
   const backgroundColor = isDark ? '#101322' : colors.background;
   const surfaceColor = isDark ? '#1c1f2e' : colors.card;
@@ -166,7 +167,10 @@ export default function SavedScreen() {
     try {
       setIsLoading(true);
       setError(null);
-      const savedCampaigns = await campaignService.getSavedCampaigns();
+      const savedCampaigns = (await campaignService.getSavedCampaigns()).map((campaign) => ({
+        ...adaptCampaign(campaign),
+        userState: 'SAVED' as const,
+      }));
       setCampaigns(savedCampaigns);
     } catch (err: any) {
       console.error('[SavedScreen] Failed to fetch saved campaigns:', err);
@@ -213,15 +217,28 @@ export default function SavedScreen() {
     });
   }, [addNotification]);
 
-  const handleSave = useCallback((id: string) => {
-    if (isCampaignSaved(id)) {
-      unsaveCampaign(id);
-      // Remove from local state too
+  const handleUnsave = useCallback(async (id: string) => {
+    try {
+      await unsaveCampaign(id);
       setCampaigns(prev => prev.filter(c => c.id !== id));
-    } else {
-      saveCampaign(id);
+      if (selectedCampaign?.id === id) {
+        setSelectedCampaign(null);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove saved campaign');
     }
-  }, [isCampaignSaved, saveCampaign, unsaveCampaign]);
+  }, [selectedCampaign?.id, unsaveCampaign]);
+
+  const handleSave = useCallback(async (id: string) => {
+    const isSavedInBackendList = campaigns.some((campaign) => campaign.id === id);
+    if (isSavedInBackendList) {
+      await handleUnsave(id);
+      return;
+    }
+
+    await saveCampaign(id);
+    await fetchSavedCampaigns();
+  }, [campaigns, fetchSavedCampaigns, handleUnsave, saveCampaign]);
 
   const handleViewCampaign = useCallback((id: string) => {
     const campaign = campaigns.find((c) => c.id === id);
@@ -235,10 +252,10 @@ export default function SavedScreen() {
         colors={colors}
         isDark={isDark}
         onView={handleViewCampaign}
-        onUnsave={unsaveCampaign}
+        onUnsave={handleUnsave}
       />
     ),
-    [colors, isDark, handleViewCampaign, unsaveCampaign]
+    [colors, isDark, handleViewCampaign, handleUnsave]
   );
 
   const keyExtractor = useCallback((item: Campaign) => item.id, []);
@@ -333,7 +350,7 @@ export default function SavedScreen() {
         campaign={selectedCampaign}
         onApply={handleApply}
         onSave={handleSave}
-        isSaved={selectedCampaign ? isCampaignSaved(selectedCampaign.id) : false}
+        isSaved={selectedCampaign ? campaigns.some((campaign) => campaign.id === selectedCampaign.id) : false}
       />
     </SafeAreaView>
   );

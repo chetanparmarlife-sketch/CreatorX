@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import Link from 'next/link'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { TrendingUp, TrendingDown, CreditCard, Wallet, Download } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { TrendingUp, TrendingDown, CreditCard, Wallet, Download, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,6 +16,9 @@ import {
   useWalletTransactions,
   useCreateDepositOrder,
 } from '@/lib/hooks/use-wallet'
+import { campaignService } from '@/lib/api/campaigns'
+import { workspaceService } from '@/lib/api/workspace'
+import { CampaignStatus, EscrowStatus } from '@/lib/types'
 import Script from 'next/script'
 import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 
@@ -56,6 +61,21 @@ const getTransactionSign = (type: string) => {
   }
 }
 
+const roundTopUp = (value: number) => Math.max(1000, Math.ceil(value / 1000) * 1000)
+
+const getCampaignFundingNeed = (campaign: {
+  budget: number
+  escrowAllocated?: number
+  escrowStatus?: EscrowStatus
+}) => {
+  const escrowStatus = campaign.escrowStatus || EscrowStatus.UNFUNDED
+  if (escrowStatus === EscrowStatus.FUNDED || escrowStatus === EscrowStatus.RELEASED) {
+    return 0
+  }
+
+  return Math.max(0, campaign.budget - (campaign.escrowAllocated ?? 0))
+}
+
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
     <div className="text-center py-12">
@@ -69,6 +89,20 @@ export default function PaymentsPage() {
   const searchParams = useSearchParams()
   const { data: wallet, refetch: refetchWallet } = useBrandWallet()
   const { data: transactionsPage } = useWalletTransactions({ page: 0, size: 20 })
+  const { data: workspaceSummary } = useQuery({
+    queryKey: ['brand-workspace-summary'],
+    queryFn: () => workspaceService.getSummary(),
+    staleTime: 30_000,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+  })
+  const { data: campaignsPage } = useQuery({
+    queryKey: ['campaigns', 'payments-funding-guidance'],
+    queryFn: () => campaignService.getCampaigns({}, 0),
+    staleTime: 60_000,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+  })
   const createDeposit = useCreateDepositOrder()
   const { track } = useBrandEventTracker({
     walletBalance: wallet?.balance ?? null,
@@ -82,7 +116,7 @@ export default function PaymentsPage() {
   useEffect(() => {
     const action = searchParams.get('action')
     const urlAmount = searchParams.get('amount')
-    if (action === 'fund') {
+    if (action === 'fund' || action === 'deposit') {
       setShowAddFunds(true)
       if (urlAmount) {
         const parsed = Number(urlAmount)
@@ -94,6 +128,29 @@ export default function PaymentsPage() {
   }, [searchParams])
 
   const transactions = transactionsPage?.items ?? []
+  const campaigns = campaignsPage?.items ?? []
+  const fundingCampaigns = useMemo(
+    () =>
+      campaigns
+        .filter(
+          (campaign) =>
+            ![CampaignStatus.COMPLETED, CampaignStatus.CANCELLED].includes(campaign.status) &&
+            getCampaignFundingNeed(campaign) > 0
+        )
+        .sort((a, b) => getCampaignFundingNeed(b) - getCampaignFundingNeed(a)),
+    [campaigns]
+  )
+  const upcomingCommitments = useMemo(
+    () =>
+      fundingCampaigns.reduce(
+        (total, campaign) => total + getCampaignFundingNeed(campaign),
+        0
+      ),
+    [fundingCampaigns]
+  )
+  const recommendedTopUp = Math.max(0, upcomingCommitments - (wallet?.balance ?? 0))
+  const walletBlockers = workspaceSummary?.walletBlockers ?? fundingCampaigns.length
+  const priorityFundingCampaigns = fundingCampaigns.slice(0, 3)
 
   const exportTransactionsCsv = useCallback(() => {
     if (!transactions.length) return
@@ -178,6 +235,20 @@ export default function PaymentsPage() {
       setError(err.message || 'Failed to create payment order')
       setIsProcessing(false)
     }
+  }
+
+  const openRecommendedFunding = () => {
+    const nextAmount = roundTopUp(recommendedTopUp || 10000)
+    setAmount(nextAmount)
+    setShowAddFunds(true)
+    setError(null)
+    track('quick_action_clicked', {
+      action_id: 'open_recommended_wallet_funding',
+      action_title: 'Open Recommended Wallet Funding',
+      destination: '/payments',
+      recommended_amount: nextAmount,
+      wallet_blockers: walletBlockers,
+    })
   }
 
   return (
@@ -304,6 +375,75 @@ export default function PaymentsPage() {
             </div>
           </Card>
         </div>
+
+        <Card className="border-amber-200 bg-amber-50/60 p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-amber-950">Campaign funding guidance</p>
+                <p className="mt-1 text-sm text-amber-800">
+                  {walletBlockers > 0
+                    ? `${walletBlockers} campaign${walletBlockers === 1 ? '' : 's'} need funding attention before creators can move smoothly.`
+                    : 'No campaign funding blockers found in the current workspace queue.'}
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-amber-700">Upcoming commitments</p>
+                    <p className="mt-1 text-lg font-semibold text-amber-950">
+                      {formatCurrency(upcomingCommitments)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-amber-700">Available wallet</p>
+                    <p className="mt-1 text-lg font-semibold text-amber-950">
+                      {formatCurrency(wallet?.balance ?? 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-amber-700">Recommended top-up</p>
+                    <p className="mt-1 text-lg font-semibold text-amber-950">
+                      {formatCurrency(recommendedTopUp)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+              <Button
+                size="sm"
+                onClick={openRecommendedFunding}
+                disabled={recommendedTopUp <= 0 && walletBlockers === 0}
+              >
+                Add recommended funds
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/campaigns">Review campaigns</Link>
+              </Button>
+            </div>
+          </div>
+
+          {priorityFundingCampaigns.length > 0 && (
+            <div className="mt-5 divide-y rounded-lg border border-amber-200 bg-white">
+              {priorityFundingCampaigns.map((campaign) => {
+                const need = getCampaignFundingNeed(campaign)
+                return (
+                  <div key={campaign.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-medium text-slate-900">{campaign.title}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {campaign.status} / {campaign.escrowStatus || EscrowStatus.UNFUNDED} / needs {formatCurrency(need)}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/campaigns/${campaign.id}`}>Open funding</Link>
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
 
         <Card>
           <div className="p-6 border-b flex items-center justify-between">
