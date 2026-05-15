@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -76,23 +77,11 @@ public class CampaignAnalyticsService {
         builder.totalShortlisted(applicationStatusBreakdown.getOrDefault(ApplicationStatus.SHORTLISTED.name(), 0L));
         builder.totalRejected(applicationStatusBreakdown.getOrDefault(ApplicationStatus.REJECTED.name(), 0L));
         
-        // Deliverable status breakdown
         Map<String, Long> deliverableStatusBreakdown = new HashMap<>();
-        // Get all applications for this campaign
-        List<String> applicationIds = applicationRepository.findByCampaignId(campaignId).stream()
-                .map(app -> app.getId())
-                .collect(Collectors.toList());
-        
-        if (!applicationIds.isEmpty()) {
-            // Count deliverables by status using repository query
-            for (SubmissionStatus status : SubmissionStatus.values()) {
-                long count = 0;
-                for (String applicationId : applicationIds) {
-                    count += deliverableRepository.countByApplicationIdAndStatus(applicationId, status);
-                }
-                if (count > 0) {
-                    deliverableStatusBreakdown.put(status.name(), count);
-                }
+        for (SubmissionStatus status : SubmissionStatus.values()) {
+            long count = deliverableRepository.countByCampaignIdAndStatus(campaignId, status);
+            if (count > 0) {
+                deliverableStatusBreakdown.put(status.name(), count);
             }
         }
         builder.deliverableStatusBreakdown(deliverableStatusBreakdown);
@@ -153,9 +142,10 @@ public class CampaignAnalyticsService {
     
     private CampaignAnalyticsDTO.EngagementMetrics calculateEngagementMetrics(String campaignId) {
         // Get selected applications with their creator IDs
-        var selectedApplications = applicationRepository.findByCampaignId(campaignId).stream()
-                .filter(app -> app.getStatus() == ApplicationStatus.SELECTED)
-                .collect(Collectors.toList());
+        var selectedApplications = applicationRepository.findByCampaignIdAndStatus(
+                campaignId,
+                ApplicationStatus.SELECTED,
+                PageRequest.of(0, 1000)).getContent();
 
         if (selectedApplications.isEmpty()) {
             return CampaignAnalyticsDTO.EngagementMetrics.builder()
@@ -223,4 +213,3 @@ public class CampaignAnalyticsService {
                 : 0.0;
     }
 }
-

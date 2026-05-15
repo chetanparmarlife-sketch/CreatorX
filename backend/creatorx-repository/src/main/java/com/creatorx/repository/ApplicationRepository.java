@@ -18,7 +18,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Find applications by creator (JOIN FETCH campaign to avoid N+1)
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :creatorId ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId")
@@ -26,7 +26,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
 
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :creatorId AND a.status = :status ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId AND a.status = :status")
@@ -38,7 +38,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
 
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query(value = "SELECT a FROM Application a WHERE a.campaign.id = :campaignId ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.id = :campaignId")
@@ -46,7 +46,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query("SELECT a FROM Application a WHERE a.campaign.id = :campaignId AND a.status = :status ORDER BY a.appliedAt DESC")
     Page<Application> findByCampaignIdAndStatus(
@@ -58,7 +58,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Find pending applications for brand (JOIN FETCH campaign to avoid N+1)
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE c.brand.id = :brandId AND a.status = 'APPLIED' ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId AND a.status = 'APPLIED'")
@@ -67,7 +67,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Find all applications for brand (JOIN FETCH campaign to avoid N+1)
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE c.brand.id = :brandId ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId")
@@ -75,7 +75,7 @@ public interface ApplicationRepository extends JpaRepository<Application, String
 
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE " +
            "(:brandId IS NULL OR c.brand.id = :brandId) AND " +
@@ -111,11 +111,20 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Count active applications (not WITHDRAWN or REJECTED) for a creator
     @Query("SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId AND a.status NOT IN ('WITHDRAWN', 'REJECTED')")
     long countActiveApplicationsByCreatorId(@Param("creatorId") String creatorId);
+
+    @Query("SELECT a.creator.id, COUNT(a) FROM Application a WHERE a.creator.id IN :creatorIds GROUP BY a.creator.id")
+    List<Object[]> countByCreatorIds(@Param("creatorIds") List<String> creatorIds);
+
+    @Query("SELECT a.creator.id, COUNT(a) FROM Application a WHERE a.creator.id IN :creatorIds AND a.status = :status GROUP BY a.creator.id")
+    List<Object[]> countByCreatorIdsAndStatus(
+        @Param("creatorIds") List<String> creatorIds,
+        @Param("status") ApplicationStatus status
+    );
     
     // Find applications by user ID (alias for findByCreatorId - used by ComplianceService)
     @EntityGraph(attributePaths = {
             "creator", "creator.creatorProfile", "creator.userProfile",
-            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :userId ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :userId")

@@ -258,12 +258,12 @@ public class AdminCampaignManagementController {
     @PostMapping("/deliverables/{submissionId}/review")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Review deliverable", description = "Review deliverable on behalf of the brand")
-    public void reviewDeliverable(
+    public DeliverableDTO reviewDeliverable(
             @PathVariable String submissionId,
             @Valid @RequestBody ReviewRequest request,
             Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
-        adminCampaignManagementService.reviewDeliverable(
+        return adminCampaignManagementService.reviewDeliverable(
                 authentication.getName(),
                 submissionId,
                 request.getStatus(),

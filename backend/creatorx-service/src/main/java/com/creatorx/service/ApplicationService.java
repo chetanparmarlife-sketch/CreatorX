@@ -122,11 +122,7 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public Page<ApplicationDTO> getApplications(String creatorId, Pageable pageable) {
         Page<Application> applications = applicationRepository.findByCreatorId(creatorId, pageable);
-        return applications.map(app -> {
-            ApplicationDTO dto = applicationMapper.toDTO(app);
-            dto.setCampaign(campaignMapper.toDTO(app.getCampaign()));
-            return dto;
-        });
+        return mapApplicationList(applications);
     }
     
     /**
@@ -135,11 +131,7 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public Page<ApplicationDTO> getApplicationsByStatus(String creatorId, ApplicationStatus status, Pageable pageable) {
         Page<Application> applications = applicationRepository.findByCreatorIdAndStatus(creatorId, status, pageable);
-        return applications.map(app -> {
-            ApplicationDTO dto = applicationMapper.toDTO(app);
-            dto.setCampaign(campaignMapper.toDTO(app.getCampaign()));
-            return dto;
-        });
+        return mapApplicationList(applications);
     }
     
     /**
@@ -149,11 +141,7 @@ public class ApplicationService {
     public Page<ApplicationDTO> getApplicationsForBrand(String brandId, Pageable pageable) {
         // Get all applications for campaigns owned by this brand
         Page<Application> applications = applicationRepository.findAllApplicationsForBrand(brandId, pageable);
-        return applications.map(app -> {
-            ApplicationDTO dto = applicationMapper.toDTO(app);
-            dto.setCampaign(campaignMapper.toDTO(app.getCampaign()));
-            return dto;
-        });
+        return mapApplicationList(applications);
     }
 
     /**
@@ -162,11 +150,7 @@ public class ApplicationService {
     @Transactional(readOnly = true)
     public Page<ApplicationDTO> getApplicationsForAdmin(String brandId, String campaignId, ApplicationStatus status, Pageable pageable) {
         Page<Application> applications = applicationRepository.findAdminApplications(brandId, campaignId, status, pageable);
-        return applications.map(app -> {
-            ApplicationDTO dto = applicationMapper.toDTO(app);
-            dto.setCampaign(campaignMapper.toDTO(app.getCampaign()));
-            return dto;
-        });
+        return mapApplicationList(applications);
     }
     
     /**
@@ -184,11 +168,7 @@ public class ApplicationService {
         
         Page<Application> applicationPage = applicationRepository.findPageByCampaignId(campaignId, pageable);
         
-        return applicationPage.map(app -> {
-            ApplicationDTO dto = applicationMapper.toDTO(app);
-            dto.setCampaign(campaignMapper.toDTO(app.getCampaign()));
-            return dto;
-        });
+        return mapApplicationList(applicationPage);
     }
     
     /**
@@ -286,7 +266,7 @@ public class ApplicationService {
                 Map.of("applicationId", id, "campaignId", application.getCampaign().getId())
         );
 
-        return toDTOWithCampaign(saved);
+        return toDTOWithCampaignSummary(saved);
     }
     
     /**
@@ -355,7 +335,7 @@ public class ApplicationService {
                        "conversationId", conversation.getId())
         );
 
-        return toDTOWithCampaign(saved);
+        return toDTOWithCampaignSummary(saved);
     }
     
     /**
@@ -406,7 +386,7 @@ public class ApplicationService {
                 Map.of("applicationId", id, "campaignId", application.getCampaign().getId())
         );
 
-        return toDTOWithCampaign(saved);
+        return toDTOWithCampaignSummary(saved);
     }
     
     /**
@@ -500,7 +480,7 @@ public class ApplicationService {
                     application.setStatus(ApplicationStatus.APPLIED);
                     Application saved = applicationRepository.save(application);
                     log.info("Application status reverted to APPLIED: {} by brand: {}", id, brandId);
-                    return toDTOWithCampaign(saved);
+                    return toDTOWithCampaignSummary(saved);
                 } else {
                     throw new BusinessException("Cannot revert to APPLIED status from " + currentStatus);
                 }
@@ -593,9 +573,50 @@ public class ApplicationService {
         return creator.getEmail();
     }
 
+    private Page<ApplicationDTO> mapApplicationList(Page<Application> applications) {
+        return applications.map(this::toDTOWithCampaignSummary);
+    }
+
     private ApplicationDTO toDTOWithCampaign(Application application) {
         ApplicationDTO dto = applicationMapper.toDTO(application);
         dto.setCampaign(campaignMapper.toDTO(application.getCampaign()));
         return dto;
+    }
+
+    private ApplicationDTO toDTOWithCampaignSummary(Application application) {
+        ApplicationDTO dto = applicationMapper.toDTO(application);
+        dto.setCampaign(toCampaignSummaryDTO(application.getCampaign()));
+        return dto;
+    }
+
+    private CampaignDTO toCampaignSummaryDTO(Campaign campaign) {
+        CampaignDTO.BrandInfo brandInfo = null;
+        if (campaign.getBrand() != null) {
+            brandInfo = new CampaignDTO.BrandInfo();
+            brandInfo.setId(campaign.getBrand().getId());
+            brandInfo.setEmail(campaign.getBrand().getEmail());
+            if (campaign.getBrand().getBrandProfile() != null) {
+                brandInfo.setName(campaign.getBrand().getBrandProfile().getCompanyName());
+                brandInfo.setLogoUrl(campaign.getBrand().getBrandProfile().getCompanyLogoUrl());
+                brandInfo.setVerified(campaign.getBrand().getBrandProfile().getVerified());
+            } else if (campaign.getBrand().getUserProfile() != null) {
+                brandInfo.setName(campaign.getBrand().getUserProfile().getFullName());
+            }
+        }
+
+        return CampaignDTO.builder()
+                .id(campaign.getId())
+                .title(campaign.getTitle())
+                .budget(campaign.getBudget())
+                .platform(campaign.getPlatform())
+                .category(campaign.getCategory())
+                .status(campaign.getStatus())
+                .startDate(campaign.getStartDate())
+                .endDate(campaign.getEndDate())
+                .applicationDeadline(campaign.getApplicationDeadline())
+                .brand(brandInfo)
+                .createdAt(campaign.getCreatedAt())
+                .updatedAt(campaign.getUpdatedAt())
+                .build();
     }
 }

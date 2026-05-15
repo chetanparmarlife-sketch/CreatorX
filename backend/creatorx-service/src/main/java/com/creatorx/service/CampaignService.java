@@ -261,7 +261,7 @@ public class CampaignService {
         
         // Add application count for creators
         if (currentUser != null && currentUser.getRole() == UserRole.CREATOR) {
-            dto.setApplicationCount((long) campaign.getApplications().size());
+            dto.setApplicationCount(applicationRepository.countByCampaignId(id));
             dto.setIsSaved(isCampaignSaved(currentUser.getId(), id));
         }
         

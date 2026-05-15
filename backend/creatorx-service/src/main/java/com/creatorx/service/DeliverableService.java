@@ -67,11 +67,7 @@ public class DeliverableService {
                     creatorId, pageable);
         }
 
-        return submissionsPage.map(submission -> {
-            DeliverableDTO dto = deliverableMapper.toDTO(submission);
-            enrichDeliverableDTO(dto, submission);
-            return dto;
-        });
+        return mapDeliverableList(submissionsPage);
     }
 
     /**
@@ -87,33 +83,15 @@ public class DeliverableService {
             submissionsPage = deliverableRepository.findPendingDeliverablesForBrand(
                     brandId, pageable);
         } else if (status != null) {
-            // For specific status other than PENDING, fetch all and filter
-            // Note: This uses in-memory filtering - ideally add specific repo queries
-            Page<DeliverableSubmission> allPage = deliverableRepository.findDeliverablesForBrand(
-                    brandId, pageable);
-            List<DeliverableDTO> filtered = allPage.getContent().stream()
-                    .filter(ds -> ds.getStatus() == status)
-                    .map(submission -> {
-                        DeliverableDTO dto = deliverableMapper.toDTO(submission);
-                        enrichDeliverableDTO(dto, submission);
-                        return dto;
-                    })
-                    .collect(Collectors.toList());
-            // Return filtered results with original page metadata
-            return new org.springframework.data.domain.PageImpl<>(
-                    filtered, pageable, allPage.getTotalElements());
+            submissionsPage = deliverableRepository.findDeliverablesForBrandAndStatus(
+                    brandId, status, pageable);
         } else {
             // Get all deliverables for brand
             submissionsPage = deliverableRepository.findDeliverablesForBrand(
                     brandId, pageable);
         }
 
-        // Map submissions to DTOs
-        return submissionsPage.map(submission -> {
-            DeliverableDTO dto = deliverableMapper.toDTO(submission);
-            enrichDeliverableDTO(dto, submission);
-            return dto;
-        });
+        return mapDeliverableList(submissionsPage);
     }
 
     /**
@@ -130,50 +108,12 @@ public class DeliverableService {
             throw new UnauthorizedException("You can only view deliverables for your own campaigns");
         }
 
-        // Get all applications for this campaign
-        List<String> applicationIds = applicationRepository.findByCampaignId(campaignId).stream()
-                .map(app -> app.getId())
-                .collect(Collectors.toList());
-
-        // Get deliverables for these applications (in-memory filtering and pagination)
-        // Note: This approach loads all data then paginates. For better performance,
-        // consider adding a repository method that does campaign-level pagination in
-        // SQL.
-        List<DeliverableSubmission> allSubmissions = new java.util.ArrayList<>();
-        for (String applicationId : applicationIds) {
-            List<DeliverableSubmission> appDeliverables = deliverableRepository.findByApplicationId(applicationId);
-            if (status != null) {
-                appDeliverables = appDeliverables.stream()
-                        .filter(ds -> ds.getStatus() == status)
-                        .collect(Collectors.toList());
-            }
-            allSubmissions.addAll(appDeliverables);
-        }
-
-        // Sort by submitted date (most recent first)
-        allSubmissions.sort((a, b) -> b.getSubmittedAt().compareTo(a.getSubmittedAt()));
-
-        // Manual pagination
         Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), allSubmissions.size());
+        Page<DeliverableSubmission> submissionsPage = status != null
+                ? deliverableRepository.findPageByCampaignIdAndStatus(campaignId, status, pageable)
+                : deliverableRepository.findPageByCampaignId(campaignId, pageable);
 
-        // Handle edge case where start is beyond list size
-        if (start >= allSubmissions.size()) {
-            return new org.springframework.data.domain.PageImpl<>(
-                    new java.util.ArrayList<>(), pageable, allSubmissions.size());
-        }
-
-        List<DeliverableDTO> paginatedDTOs = allSubmissions.subList(start, end).stream()
-                .map(submission -> {
-                    DeliverableDTO dto = deliverableMapper.toDTO(submission);
-                    enrichDeliverableDTO(dto, submission);
-                    return dto;
-                })
-                .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(
-                paginatedDTOs, pageable, allSubmissions.size());
+        return mapDeliverableList(submissionsPage);
     }
 
     /**
@@ -188,11 +128,7 @@ public class DeliverableService {
                 status,
                 pageable);
 
-        return submissions.map(submission -> {
-            DeliverableDTO dto = deliverableMapper.toDTO(submission);
-            enrichDeliverableDTO(dto, submission);
-            return dto;
-        });
+        return mapDeliverableList(submissions);
     }
 
     /**
@@ -209,38 +145,12 @@ public class DeliverableService {
             throw new UnauthorizedException("You can only view deliverables for your own campaigns");
         }
 
-        List<DeliverableSubmission> allSubmissions = deliverableRepository.findByApplicationId(applicationId);
-
-        if (status != null) {
-            allSubmissions = allSubmissions.stream()
-                    .filter(ds -> ds.getStatus() == status)
-                    .collect(Collectors.toList());
-        }
-
-        // Sort by submitted date (most recent first)
-        allSubmissions.sort((a, b) -> b.getSubmittedAt().compareTo(a.getSubmittedAt()));
-
-        // Manual pagination
         Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), allSubmissions.size());
+        Page<DeliverableSubmission> submissionsPage = status != null
+                ? deliverableRepository.findPageByApplicationIdAndStatus(applicationId, status, pageable)
+                : deliverableRepository.findPageByApplicationId(applicationId, pageable);
 
-        // Handle edge case where start is beyond list size
-        if (start >= allSubmissions.size()) {
-            return new org.springframework.data.domain.PageImpl<>(
-                    new java.util.ArrayList<>(), pageable, allSubmissions.size());
-        }
-
-        List<DeliverableDTO> paginatedDTOs = allSubmissions.subList(start, end).stream()
-                .map(submission -> {
-                    DeliverableDTO dto = deliverableMapper.toDTO(submission);
-                    enrichDeliverableDTO(dto, submission);
-                    return dto;
-                })
-                .collect(Collectors.toList());
-
-        return new org.springframework.data.domain.PageImpl<>(
-                paginatedDTOs, pageable, allSubmissions.size());
+        return mapDeliverableList(submissionsPage);
     }
 
     /**
@@ -489,7 +399,7 @@ public class DeliverableService {
      * Review deliverable (Brand only, Phase 2)
      */
     @Transactional
-    public void reviewDeliverable(String brandId, String submissionId, SubmissionStatus status, String feedback) {
+    public DeliverableDTO reviewDeliverable(String brandId, String submissionId, SubmissionStatus status, String feedback) {
         DeliverableSubmission submission = deliverableRepository.findById(submissionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Deliverable submission", submissionId));
 
@@ -537,7 +447,7 @@ public class DeliverableService {
             }
         }
 
-        deliverableRepository.save(submission);
+        DeliverableSubmission saved = deliverableRepository.save(submission);
 
         log.info("Deliverable reviewed: {} by brand: {} with status: {}", submissionId, brandId, status);
 
@@ -582,9 +492,36 @@ public class DeliverableService {
                         submission.getApplication().getCampaign().getTitle(), status),
                 Map.of("deliverableId", submission.getId(), "status", status.name(),
                         "applicationId", submission.getApplication().getId()));
+
+        DeliverableDTO dto = deliverableMapper.toDTO(saved);
+        enrichDeliverableDTO(dto, saved);
+        return dto;
     }
 
     // Helper methods
+
+    private Page<DeliverableDTO> mapDeliverableList(Page<DeliverableSubmission> submissions) {
+        return submissions.map(submission -> {
+            DeliverableDTO dto = deliverableMapper.toDTO(submission);
+            enrichDeliverableListDTO(dto, submission);
+            return dto;
+        });
+    }
+
+    private void enrichDeliverableListDTO(DeliverableDTO dto, DeliverableSubmission submission) {
+        dto.setApplicationId(submission.getApplication().getId());
+        dto.setCampaignId(submission.getApplication().getCampaign().getId());
+        dto.setCampaignTitle(submission.getApplication().getCampaign().getTitle());
+        dto.setCreatorId(submission.getApplication().getCreator().getId());
+        dto.setCreatorName(getCreatorName(submission.getApplication().getCreator()));
+
+        if (dto.getFileUrl() != null && dto.getFileName() == null) {
+            dto.setFileName(extractFileNameFromUrl(dto.getFileUrl()));
+        }
+
+        dto.setVersionNumber(1);
+        dto.setIsLatest(true);
+    }
 
     private void enrichDeliverableDTO(DeliverableDTO dto, DeliverableSubmission submission) {
         dto.setApplicationId(submission.getApplication().getId());

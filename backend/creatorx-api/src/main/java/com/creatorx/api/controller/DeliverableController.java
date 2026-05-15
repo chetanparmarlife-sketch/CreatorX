@@ -148,18 +148,18 @@ public class DeliverableController {
      */
     @PostMapping("/{id}/review")
     @PreAuthorize("hasRole('BRAND')")
-    public ResponseEntity<Void> reviewDeliverable(
+    public ResponseEntity<DeliverableDTO> reviewDeliverable(
             @PathVariable String id,
             @Valid @RequestBody ReviewRequest request,
             Authentication authentication) {
         String brandId = authentication.getName();
 
-        deliverableService.reviewDeliverable(
+        DeliverableDTO deliverable = deliverableService.reviewDeliverable(
                 brandId,
                 id,
                 request.getStatus(),
                 request.getFeedback());
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(deliverable);
     }
 }

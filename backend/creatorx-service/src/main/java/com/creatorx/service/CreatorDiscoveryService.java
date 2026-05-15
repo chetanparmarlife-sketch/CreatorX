@@ -17,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * Service for creator discovery and search
@@ -34,8 +36,6 @@ public class CreatorDiscoveryService {
     
     /**
      * Search creators with filters
-     * Note: This implementation filters after pagination for simplicity.
-     * In production, move filtering to repository query level for better performance.
      */
     @Transactional(readOnly = true)
     public Page<CreatorDTO> searchCreators(
@@ -46,75 +46,35 @@ public class CreatorDiscoveryService {
             Integer maxFollowers,
             Pageable pageable
     ) {
-        // For now, fetch all and filter (inefficient but works)
-        // TODO: Move to Criteria API or native query for production
-        List<CreatorProfile> allProfiles = creatorProfileRepository.findAll();
-        
-        // Apply filters
-        List<CreatorProfile> filtered = allProfiles.stream()
-                .filter(profile -> {
-                    // Null safety checks
-                    if (profile.getUsername() == null || profile.getCategory() == null) {
-                        return false;
-                    }
-                    
-                    // Search filter
-                    if (search != null && !search.trim().isEmpty()) {
-                        String searchLower = search.toLowerCase();
-                        boolean matchesSearch = 
-                                profile.getUsername().toLowerCase().contains(searchLower) ||
-                                profile.getCategory().toLowerCase().contains(searchLower) ||
-                                (profile.getUser() != null && 
-                                 profile.getUser().getEmail() != null && 
-                                 profile.getUser().getEmail().toLowerCase().contains(searchLower));
-                        if (!matchesSearch) return false;
-                    }
-                    
-                    // Category filter
-                    if (categories != null && !categories.isEmpty()) {
-                        if (!categories.contains(profile.getCategory())) {
-                            return false;
-                        }
-                    }
-                    
-                    // Platform filter (check social media URLs)
-                    if (platform != null && !platform.trim().isEmpty()) {
-                        boolean hasPlatform = switch (platform.toUpperCase()) {
-                            case "INSTAGRAM" -> profile.getInstagramUrl() != null;
-                            case "YOUTUBE" -> profile.getYoutubeUrl() != null;
-                            case "TIKTOK" -> profile.getTiktokUrl() != null;
-                            case "TWITTER" -> profile.getTwitterUrl() != null;
-                            default -> true;
-                        };
-                        if (!hasPlatform) return false;
-                    }
-                    
-                    // Follower count filter
-                    if (minFollowers != null && profile.getFollowerCount() < minFollowers) {
-                        return false;
-                    }
-                    if (maxFollowers != null && profile.getFollowerCount() > maxFollowers) {
-                        return false;
-                    }
-                    
-                    return true;
-                })
-                .collect(Collectors.toList());
-        
-        // Apply pagination manually
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), filtered.size());
-        List<CreatorProfile> pageContent = start < filtered.size() 
-                ? filtered.subList(start, Math.min(end, filtered.size()))
-                : new ArrayList<>();
-        
-        // Map to DTOs
-        List<CreatorDTO> dtos = pageContent.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-        
-        // Create a custom page with correct total
-        return new org.springframework.data.domain.PageImpl<>(dtos, pageable, filtered.size());
+        boolean categoriesEmpty = categories == null || categories.isEmpty();
+        List<String> categoriesForQuery = categoriesEmpty ? List.of("__none__") : categories;
+        String normalizedSearch = search != null && !search.trim().isEmpty() ? search.trim() : null;
+        String normalizedPlatform = platform != null && !platform.trim().isEmpty()
+                ? platform.trim().toUpperCase()
+                : null;
+        if (normalizedPlatform != null
+                && !List.of("INSTAGRAM", "YOUTUBE", "TIKTOK", "TWITTER").contains(normalizedPlatform)) {
+            normalizedPlatform = null;
+        }
+
+        Page<CreatorProfile> profiles = creatorProfileRepository.searchCreators(
+                normalizedSearch,
+                categoriesForQuery,
+                categoriesEmpty,
+                normalizedPlatform,
+                minFollowers,
+                maxFollowers,
+                pageable);
+
+        Map<String, Long> totalApplications = countApplicationsByCreator(profiles.getContent(), null);
+        Map<String, Long> selectedApplications = countApplicationsByCreator(
+                profiles.getContent(),
+                com.creatorx.common.enums.ApplicationStatus.SELECTED);
+
+        return profiles.map(profile -> mapToDTO(
+                profile,
+                totalApplications.getOrDefault(profile.getUser().getId(), 0L),
+                selectedApplications.getOrDefault(profile.getUser().getId(), 0L)));
     }
     
     /**
@@ -130,10 +90,17 @@ public class CreatorDiscoveryService {
             throw new ResourceNotFoundException("Creator Profile", creatorId);
         }
         
-        return mapToDTO(profile);
+        long totalApplications = applicationRepository.findByCreatorId(user.getId(),
+                org.springframework.data.domain.PageRequest.of(0, 1)).getTotalElements();
+        long selectedApplications = applicationRepository.findByCreatorIdAndStatus(
+                user.getId(),
+                com.creatorx.common.enums.ApplicationStatus.SELECTED,
+                org.springframework.data.domain.PageRequest.of(0, 1)).getTotalElements();
+
+        return mapToDTO(profile, totalApplications, selectedApplications);
     }
     
-    private CreatorDTO mapToDTO(CreatorProfile profile) {
+    private CreatorDTO mapToDTO(CreatorProfile profile, long totalApplications, long selectedApplications) {
         User user = profile.getUser();
         
         // Build platforms list
@@ -142,14 +109,6 @@ public class CreatorDiscoveryService {
         if (profile.getYoutubeUrl() != null) platforms.add("YOUTUBE");
         if (profile.getTiktokUrl() != null) platforms.add("TIKTOK");
         if (profile.getTwitterUrl() != null) platforms.add("TWITTER");
-        
-        // Calculate stats
-        long totalApplications = applicationRepository.findByCreatorId(user.getId(), 
-                org.springframework.data.domain.PageRequest.of(0, 1000)).getTotalElements();
-        long selectedApplications = applicationRepository.findByCreatorIdAndStatus(
-                user.getId(), 
-                com.creatorx.common.enums.ApplicationStatus.SELECTED,
-                org.springframework.data.domain.PageRequest.of(0, 1000)).getTotalElements();
         
         double acceptanceRate = totalApplications > 0 
                 ? (double) selectedApplications / totalApplications * 100 
@@ -178,5 +137,28 @@ public class CreatorDiscoveryService {
                 .portfolioItemsCount(profile.getPortfolioItems() != null ? profile.getPortfolioItems().size() : 0)
                 .stats(stats)
                 .build();
+    }
+
+    private Map<String, Long> countApplicationsByCreator(
+            List<CreatorProfile> profiles,
+            com.creatorx.common.enums.ApplicationStatus status) {
+        if (profiles.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<String> creatorIds = profiles.stream()
+                .map(profile -> profile.getUser().getId())
+                .distinct()
+                .toList();
+
+        List<Object[]> rows = status == null
+                ? applicationRepository.countByCreatorIds(creatorIds)
+                : applicationRepository.countByCreatorIdsAndStatus(creatorIds, status);
+
+        Map<String, Long> counts = new HashMap<>();
+        for (Object[] row : rows) {
+            counts.put((String) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 }

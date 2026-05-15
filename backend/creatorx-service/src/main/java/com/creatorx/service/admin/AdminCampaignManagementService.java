@@ -218,16 +218,17 @@ public class AdminCampaignManagementService {
     }
 
     @Transactional
-    public void reviewDeliverable(String adminId, String submissionId, SubmissionStatus status, String feedback) {
+    public DeliverableDTO reviewDeliverable(String adminId, String submissionId, SubmissionStatus status, String feedback) {
         DeliverableSubmission submission = deliverableRepository.findById(submissionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Deliverable submission", submissionId));
         String brandId = submission.getApplication().getCampaign().getBrand().getId();
-        deliverableService.reviewDeliverable(brandId, submissionId, status, feedback);
+        DeliverableDTO updated = deliverableService.reviewDeliverable(brandId, submissionId, status, feedback);
         logAction(adminId, "DELIVERABLE", submissionId, "REVIEW_DELIVERABLE", Map.of(
                 "brandId", brandId,
                 "submissionId", submissionId,
                 "status", status != null ? status.name() : null,
                 "campaignId", submission.getApplication().getCampaign().getId()));
+        return updated;
     }
 
     @Transactional(readOnly = true)
