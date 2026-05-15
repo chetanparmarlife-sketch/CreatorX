@@ -36,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -114,10 +113,7 @@ public class ApplicationService {
                 Map.of("applicationId", saved.getId(), "campaignId", campaignId, "creatorId", creatorId)
         );
         
-        ApplicationDTO dto = applicationMapper.toDTO(saved);
-        // Set campaign manually since we need CampaignMapper
-        dto.setCampaign(campaignMapper.toDTO(saved.getCampaign()));
-        return dto;
+        return toDTOWithCampaign(saved);
     }
     
     /**
@@ -186,17 +182,7 @@ public class ApplicationService {
             throw new UnauthorizedException("You can only view applications for your own campaigns");
         }
         
-        List<Application> allApplications = applicationRepository.findByCampaignId(campaignId);
-        
-        // Convert to page manually
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), allApplications.size());
-        List<Application> pageContent = start < allApplications.size() 
-                ? allApplications.subList(start, Math.min(end, allApplications.size()))
-                : new ArrayList<>();
-        
-        Page<Application> applicationPage = new org.springframework.data.domain.PageImpl<>(
-                pageContent, pageable, allApplications.size());
+        Page<Application> applicationPage = applicationRepository.findPageByCampaignId(campaignId, pageable);
         
         return applicationPage.map(app -> {
             ApplicationDTO dto = applicationMapper.toDTO(app);
@@ -259,7 +245,7 @@ public class ApplicationService {
      * Shortlist application (brand only)
      */
     @Transactional
-    public void shortlistApplication(String brandId, String id) {
+    public ApplicationDTO shortlistApplication(String brandId, String id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", id));
         
@@ -287,7 +273,7 @@ public class ApplicationService {
             feedback.setShortlistedAt(LocalDateTime.now());
         }
         
-        applicationRepository.save(application);
+        Application saved = applicationRepository.save(application);
         log.info("Application shortlisted: {} by brand: {}", id, brandId);
         
         // Send notification to creator
@@ -299,13 +285,15 @@ public class ApplicationService {
                         application.getCampaign().getTitle()),
                 Map.of("applicationId", id, "campaignId", application.getCampaign().getId())
         );
+
+        return toDTOWithCampaign(saved);
     }
     
     /**
      * Select application (brand only, creates conversation)
      */
     @Transactional
-    public void selectApplication(String brandId, String id) {
+    public ApplicationDTO selectApplication(String brandId, String id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", id));
         
@@ -334,7 +322,7 @@ public class ApplicationService {
             feedback.setSelectedAt(LocalDateTime.now());
         }
         
-        applicationRepository.save(application);
+        Application saved = applicationRepository.save(application);
         
         // Create conversation between creator and brand
         Conversation conversation = conversationRepository
@@ -366,13 +354,15 @@ public class ApplicationService {
                 Map.of("applicationId", id, "campaignId", application.getCampaign().getId(), 
                        "conversationId", conversation.getId())
         );
+
+        return toDTOWithCampaign(saved);
     }
     
     /**
      * Reject application (brand only)
      */
     @Transactional
-    public void rejectApplication(String brandId, String id, String reason) {
+    public ApplicationDTO rejectApplication(String brandId, String id, String reason) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", id));
         
@@ -403,7 +393,7 @@ public class ApplicationService {
             feedback.setRejectedAt(LocalDateTime.now());
         }
         
-        applicationRepository.save(application);
+        Application saved = applicationRepository.save(application);
         log.info("Application rejected: {} by brand: {}", id, brandId);
         
         // Send notification to creator
@@ -415,6 +405,8 @@ public class ApplicationService {
                         application.getCampaign().getTitle(), reason != null ? reason : "Not specified"),
                 Map.of("applicationId", id, "campaignId", application.getCampaign().getId())
         );
+
+        return toDTOWithCampaign(saved);
     }
     
     /**
@@ -479,7 +471,7 @@ public class ApplicationService {
      * Update application status (Brand only)
      */
     @Transactional
-    public void updateApplicationStatus(String brandId, String id, ApplicationStatus newStatus, String reason) {
+    public ApplicationDTO updateApplicationStatus(String brandId, String id, ApplicationStatus newStatus, String reason) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", id));
         
@@ -497,24 +489,21 @@ public class ApplicationService {
         // Handle status update
         switch (newStatus) {
             case SHORTLISTED:
-                shortlistApplication(brandId, id);
-                return;
+                return shortlistApplication(brandId, id);
             case SELECTED:
-                selectApplication(brandId, id);
-                return;
+                return selectApplication(brandId, id);
             case REJECTED:
-                rejectApplication(brandId, id, reason != null ? reason : "Not selected");
-                return;
+                return rejectApplication(brandId, id, reason != null ? reason : "Not selected");
             case APPLIED:
                 // Can revert to APPLIED from SHORTLISTED
                 if (currentStatus == ApplicationStatus.SHORTLISTED) {
                     application.setStatus(ApplicationStatus.APPLIED);
-                    applicationRepository.save(application);
+                    Application saved = applicationRepository.save(application);
                     log.info("Application status reverted to APPLIED: {} by brand: {}", id, brandId);
+                    return toDTOWithCampaign(saved);
                 } else {
                     throw new BusinessException("Cannot revert to APPLIED status from " + currentStatus);
                 }
-                break;
             default:
                 throw new BusinessException("Invalid status transition from " + currentStatus + " to " + newStatus);
         }
@@ -602,5 +591,11 @@ public class ApplicationService {
             return creator.getCreatorProfile().getUsername();
         }
         return creator.getEmail();
+    }
+
+    private ApplicationDTO toDTOWithCampaign(Application application) {
+        ApplicationDTO dto = applicationMapper.toDTO(application);
+        dto.setCampaign(campaignMapper.toDTO(application.getCampaign()));
+        return dto;
     }
 }

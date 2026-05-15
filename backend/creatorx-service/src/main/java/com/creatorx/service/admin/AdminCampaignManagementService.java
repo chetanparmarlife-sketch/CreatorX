@@ -136,51 +136,55 @@ public class AdminCampaignManagementService {
     }
 
     @Transactional
-    public void shortlistApplication(String adminId, String applicationId) {
+    public ApplicationDTO shortlistApplication(String adminId, String applicationId) {
         Application application = getApplication(applicationId);
         String brandId = application.getCampaign().getBrand().getId();
-        applicationService.shortlistApplication(brandId, applicationId);
+        ApplicationDTO updated = applicationService.shortlistApplication(brandId, applicationId);
         logAction(adminId, "APPLICATION", applicationId, "SHORTLIST_APPLICATION", Map.of(
                 "applicationId", applicationId,
                 "brandId", brandId,
                 "campaignId", application.getCampaign().getId()));
+        return updated;
     }
 
     @Transactional
-    public void selectApplication(String adminId, String applicationId) {
+    public ApplicationDTO selectApplication(String adminId, String applicationId) {
         Application application = getApplication(applicationId);
         String brandId = application.getCampaign().getBrand().getId();
-        applicationService.selectApplication(brandId, applicationId);
+        ApplicationDTO updated = applicationService.selectApplication(brandId, applicationId);
         logAction(adminId, "APPLICATION", applicationId, "SELECT_APPLICATION", Map.of(
                 "applicationId", applicationId,
                 "brandId", brandId,
                 "campaignId", application.getCampaign().getId()));
+        return updated;
     }
 
     @Transactional
-    public void rejectApplication(String adminId, String applicationId, String reason) {
+    public ApplicationDTO rejectApplication(String adminId, String applicationId, String reason) {
         Application application = getApplication(applicationId);
         String brandId = application.getCampaign().getBrand().getId();
-        applicationService.rejectApplication(brandId, applicationId, reason);
+        ApplicationDTO updated = applicationService.rejectApplication(brandId, applicationId, reason);
         logAction(adminId, "APPLICATION", applicationId, "REJECT_APPLICATION", Map.of(
                 "applicationId", applicationId,
                 "brandId", brandId,
                 "reason", reason,
                 "campaignId", application.getCampaign().getId()));
+        return updated;
     }
 
     @Transactional
-    public void updateApplicationStatus(String adminId, String applicationId,
+    public ApplicationDTO updateApplicationStatus(String adminId, String applicationId,
             com.creatorx.common.enums.ApplicationStatus status, String reason) {
         Application application = getApplication(applicationId);
         String brandId = application.getCampaign().getBrand().getId();
-        applicationService.updateApplicationStatus(brandId, applicationId, status, reason);
+        ApplicationDTO updated = applicationService.updateApplicationStatus(brandId, applicationId, status, reason);
         logAction(adminId, "APPLICATION", applicationId, "UPDATE_APPLICATION_STATUS", Map.of(
                 "applicationId", applicationId,
                 "brandId", brandId,
                 "status", status != null ? status.name() : null,
                 "reason", reason,
                 "campaignId", application.getCampaign().getId()));
+        return updated;
     }
 
     @Transactional

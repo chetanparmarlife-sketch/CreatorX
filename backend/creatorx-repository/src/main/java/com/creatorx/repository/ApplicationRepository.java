@@ -4,6 +4,7 @@ import com.creatorx.common.enums.ApplicationStatus;
 import com.creatorx.repository.entity.Application;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,10 +16,18 @@ import java.util.Optional;
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, String> {
     // Find applications by creator (JOIN FETCH campaign to avoid N+1)
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :creatorId ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId")
     Page<Application> findByCreatorId(@Param("creatorId") String creatorId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :creatorId AND a.status = :status ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :creatorId AND a.status = :status")
     Page<Application> findByCreatorIdAndStatus(@Param("creatorId") String creatorId, @Param("status") ApplicationStatus status, Pageable pageable);
@@ -26,7 +35,19 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     // Find applications by campaign (JOIN FETCH campaign to avoid N+1)
     @Query("SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.campaign.id = :campaignId ORDER BY a.appliedAt DESC")
     List<Application> findByCampaignId(@Param("campaignId") String campaignId);
+
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
+    @Query(value = "SELECT a FROM Application a WHERE a.campaign.id = :campaignId ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.id = :campaignId")
+    Page<Application> findPageByCampaignId(@Param("campaignId") String campaignId, Pageable pageable);
     
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
     @Query("SELECT a FROM Application a WHERE a.campaign.id = :campaignId AND a.status = :status ORDER BY a.appliedAt DESC")
     Page<Application> findByCampaignIdAndStatus(
         @Param("campaignId") String campaignId,
@@ -35,15 +56,27 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     );
     
     // Find pending applications for brand (JOIN FETCH campaign to avoid N+1)
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE c.brand.id = :brandId AND a.status = 'APPLIED' ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId AND a.status = 'APPLIED'")
     Page<Application> findPendingApplicationsForBrand(@Param("brandId") String brandId, Pageable pageable);
 
     // Find all applications for brand (JOIN FETCH campaign to avoid N+1)
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE c.brand.id = :brandId ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId")
     Page<Application> findAllApplicationsForBrand(@Param("brandId") String brandId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE " +
            "(:brandId IS NULL OR c.brand.id = :brandId) AND " +
            "(:campaignId IS NULL OR c.id = :campaignId) AND " +
@@ -80,6 +113,10 @@ public interface ApplicationRepository extends JpaRepository<Application, String
     long countActiveApplicationsByCreatorId(@Param("creatorId") String creatorId);
     
     // Find applications by user ID (alias for findByCreatorId - used by ComplianceService)
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "feedback"
+    })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign WHERE a.creator.id = :userId ORDER BY a.appliedAt DESC",
            countQuery = "SELECT COUNT(a) FROM Application a WHERE a.creator.id = :userId")
     Page<Application> findByUserId(@Param("userId") String userId, Pageable pageable);

@@ -5,6 +5,7 @@ import com.creatorx.common.enums.CampaignStatus;
 import com.creatorx.repository.entity.Campaign;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,17 +18,23 @@ import java.util.List;
 @Repository
 public interface CampaignRepository extends JpaRepository<Campaign, String> {
     // Basic queries
+    @EntityGraph(attributePaths = {"brand", "brand.brandProfile", "brand.userProfile", "reviewedBy"})
     Page<Campaign> findByStatus(CampaignStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"brand", "brand.brandProfile", "brand.userProfile", "reviewedBy"})
     Page<Campaign> findByCategory(String category, Pageable pageable);
     
     // Find campaigns by brand
+    @EntityGraph(attributePaths = {"brand", "brand.brandProfile", "brand.userProfile", "reviewedBy"})
     @Query("SELECT c FROM Campaign c WHERE c.brand.id = :brandId")
     Page<Campaign> findByBrandId(@Param("brandId") String brandId, Pageable pageable);
     
+    @EntityGraph(attributePaths = {"brand", "brand.brandProfile", "brand.userProfile", "reviewedBy"})
     @Query("SELECT c FROM Campaign c WHERE c.brand.id = :brandId AND c.status = :status")
     Page<Campaign> findByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") CampaignStatus status, Pageable pageable);
     
     // Find campaigns by filters with optional status
+    @EntityGraph(attributePaths = {"brand", "brand.brandProfile", "brand.userProfile", "reviewedBy"})
     @Query("SELECT c FROM Campaign c WHERE " +
            "(:status IS NULL OR c.status = :status) AND " +
            "(:category IS NULL OR c.category = :category) AND " +
@@ -65,6 +72,7 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
     );
     
     // Simple search by title/description (JPQL fallback)
+    @EntityGraph(attributePaths = {"brand", "brand.brandProfile", "brand.userProfile", "reviewedBy"})
     @Query("SELECT c FROM Campaign c WHERE c.status = :status AND " +
            "(:category IS NULL OR c.category = :category) AND " +
            "(:search IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -76,6 +84,7 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
         Pageable pageable
     );
 
+    @EntityGraph(attributePaths = {"brand", "brand.brandProfile", "brand.userProfile", "reviewedBy"})
     @Query("SELECT c FROM Campaign c WHERE " +
            "(:brandId IS NULL OR c.brand.id = :brandId) AND " +
            "(:status IS NULL OR c.status = :status) AND " +
@@ -105,6 +114,4 @@ public interface CampaignRepository extends JpaRepository<Campaign, String> {
     @Query("SELECT COUNT(c) FROM Campaign c WHERE c.brand.id = :brandId AND c.status = :status")
     long countByBrandIdAndStatus(@Param("brandId") String brandId, @Param("status") CampaignStatus status);
 }
-
-
 

@@ -26,6 +26,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_batch_fetch_size: 50
         format_sql: true
         jdbc:
           batch_size: 20

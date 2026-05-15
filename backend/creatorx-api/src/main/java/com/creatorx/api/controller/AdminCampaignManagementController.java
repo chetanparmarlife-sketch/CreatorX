@@ -164,27 +164,27 @@ public class AdminCampaignManagementController {
     @PostMapping("/applications/{applicationId}/shortlist")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Shortlist application", description = "Shortlist an application on behalf of the brand")
-    public void shortlistApplication(
+    public ApplicationDTO shortlistApplication(
             @PathVariable String applicationId,
             Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
-        adminCampaignManagementService.shortlistApplication(authentication.getName(), applicationId);
+        return adminCampaignManagementService.shortlistApplication(authentication.getName(), applicationId);
     }
 
     @PostMapping("/applications/{applicationId}/select")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Select application", description = "Select an application on behalf of the brand")
-    public void selectApplication(
+    public ApplicationDTO selectApplication(
             @PathVariable String applicationId,
             Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
-        adminCampaignManagementService.selectApplication(authentication.getName(), applicationId);
+        return adminCampaignManagementService.selectApplication(authentication.getName(), applicationId);
     }
 
     @PostMapping("/applications/{applicationId}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Reject application", description = "Reject an application with a reason")
-    public void rejectApplication(
+    public ApplicationDTO rejectApplication(
             @PathVariable String applicationId,
             @RequestParam(required = false) String reason,
             @RequestBody(required = false) Map<String, String> body,
@@ -194,7 +194,7 @@ public class AdminCampaignManagementController {
         if (rejectionReason == null && body != null && body.containsKey("reason")) {
             rejectionReason = body.get("reason");
         }
-        adminCampaignManagementService.rejectApplication(
+        return adminCampaignManagementService.rejectApplication(
                 authentication.getName(),
                 applicationId,
                 rejectionReason != null ? rejectionReason : "Not selected");
@@ -203,12 +203,12 @@ public class AdminCampaignManagementController {
     @PutMapping("/applications/{applicationId}/status")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update application status", description = "Update application status on behalf of the brand")
-    public void updateApplicationStatus(
+    public ApplicationDTO updateApplicationStatus(
             @PathVariable String applicationId,
             @Valid @RequestBody UpdateStatusRequest request,
             Authentication authentication) {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_MANAGE);
-        adminCampaignManagementService.updateApplicationStatus(
+        return adminCampaignManagementService.updateApplicationStatus(
                 authentication.getName(),
                 applicationId,
                 request.getStatus(),

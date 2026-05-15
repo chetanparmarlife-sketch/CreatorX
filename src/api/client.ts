@@ -104,7 +104,7 @@ class ApiClient {
             fullUrl: normalizedPath,
             hasAuthHeader,
             params: config.params,
-            data: config.data,
+            data: this.describePayload(config.data),
           });
         }
 
@@ -123,7 +123,7 @@ class ApiClient {
         if (__DEV__) {
           console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
             status: response.status,
-            data: response.data,
+            data: this.describePayload(response.data),
           });
         }
         return response;
@@ -234,6 +234,27 @@ class ApiClient {
       }
     });
     this.failedQueue = [];
+  }
+
+  private describePayload(data: unknown) {
+    if (data == null) {
+      return data;
+    }
+    if (Array.isArray(data)) {
+      return { type: 'array', length: data.length };
+    }
+    if (typeof data === 'object') {
+      const value = data as Record<string, unknown>;
+      const items = Array.isArray(value.items) ? value.items.length : undefined;
+      const content = Array.isArray(value.content) ? value.content.length : undefined;
+      return {
+        type: 'object',
+        keys: Object.keys(value).slice(0, 12),
+        ...(items !== undefined ? { items } : {}),
+        ...(content !== undefined ? { content } : {}),
+      };
+    }
+    return data;
   }
 
   private async clearAuth() {

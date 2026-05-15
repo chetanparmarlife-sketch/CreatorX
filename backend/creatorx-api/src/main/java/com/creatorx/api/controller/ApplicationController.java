@@ -133,10 +133,10 @@ public class ApplicationController {
     @PostMapping("/{id}/shortlist")
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Shortlist application", description = "Shortlist an application (Brand only, Phase 2)")
-    public ResponseEntity<Void> shortlistApplication(@PathVariable String id) {
+    public ResponseEntity<ApplicationDTO> shortlistApplication(@PathVariable String id) {
         User currentUser = getCurrentUser();
-        applicationService.shortlistApplication(currentUser.getId(), id);
-        return ResponseEntity.ok().build();
+        ApplicationDTO application = applicationService.shortlistApplication(currentUser.getId(), id);
+        return ResponseEntity.ok(application);
     }
     
     /**
@@ -145,10 +145,10 @@ public class ApplicationController {
     @PostMapping("/{id}/select")
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Select application", description = "Select an application and create conversation (Brand only, Phase 2)")
-    public ResponseEntity<Void> selectApplication(@PathVariable String id) {
+    public ResponseEntity<ApplicationDTO> selectApplication(@PathVariable String id) {
         User currentUser = getCurrentUser();
-        applicationService.selectApplication(currentUser.getId(), id);
-        return ResponseEntity.ok().build();
+        ApplicationDTO application = applicationService.selectApplication(currentUser.getId(), id);
+        return ResponseEntity.ok(application);
     }
     
     /**
@@ -158,7 +158,7 @@ public class ApplicationController {
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Reject application", description = "Reject an application with reason (Brand only, Phase 2)")
-    public ResponseEntity<Void> rejectApplication(
+    public ResponseEntity<ApplicationDTO> rejectApplication(
             @PathVariable String id,
             @RequestParam(required = false) String reason,
             @RequestBody(required = false) java.util.Map<String, String> body
@@ -168,8 +168,11 @@ public class ApplicationController {
         if (rejectionReason == null && body != null && body.containsKey("reason")) {
             rejectionReason = body.get("reason");
         }
-        applicationService.rejectApplication(currentUser.getId(), id, rejectionReason != null ? rejectionReason : "Not selected");
-        return ResponseEntity.ok().build();
+        ApplicationDTO application = applicationService.rejectApplication(
+                currentUser.getId(),
+                id,
+                rejectionReason != null ? rejectionReason : "Not selected");
+        return ResponseEntity.ok(application);
     }
     
     /**
@@ -178,18 +181,18 @@ public class ApplicationController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('BRAND')")
     @Operation(summary = "Update application status", description = "Update application status (SHORTLISTED, SELECTED, REJECTED) (Brand only)")
-    public ResponseEntity<Void> updateApplicationStatus(
+    public ResponseEntity<ApplicationDTO> updateApplicationStatus(
             @PathVariable String id,
             @Valid @RequestBody com.creatorx.api.dto.UpdateStatusRequest request
     ) {
         User currentUser = getCurrentUser();
-        applicationService.updateApplicationStatus(
+        ApplicationDTO application = applicationService.updateApplicationStatus(
                 currentUser.getId(), 
                 id, 
                 request.getStatus(), 
                 request.getReason()
         );
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(application);
     }
 
     /**

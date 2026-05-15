@@ -37,7 +37,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -150,6 +152,72 @@ public class CampaignService {
             if (sanitizedSearch == null || sanitizedSearch.isEmpty()) {
                 log.warn("Search query was invalid or empty after sanitization: {}", search);
                 // Fall back to regular filter query without search
+                if (currentUser != null && currentUser.getRole() == UserRole.BRAND) {
+                    campaigns = campaignRepository.findAdminCampaigns(
+                            currentUser.getId(),
+                            filterStatus,
+                            category,
+                            platform,
+                            budgetMin,
+                            budgetMax,
+                            null,
+                            pageable
+                    );
+                } else {
+                    campaigns = campaignRepository.findCampaignsByFilters(
+                            filterStatus,
+                            category,
+                            platform,
+                            budgetMin,
+                            budgetMax,
+                            pageable
+                    );
+                }
+            } else {
+                if (currentUser != null && currentUser.getRole() == UserRole.BRAND) {
+                    campaigns = campaignRepository.findAdminCampaigns(
+                            currentUser.getId(),
+                            filterStatus,
+                            category,
+                            platform,
+                            budgetMin,
+                            budgetMax,
+                            sanitizedSearch,
+                            pageable
+                    );
+                } else {
+                    try {
+                        campaigns = campaignRepository.searchCampaignsWithFullText(
+                                filterStatus != null ? filterStatus.name() : "ACTIVE",
+                                category,
+                                platform != null ? platform.name() : null,
+                                budgetMin,
+                                budgetMax,
+                                sanitizedSearch,
+                                pageable
+                        );
+                    } catch (Exception e) {
+                        // Full-text search requires PostgreSQL; fall back to LIKE-based search
+                        log.debug("Full-text search unavailable, falling back to LIKE-based search: {}", e.getMessage());
+                        CampaignStatus fallbackStatus = filterStatus != null ? filterStatus : CampaignStatus.ACTIVE;
+                        campaigns = campaignRepository.searchCampaigns(fallbackStatus, category, sanitizedSearch, pageable);
+                    }
+                }
+            }
+        } else {
+            // Use regular filter query with status from role-based filter
+            if (currentUser != null && currentUser.getRole() == UserRole.BRAND) {
+                campaigns = campaignRepository.findAdminCampaigns(
+                        currentUser.getId(),
+                        filterStatus,
+                        category,
+                        platform,
+                        budgetMin,
+                        budgetMax,
+                        null,
+                        pageable
+                );
+            } else {
                 campaigns = campaignRepository.findCampaignsByFilters(
                         filterStatus,
                         category,
@@ -158,44 +226,10 @@ public class CampaignService {
                         budgetMax,
                         pageable
                 );
-            } else {
-                try {
-                    campaigns = campaignRepository.searchCampaignsWithFullText(
-                            filterStatus != null ? filterStatus.name() : "ACTIVE",
-                            category,
-                            platform != null ? platform.name() : null,
-                            budgetMin,
-                            budgetMax,
-                            sanitizedSearch,
-                            pageable
-                    );
-                } catch (Exception e) {
-                    // Full-text search requires PostgreSQL; fall back to LIKE-based search
-                    log.debug("Full-text search unavailable, falling back to LIKE-based search: {}", e.getMessage());
-                    CampaignStatus fallbackStatus = filterStatus != null ? filterStatus : CampaignStatus.ACTIVE;
-                    campaigns = campaignRepository.searchCampaigns(fallbackStatus, category, sanitizedSearch, pageable);
-                }
             }
-        } else {
-            // Use regular filter query with status from role-based filter
-            campaigns = campaignRepository.findCampaignsByFilters(
-                    filterStatus,
-                    category,
-                    platform,
-                    budgetMin,
-                    budgetMax,
-                    pageable
-            );
         }
         
-        // Map to DTOs and enrich with saved status
-        return campaigns.map(campaign -> {
-            CampaignDTO dto = campaignMapper.toDTO(campaign);
-            if (currentUser != null && currentUser.getRole() == UserRole.CREATOR) {
-                dto.setIsSaved(isCampaignSaved(currentUser.getId(), campaign.getId()));
-            }
-            return dto;
-        });
+        return mapCampaignPage(campaigns, currentUser);
     }
     
     /**
@@ -522,13 +556,7 @@ public class CampaignService {
             campaigns = campaignRepository.searchCampaigns(status, null, sanitizedQuery, validatedPageable);
         }
 
-        return campaigns.map(campaign -> {
-            CampaignDTO dto = campaignMapper.toDTO(campaign);
-            if (currentUser != null && currentUser.getRole() == UserRole.CREATOR) {
-                dto.setIsSaved(isCampaignSaved(currentUser.getId(), campaign.getId()));
-            }
-            return dto;
-        });
+        return mapCampaignPage(campaigns, currentUser);
     }
     
     /**
@@ -539,14 +567,16 @@ public class CampaignService {
         // Get all active campaigns
         Pageable pageable = PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Campaign> activeCampaigns = campaignRepository.findByStatus(CampaignStatus.ACTIVE, pageable);
+        Set<String> savedIds = activeCampaigns.hasContent()
+                ? new HashSet<>(savedCampaignRepository.findSavedCampaignIds(
+                        creatorId,
+                        activeCampaigns.getContent().stream().map(Campaign::getId).toList()))
+                : Set.of();
         
         // Map to DTOs and enrich with saved status
         return activeCampaigns.getContent().stream()
-                .map(campaign -> {
-                    CampaignDTO dto = campaignMapper.toDTO(campaign);
-                    dto.setIsSaved(isCampaignSaved(creatorId, campaign.getId()));
-                    return dto;
-                })
+                .map(campaignMapper::toDTO)
+                .peek(dto -> dto.setIsSaved(savedIds.contains(dto.getId())))
                 .collect(Collectors.toList());
     }
     
@@ -616,6 +646,25 @@ public class CampaignService {
     
     private boolean isCampaignSaved(String creatorId, String campaignId) {
         return savedCampaignRepository.existsByCreatorIdAndCampaignId(creatorId, campaignId);
+    }
+
+    private Page<CampaignDTO> mapCampaignPage(Page<Campaign> campaigns, User currentUser) {
+        Set<String> savedIds = Set.of();
+        if (currentUser != null && currentUser.getRole() == UserRole.CREATOR && campaigns.hasContent()) {
+            List<String> campaignIds = campaigns.getContent().stream()
+                    .map(Campaign::getId)
+                    .toList();
+            savedIds = new HashSet<>(savedCampaignRepository.findSavedCampaignIds(currentUser.getId(), campaignIds));
+        }
+
+        Set<String> finalSavedIds = savedIds;
+        return campaigns.map(campaign -> {
+            CampaignDTO dto = campaignMapper.toDTO(campaign);
+            if (currentUser != null && currentUser.getRole() == UserRole.CREATOR) {
+                dto.setIsSaved(finalSavedIds.contains(campaign.getId()));
+            }
+            return dto;
+        });
     }
     
     private CampaignDeliverable mapDeliverableDTOToEntity(CampaignDeliverableDTO dto, Campaign campaign) {
