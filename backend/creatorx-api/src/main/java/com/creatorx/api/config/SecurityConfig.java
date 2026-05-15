@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/analytics/events").permitAll()
                         // Brand lists endpoints require a brand account because shortlists are shared brand data.
                         .requestMatchers(HttpMethod.GET, "/api/v1/brands/lists/**").hasRole("BRAND")
                         .requestMatchers(HttpMethod.POST, "/api/v1/brands/lists/**").hasRole("BRAND")

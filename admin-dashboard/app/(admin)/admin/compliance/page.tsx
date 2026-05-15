@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminComplianceService } from '@/lib/api/admin/compliance'
 import { GDPRRequestStatus } from '@/lib/types'
@@ -59,6 +59,7 @@ const getSlaBadge = (createdAt?: string) => {
 
 const getNextAction = (request: any) => {
   if (request.status === 'COMPLETED') return 'No action'
+  if (request.status === 'IN_PROGRESS') return 'Track export status'
   if (request.requestType === 'EXPORT') {
     return request.exportUrl ? 'Send export URL' : 'Generate export'
   }
@@ -66,6 +67,23 @@ const getNextAction = (request: any) => {
     return 'Confirm anonymize'
   }
   return 'Review request'
+}
+
+const updateRequestInPage = (pageData: any, requestId: string, updater: (request: any) => any) => {
+  if (!pageData) return pageData
+  if (Array.isArray(pageData.items)) {
+    return {
+      ...pageData,
+      items: pageData.items.map((request: any) => (request.id === requestId ? updater(request) : request)),
+    }
+  }
+  if (Array.isArray(pageData.content)) {
+    return {
+      ...pageData,
+      content: pageData.content.map((request: any) => (request.id === requestId ? updater(request) : request)),
+    }
+  }
+  return pageData
 }
 
 export default function AdminCompliancePage() {
@@ -77,13 +95,29 @@ export default function AdminCompliancePage() {
   const [exportUrlInput, setExportUrlInput] = useState('')
   const { toasts, pushToast, dismissToast } = useToast()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['admin-gdpr-requests', page, sortDir],
     queryFn: () => adminComplianceService.listRequests({ page, size: 20, sortDir }),
+    placeholderData: (previousData) => previousData,
   })
 
   const items = (data as any)?.items ?? (data as any)?.content ?? []
   const totalPages = (data as any)?.totalPages ?? 1
+  const exportStatusSummary = useMemo(
+    () =>
+      items.reduce(
+        (summary: { pending: number; inProgress: number; completed: number; rejected: number }, request: any) => {
+          if (request.status === 'PENDING') summary.pending += 1
+          if (request.status === 'IN_PROGRESS') summary.inProgress += 1
+          if (request.status === 'COMPLETED') summary.completed += 1
+          if (request.status === 'REJECTED') summary.rejected += 1
+          return summary
+        },
+        { pending: 0, inProgress: 0, completed: 0, rejected: 0 }
+      ),
+    [items]
+  )
+  const isTrackingExports = exportStatusSummary.inProgress > 0
   const selectedContext = useMemo(() => {
     if (!selectedRequest) return null
     return {
@@ -91,6 +125,14 @@ export default function AdminCompliancePage() {
       nextAction: getNextAction(selectedRequest),
     }
   }, [selectedRequest])
+
+  useEffect(() => {
+    if (!isTrackingExports) return
+    const timer = window.setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['admin-gdpr-requests'] })
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [isTrackingExports, queryClient])
 
   const updateMutation = useMutation({
     mutationFn: ({ requestId, status, exportUrl }: { requestId: string; status: GDPRRequestStatus; exportUrl?: string }) =>
@@ -104,11 +146,37 @@ export default function AdminCompliancePage() {
 
   const exportMutation = useMutation({
     mutationFn: (requestId: string) => adminComplianceService.generateExport(requestId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-gdpr-requests'] })
-      pushToast('Export generated', 'success')
+    onMutate: async (requestId) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-gdpr-requests'] })
+      const previous = queryClient.getQueriesData({ queryKey: ['admin-gdpr-requests'] })
+      queryClient.setQueriesData({ queryKey: ['admin-gdpr-requests'] }, (pageData) =>
+        updateRequestInPage(pageData, requestId, (request) => ({
+          ...request,
+          status: GDPRRequestStatus.IN_PROGRESS,
+        }))
+      )
+      setSelectedRequest((current: any) =>
+        current?.id === requestId ? { ...current, status: GDPRRequestStatus.IN_PROGRESS } : current
+      )
+      return { previous }
     },
-    onError: () => pushToast('Export failed', 'error'),
+    onSuccess: (updatedRequest) => {
+      queryClient.setQueriesData({ queryKey: ['admin-gdpr-requests'] }, (pageData) =>
+        updateRequestInPage(pageData, updatedRequest.id, () => updatedRequest)
+      )
+      setSelectedRequest((current: any) => (current?.id === updatedRequest.id ? updatedRequest : current))
+      queryClient.invalidateQueries({ queryKey: ['admin-gdpr-requests'] })
+      pushToast(
+        updatedRequest.status === GDPRRequestStatus.COMPLETED ? 'Export completed' : 'Export started',
+        'success'
+      )
+    },
+    onError: (_error, _requestId, context) => {
+      context?.previous?.forEach(([queryKey, value]) => {
+        queryClient.setQueryData(queryKey, value)
+      })
+      pushToast('Export failed', 'error')
+    },
   })
 
   const anonymizeMutation = useMutation({
@@ -125,7 +193,7 @@ export default function AdminCompliancePage() {
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
       <DashboardPageShell
         title="GDPR Requests"
-        subtitle="Track data export and deletion requests."
+        subtitle="Track data export and deletion requests without blocking the queue."
         eyebrow="Compliance"
       >
       <div className="table-shell p-6">
@@ -142,6 +210,26 @@ export default function AdminCompliancePage() {
             <option value="ASC">Oldest first</option>
           </select>
         </ActionBar>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase text-slate-500">Pending</p>
+            <p className="mt-1 text-xl font-semibold text-slate-900">{exportStatusSummary.pending}</p>
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-semibold uppercase text-amber-700">Exporting</p>
+            <p className="mt-1 text-xl font-semibold text-amber-900">{exportStatusSummary.inProgress}</p>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-xs font-semibold uppercase text-emerald-700">Completed</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-900">{exportStatusSummary.completed}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-3">
+            <p className="text-xs font-semibold uppercase text-slate-500">Status polling</p>
+            <p className="mt-1 text-sm font-semibold text-slate-800">
+              {isTrackingExports ? 'Tracking every 5s' : isFetching ? 'Refreshing' : 'Idle'}
+            </p>
+          </div>
+        </div>
         <div className="overflow-x-auto mt-4">
           <table className="table-compact w-full text-left text-sm">
             <thead className="text-xs uppercase text-slate-500">
@@ -222,7 +310,9 @@ export default function AdminCompliancePage() {
                           Download
                         </a>
                       ) : (
-                        '—'
+                        <span className="text-xs text-slate-500">
+                          {request.status === 'IN_PROGRESS' ? 'Generating...' : '—'}
+                        </span>
                       )}
                     </td>
                     <td className="py-3 pr-4">
@@ -323,7 +413,7 @@ export default function AdminCompliancePage() {
                     onClick={() => exportMutation.mutate(selectedRequest.id)}
                     disabled={exportMutation.isPending}
                   >
-                    Generate export
+                    {exportMutation.isPending ? 'Starting export...' : 'Generate export'}
                   </button>
                 ) : null}
                 {selectedRequest.requestType === 'DELETE' && selectedRequest.status !== 'COMPLETED' ? (
