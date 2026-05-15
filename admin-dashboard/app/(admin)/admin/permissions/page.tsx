@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminUserService } from '@/lib/api/admin/users'
 import { adminPermissionService } from '@/lib/api/admin/permissions'
-import { ADMIN_PERMISSIONS } from '@/lib/constants/admin-permissions'
+import { ADMIN_PERMISSIONS, ADMIN_ROLE_TEMPLATES } from '@/lib/constants/admin-permissions'
 import { UserRole } from '@/lib/types'
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
@@ -121,6 +121,34 @@ export default function AdminPermissionsPage() {
                 Grant
               </button>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-sm font-semibold text-slate-800">Role templates</h2>
+            <p className="text-sm text-slate-500">
+              Apply a standard permission bundle, then adjust individual permissions if needed.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {ADMIN_ROLE_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                className="rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:shadow-sm disabled:opacity-50"
+                disabled={!selectedAdminId || replaceMutation.isPending}
+                onClick={() => {
+                  setSelectedPermissions(template.permissions)
+                  replaceMutation.mutate(template.permissions)
+                }}
+              >
+                <span className="text-sm font-semibold text-slate-900">{template.label}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">{template.description}</span>
+                <span className="mt-3 block text-xs font-semibold text-slate-600">
+                  {template.permissions.length} permissions
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 

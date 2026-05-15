@@ -285,6 +285,9 @@ public class EnterpriseWorkspaceService {
                 if ("REJECTED".equals(nextStatus) || "CANCELLED".equals(nextStatus)) {
                     yield adminCampaignReviewService.rejectCampaign(adminId, entityId, required(reason, "reason"));
                 }
+                if ("ESCALATED".equals(nextStatus) || "ESCALATE".equals(nextStatus)) {
+                    yield adminCampaignReviewService.escalateCampaign(adminId, entityId, reason);
+                }
                 throw new BusinessException("Unsupported campaign moderation status: " + status);
             }
             default -> throw new BusinessException("Unsupported admin bulk action: " + actionType);

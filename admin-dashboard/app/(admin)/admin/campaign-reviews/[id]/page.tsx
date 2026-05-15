@@ -25,6 +25,8 @@ export default function AdminCampaignReviewDetailPage() {
   const queryClient = useQueryClient()
   const [rejectOpen, setRejectOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [escalateOpen, setEscalateOpen] = useState(false)
+  const [escalateReason, setEscalateReason] = useState('')
   const { toasts, pushToast, dismissToast } = useToast()
 
   const { data: campaign, isLoading } = useQuery({
@@ -51,6 +53,19 @@ export default function AdminCampaignReviewDetailPage() {
       router.push('/admin/campaign-reviews')
     },
     onError: () => pushToast('Campaign rejection failed', 'error'),
+  })
+
+  const escalateMutation = useMutation({
+    mutationFn: (reason: string) => adminCampaignReviewService.escalate(campaignId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-campaign-review', campaignId] })
+      queryClient.invalidateQueries({ queryKey: ['admin-campaign-reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-campaign-flags'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-workspace-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-action-queue'] })
+      pushToast('Campaign escalated', 'success')
+    },
+    onError: () => pushToast('Campaign escalation failed', 'error'),
   })
 
   if (isLoading || !campaign) {
@@ -145,8 +160,17 @@ export default function AdminCampaignReviewDetailPage() {
             >
               Reject Campaign
             </button>
+            <button
+              className="w-full h-11 rounded-lg border border-amber-200 text-sm font-semibold text-amber-700"
+              onClick={() => {
+                setEscalateOpen(true)
+                setEscalateReason(campaign.reviewReason?.replace(/^Escalated:\s*/, '') || '')
+              }}
+            >
+              Escalate Campaign
+            </button>
             <p className="text-xs text-slate-500">
-              Rejected campaigns are returned to draft and automatically flagged for moderation review.
+              Rejected campaigns return to draft. Escalated campaigns stay pending and create a moderation flag.
             </p>
             <Link className="text-xs font-semibold text-slate-600 hover:text-slate-900" href="/admin/campaigns">
               View campaign flags
@@ -186,6 +210,39 @@ export default function AdminCampaignReviewDetailPage() {
               disabled={!rejectReason.trim()}
             >
               Reject
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={escalateOpen} onOpenChange={setEscalateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Escalate campaign</DialogTitle>
+            <DialogDescription>Create a moderation flag and keep this campaign pending for senior review.</DialogDescription>
+          </DialogHeader>
+          <textarea
+            className="h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            value={escalateReason}
+            onChange={(event) => setEscalateReason(event.target.value)}
+            placeholder="Escalation reason"
+          />
+          <DialogFooter>
+            <button
+              className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700"
+              onClick={() => setEscalateOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="h-10 rounded-lg bg-amber-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+              onClick={() => {
+                escalateMutation.mutate(escalateReason.trim() || 'Escalated for senior moderation review')
+                setEscalateOpen(false)
+              }}
+              disabled={escalateMutation.isPending}
+            >
+              Escalate
             </button>
           </DialogFooter>
         </DialogContent>

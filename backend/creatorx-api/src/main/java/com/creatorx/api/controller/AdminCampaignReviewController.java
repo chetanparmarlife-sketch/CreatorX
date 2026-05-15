@@ -63,4 +63,16 @@ public class AdminCampaignReviewController {
         adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_REVIEW);
         return adminCampaignReviewService.rejectCampaign(authentication.getName(), campaignId, request.getReason());
     }
+
+    @PutMapping("/{campaignId}/escalate")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Escalate campaign", description = "Escalate a pending campaign for senior moderation review")
+    public CampaignDTO escalateCampaign(
+            @PathVariable String campaignId,
+            @RequestBody CampaignReviewRequest request,
+            Authentication authentication
+    ) {
+        adminPermissionService.requirePermission(authentication.getName(), AdminPermissions.ADMIN_CAMPAIGN_REVIEW);
+        return adminCampaignReviewService.escalateCampaign(authentication.getName(), campaignId, request.getReason());
+    }
 }

@@ -13,4 +13,8 @@ export const adminCampaignReviewService = {
   async reject(campaignId: string, reason: string): Promise<Campaign> {
     return apiClient.put<Campaign>(`/admin/campaigns/${campaignId}/reject`, { reason })
   },
+
+  async escalate(campaignId: string, reason: string): Promise<Campaign> {
+    return apiClient.put<Campaign>(`/admin/campaigns/${campaignId}/escalate`, { reason })
+  },
 }

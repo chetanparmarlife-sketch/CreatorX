@@ -93,6 +93,39 @@ public class AdminCampaignReviewService {
         return campaignMapper.toDTO(saved);
     }
 
+    @Transactional
+    public CampaignDTO escalateCampaign(String adminId, String campaignId, String reason) {
+        Campaign campaign = getPendingCampaign(campaignId);
+        User admin = requireAdmin(adminId);
+        String escalationReason = reason == null || reason.isBlank()
+                ? "Escalated for senior moderation review"
+                : reason.trim();
+
+        campaign.setReviewedBy(admin);
+        campaign.setReviewedAt(LocalDateTime.now());
+        campaign.setReviewReason("Escalated: " + escalationReason);
+
+        Campaign saved = campaignRepository.save(campaign);
+
+        moderationService.flagCampaign(campaignId, null, "Pre-approval escalated: " + escalationReason, adminId);
+
+        HashMap<String, Object> details = new HashMap<>();
+        details.put("action", "CAMPAIGN_ESCALATED");
+        details.put("reason", escalationReason);
+
+        adminAuditService.logAction(
+                adminId,
+                AdminActionType.SYSTEM_UPDATE,
+                "CAMPAIGN",
+                campaignId,
+                details,
+                null,
+                null
+        );
+
+        return campaignMapper.toDTO(saved);
+    }
+
     private Campaign getPendingCampaign(String campaignId) {
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign", campaignId));

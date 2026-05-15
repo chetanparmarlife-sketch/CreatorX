@@ -1,5 +1,34 @@
 # Performance Tests
 
+## Enterprise Workspace Queue Load Test
+
+### Setup
+1. Install k6: https://k6.io/docs/get-started/installation/
+2. Start the CreatorX backend with representative data.
+3. Export a brand token and admin token.
+
+### Run Test
+```bash
+BASE_URL=http://localhost:8080 \
+BRAND_TOKEN=<brand-jwt> \
+ADMIN_TOKEN=<admin-jwt> \
+k6 run workspace-queue-load-test.js
+```
+
+### Test Configuration
+- **Users**: ramps from 25 to 100 virtual users
+- **Duration**: 5 minutes
+- **Endpoints**:
+  - `GET /api/v1/brand/workspace-summary`
+  - `GET /api/v1/brand/action-queue?page=0&size=20`
+  - `GET /api/v1/admin/workspace-summary`
+  - `GET /api/v1/admin/action-queue?page=0&size=20`
+
+### SLA Thresholds
+- Workspace summary APIs: p95 < 500ms
+- Action queue APIs: p95 < 800ms
+- Error rate: < 1%
+
 ## JMeter Load Test
 
 ### Setup
@@ -53,4 +82,3 @@ plugins {
 - Message latency
 - Throughput (messages/second)
 - Error rate
-
