@@ -34,6 +34,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card } from '@/components/ui/card'
 import { useBrandWallet, useAllocateToCampaign } from '@/lib/hooks/use-wallet'
+import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 
 const tabOptions = ['All', 'Pending', 'Shortlisted', 'Selected', 'Rejected'] as const
 
@@ -67,6 +68,9 @@ export default function ApplicationsPage() {
   const { data: campaign, refetch: refetchCampaign } = useCampaign(campaignId)
   const { data: wallet } = useBrandWallet()
   const allocateMutation = useAllocateToCampaign()
+  const { track } = useBrandEventTracker({
+    walletBalance: wallet?.balance ?? null,
+  })
   const [activeTab, setActiveTab] = useState<(typeof tabOptions)[number]>('All')
   const [profileApplication, setProfileApplication] = useState<Application | null>(null)
   const [pitchApplication, setPitchApplication] = useState<Application | null>(null)
@@ -171,6 +175,11 @@ export default function ApplicationsPage() {
       await allocateMutation.mutateAsync({
         campaignId: campaign.id,
         request: { amount: amountNeeded },
+      })
+      track('campaign_funded', {
+        campaign_id: campaign.id,
+        amount: amountNeeded,
+        source: 'campaign_applications',
       })
       // Success - refetch campaign data
       refetchCampaign()

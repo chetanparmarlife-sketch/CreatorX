@@ -32,6 +32,11 @@ import com.creatorx.service.dto.BulkActionResponseDTO;
 import com.creatorx.service.dto.BulkActionResultDTO;
 import com.creatorx.service.dto.CampaignDTO;
 import com.creatorx.service.dto.WorkspaceSummaryDTO;
+import com.creatorx.service.metrics.EnterpriseSlaTargets;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -53,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -79,6 +85,7 @@ public class EnterpriseWorkspaceService {
     private final KYCService kycService;
     private final BrandVerificationService brandVerificationService;
     private final AdminCampaignReviewService adminCampaignReviewService;
+    private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
     public WorkspaceSummaryDTO getBrandSummary(String brandId) {
@@ -101,6 +108,10 @@ public class EnterpriseWorkspaceService {
             counts.put("walletBlockers", walletBlockers);
             counts.put("pendingReviewCampaigns", pendingReviewCampaigns);
             counts.put("unreadMessages", unreadMessages);
+            recordQueueDepth("brand", "applications", "needs_action", pendingApplications);
+            recordQueueDepth("brand", "deliverables", "needs_action", pendingDeliverables);
+            recordQueueDepth("brand", "wallet_blockers", "blocked", walletBlockers);
+            recordQueueDepth("brand", "campaign_review", "pending", pendingReviewCampaigns);
 
             return WorkspaceSummaryDTO.builder()
                     .scope("brand")
@@ -138,6 +149,12 @@ public class EnterpriseWorkspaceService {
             counts.put("openDisputes", openDisputes);
             counts.put("payoutAlerts", payoutAlerts);
             counts.put("slaBreaches", slaBreaches);
+            recordQueueDepth("admin", "kyc", "needs_action", pendingKyc);
+            recordQueueDepth("admin", "brand_verification", "needs_action", pendingBrandVerifications);
+            recordQueueDepth("admin", "campaign_moderation", "pending", pendingReviewCampaigns);
+            recordQueueDepth("admin", "campaign_flags", "blocked", flaggedCampaigns);
+            recordQueueDepth("admin", "disputes", "blocked", openDisputes);
+            recordQueueDepth("admin", "payout_alerts", "needs_action", payoutAlerts);
 
             return WorkspaceSummaryDTO.builder()
                     .scope("admin")
@@ -215,7 +232,7 @@ public class EnterpriseWorkspaceService {
     @Transactional
     public BulkActionResponseDTO executeBrandBulkAction(String brandId, String actionType, List<String> entityIds,
             String status, String reason, String feedback) {
-        return executeBulkAction(actionType, entityIds, entityId -> switch (normalized(actionType)) {
+        return timed("brand.bulk-actions", () -> executeBulkAction(actionType, entityIds, entityId -> switch (normalized(actionType)) {
             case "APPLICATION_STATUS" -> applicationService.updateApplicationStatus(
                     brandId,
                     entityId,
@@ -236,13 +253,13 @@ public class EnterpriseWorkspaceService {
                     brandId
             );
             default -> throw new BusinessException("Unsupported brand bulk action: " + actionType);
-        });
+        }));
     }
 
     @Transactional
     public BulkActionResponseDTO executeAdminBulkAction(String adminId, String actionType, List<String> entityIds,
             String status, String reason) {
-        return executeBulkAction(actionType, entityIds, entityId -> switch (normalized(actionType)) {
+        return timed("admin.bulk-actions", () -> executeBulkAction(actionType, entityIds, entityId -> switch (normalized(actionType)) {
             case "KYC_REVIEW" -> {
                 DocumentStatus documentStatus = DocumentStatus.valueOf(required(status, "status").toUpperCase(Locale.ROOT));
                 if (documentStatus == DocumentStatus.APPROVED) {
@@ -271,7 +288,7 @@ public class EnterpriseWorkspaceService {
                 throw new BusinessException("Unsupported campaign moderation status: " + status);
             }
             default -> throw new BusinessException("Unsupported admin bulk action: " + actionType);
-        });
+        }));
     }
 
     private BulkActionResponseDTO executeBulkAction(String actionType, List<String> entityIds, BulkOperation operation) {
@@ -297,6 +314,8 @@ public class EnterpriseWorkspaceService {
                         .build());
             }
         }
+
+        recordBulkActionMetrics(actionType, safeIds.size(), succeeded, safeIds.size() - succeeded);
 
         return BulkActionResponseDTO.builder()
                 .actionType(actionType)
@@ -526,8 +545,59 @@ public class EnterpriseWorkspaceService {
             return supplier.get();
         } finally {
             long durationMs = (System.nanoTime() - start) / 1_000_000;
-            log.info("workspace_operation={} duration_ms={}", operation, durationMs);
+            long targetMs = EnterpriseSlaTargets.targetMsForOperation(operation);
+            Timer.builder("creatorx.enterprise.workflow.duration")
+                    .description("Duration of enterprise workspace and workflow operations")
+                    .tag("operation", operation)
+                    .tag("target_ms", String.valueOf(targetMs))
+                    .publishPercentiles(0.5, 0.95, 0.99)
+                    .publishPercentileHistogram()
+                    .register(meterRegistry)
+                    .record(durationMs, TimeUnit.MILLISECONDS);
+            if (durationMs > targetMs) {
+                Counter.builder("creatorx.enterprise.workflow.sla_breach")
+                        .description("Enterprise workflow operation exceeded its SLA target")
+                        .tag("operation", operation)
+                        .tag("target_ms", String.valueOf(targetMs))
+                        .register(meterRegistry)
+                        .increment();
+                log.warn("workspace_operation={} duration_ms={} target_ms={} sla_breach=true", operation, durationMs, targetMs);
+            } else {
+                log.info("workspace_operation={} duration_ms={} target_ms={}", operation, durationMs, targetMs);
+            }
         }
+    }
+
+    private void recordQueueDepth(String scope, String queue, String severity, long depth) {
+        DistributionSummary.builder("creatorx.enterprise.queue.depth")
+                .description("Observed enterprise queue depth by scope, queue, and severity")
+                .baseUnit("items")
+                .tag("scope", scope)
+                .tag("queue", queue)
+                .tag("severity", severity)
+                .register(meterRegistry)
+                .record(depth);
+    }
+
+    private void recordBulkActionMetrics(String actionType, int requested, int succeeded, int failed) {
+        String normalizedAction = normalized(actionType);
+        incrementBulkCounter("creatorx.enterprise.bulk_action.requested",
+                "Enterprise bulk action requested item count", normalizedAction, requested);
+        incrementBulkCounter("creatorx.enterprise.bulk_action.succeeded",
+                "Enterprise bulk action succeeded item count", normalizedAction, succeeded);
+        incrementBulkCounter("creatorx.enterprise.bulk_action.failed",
+                "Enterprise bulk action failed item count", normalizedAction, failed);
+    }
+
+    private void incrementBulkCounter(String name, String description, String actionType, int amount) {
+        if (amount <= 0) {
+            return;
+        }
+        Counter.builder(name)
+                .description(description)
+                .tag("action_type", actionType)
+                .register(meterRegistry)
+                .increment(amount);
     }
 
     @FunctionalInterface

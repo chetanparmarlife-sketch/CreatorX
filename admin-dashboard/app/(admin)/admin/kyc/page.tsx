@@ -12,6 +12,7 @@ import { ContextPanel } from '@/components/shared/context-panel'
 import { EmptyState } from '@/components/shared/empty-state'
 import { StatusChip } from '@/components/shared/status-chip'
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
+import { useAdminEventTracker } from '@/lib/analytics/use-admin-event-tracker'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ const updateKycPage = (
 
 export default function AdminKycPage() {
   const queryClient = useQueryClient()
+  const { track } = useAdminEventTracker()
   const [page, setPage] = useState(0)
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC')
   const [searchQuery, setSearchQuery] = useState('')
@@ -171,6 +173,11 @@ export default function AdminKycPage() {
     onMutate: async ({ status }) => {
       const ids = Object.keys(selected).filter((key) => selected[key])
       if (ids.length === 0) return { ids, previousPages: [] }
+      track('bulk_action_started', {
+        queue: 'kyc',
+        action: String(status),
+        requested: ids.length,
+      })
       await queryClient.cancelQueries({ queryKey: ['admin-kyc-pending'] })
       const previousPages = queryClient.getQueriesData<Page<KYCDocument>>({ queryKey: ['admin-kyc-pending'] })
       setPendingIds((prev) =>
@@ -186,6 +193,18 @@ export default function AdminKycPage() {
       return { ids, previousPages }
     },
     onSuccess: (result) => {
+      track('bulk_action_completed', {
+        queue: 'kyc',
+        requested: result.requested,
+        succeeded: result.succeeded,
+        failed: result.failed,
+      })
+      if (result.failed === 0 && Math.max(0, totalItems - result.succeeded) === 0) {
+        track('admin_queue_cleared', {
+          queue: 'kyc',
+          cleared_count: result.succeeded,
+        })
+      }
       setSelected({})
       setBulkReason('')
       setBulkResult({

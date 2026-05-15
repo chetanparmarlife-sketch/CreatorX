@@ -21,6 +21,7 @@ import {
 import { TableSkeleton } from '@/components/shared/skeleton'
 import { ApplicationStatus } from '@/lib/types'
 import type { Application, Page } from '@/lib/types'
+import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 
 const statusToneMap: Record<string, 'approved' | 'needs_action' | 'blocked' | 'pending' | 'info'> = {
   APPLIED: 'pending',
@@ -63,6 +64,7 @@ const updateApplicationInPage = (
 export default function BrandApplicationsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { track } = useBrandEventTracker()
   const [page, setPage] = useState(0)
   const [status, setStatus] = useState<(typeof statusOptions)[number]>('ALL')
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
@@ -129,6 +131,13 @@ export default function BrandApplicationsPage() {
         updateApplicationInPage(oldData as any, variables.id, () => updatedApplication)
       )
       setSelectedApplication((current) => (current?.id === variables.id ? updatedApplication : current))
+      track('application_status_changed', {
+        application_id: variables.id,
+        campaign_id: updatedApplication.campaignId ?? null,
+        creator_id: updatedApplication.creatorId ?? null,
+        status: variables.nextStatus,
+        source: 'brand_applications_queue',
+      })
       setRejectDialogOpen(false)
       setRejectReason('')
       setRejectApplicationId(null)

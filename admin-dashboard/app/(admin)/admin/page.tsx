@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
@@ -17,9 +17,12 @@ import { StatCardsSkeleton } from '@/components/shared/skeleton'
 import { adminSystemService } from '@/lib/api/admin/system'
 import { adminFinanceService } from '@/lib/api/admin/finance'
 import { adminWorkspaceService } from '@/lib/api/admin/workspace'
+import { useAdminEventTracker } from '@/lib/analytics/use-admin-event-tracker'
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
 
 export default function AdminOverviewPage() {
+  const { track } = useAdminEventTracker()
+  const hasTrackedWorkspaceView = useRef(false)
   const [csatRating, setCsatRating] = useState<number | null>(null)
   const [csatComment, setCsatComment] = useState('')
   const [showFeedback, setShowFeedback] = useState(false)
@@ -62,6 +65,31 @@ export default function AdminOverviewPage() {
       setShowFeedback(true)
     }
   }, [])
+
+  useEffect(() => {
+    if (hasTrackedWorkspaceView.current) return
+    if (workspaceLoading) return
+    hasTrackedWorkspaceView.current = true
+
+    track('workspace_viewed', {
+      surface: 'admin_home',
+      pending_kyc: workspaceSummary?.pendingKyc ?? null,
+      pending_brand_verifications: workspaceSummary?.pendingBrandVerifications ?? null,
+      open_disputes: workspaceSummary?.openDisputes ?? null,
+      flagged_campaigns: workspaceSummary?.flaggedCampaigns ?? null,
+      payout_alerts: workspaceSummary?.payoutAlerts ?? null,
+      sla_breaches: workspaceSummary?.slaBreaches ?? null,
+    })
+  }, [
+    track,
+    workspaceLoading,
+    workspaceSummary?.flaggedCampaigns,
+    workspaceSummary?.openDisputes,
+    workspaceSummary?.payoutAlerts,
+    workspaceSummary?.pendingBrandVerifications,
+    workspaceSummary?.pendingKyc,
+    workspaceSummary?.slaBreaches,
+  ])
 
   const stats = useMemo(() => {
     const growthLabel =
@@ -238,6 +266,15 @@ export default function AdminOverviewPage() {
               key={item.label}
               href={item.href}
               className="rounded-xl border border-slate-200 bg-white/80 p-4 transition hover:shadow-md"
+              onClick={() => {
+                track('action_queue_item_opened', {
+                  source: 'admin_work_queue',
+                  item_label: item.label,
+                  destination: item.href,
+                  count: item.count ?? null,
+                  sla_breaches: item.slaBreaches ?? null,
+                })
+              }}
             >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-800">{item.label}</p>
@@ -273,6 +310,16 @@ export default function AdminOverviewPage() {
                 key={item.id}
                 href={item.href}
                 className="rounded-xl border border-slate-200 bg-white/80 p-4 transition hover:shadow-md"
+                onClick={() => {
+                  track('action_queue_item_opened', {
+                    source: 'admin_next_best_actions',
+                    item_id: item.id,
+                    item_type: item.type,
+                    severity: item.severity,
+                    due_state: item.dueState,
+                    destination: item.href,
+                  })
+                }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -304,6 +351,12 @@ export default function AdminOverviewPage() {
                 key={action.label}
                 href={action.href}
                 className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+                onClick={() => {
+                  track('quick_action_clicked', {
+                    action_label: action.label,
+                    destination: action.href,
+                  })
+                }}
               >
                 <action.icon className="w-5 h-5 text-slate-600" />
                 <span className="text-sm font-medium text-slate-700">{action.label}</span>

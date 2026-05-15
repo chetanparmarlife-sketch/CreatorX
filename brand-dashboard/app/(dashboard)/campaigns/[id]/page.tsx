@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { FundingStatusBadge } from '@/components/campaigns/funding-status-badge'
+import { useBrandEventTracker } from '@/lib/analytics/use-brand-event-tracker'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-IN', {
@@ -46,6 +47,9 @@ export default function CampaignDetailPage() {
   const { data: campaign, isLoading, error, refetch: refetchCampaign } = useCampaign(campaignId)
   const { data: wallet } = useBrandWallet()
   const allocateMutation = useAllocateToCampaign()
+  const { track } = useBrandEventTracker({
+    walletBalance: wallet?.balance ?? null,
+  })
 
   const handleFundCampaign = async () => {
     if (!campaign || !wallet) return
@@ -61,6 +65,11 @@ export default function CampaignDetailPage() {
       await allocateMutation.mutateAsync({
         campaignId: campaign.id,
         request: { amount: amountNeeded },
+      })
+      track('campaign_funded', {
+        campaign_id: campaign.id,
+        amount: amountNeeded,
+        source: 'campaign_detail',
       })
       refetchCampaign()
     } catch (error: any) {

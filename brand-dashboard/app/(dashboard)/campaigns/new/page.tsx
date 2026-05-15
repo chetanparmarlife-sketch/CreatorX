@@ -1369,6 +1369,11 @@ export default function NewCampaignPage() {
                             campaignId: createdCampaign.id,
                             request: { amount: createdCampaign.budget },
                           })
+                          track('campaign_funded', {
+                            campaign_id: createdCampaign.id,
+                            amount: createdCampaign.budget,
+                            source: 'campaign_create_funding_dialog',
+                          })
                           setFundingStep('complete')
                         } catch (error: any) {
                           alert('Failed to fund campaign: ' + (error?.message || 'Unknown error'))

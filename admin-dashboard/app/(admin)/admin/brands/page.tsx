@@ -7,6 +7,7 @@ import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
 import { Pagination } from '@/components/shared/pagination'
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell'
+import { useAdminEventTracker } from '@/lib/analytics/use-admin-event-tracker'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ const getAgeHours = (submittedAt?: string) => {
 
 export default function AdminBrandVerificationPage() {
   const queryClient = useQueryClient()
+  const { track } = useAdminEventTracker()
   const [page, setPage] = useState(0)
   const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC')
   const [searchQuery, setSearchQuery] = useState('')
@@ -61,6 +63,18 @@ export default function AdminBrandVerificationPage() {
         reason
       ),
     onSuccess: (result) => {
+      track('bulk_action_completed', {
+        queue: 'brand_verification',
+        requested: result.requested,
+        succeeded: result.succeeded,
+        failed: result.failed,
+      })
+      if (result.failed === 0 && Math.max(0, totalItems - result.succeeded) === 0) {
+        track('admin_queue_cleared', {
+          queue: 'brand_verification',
+          cleared_count: result.succeeded,
+        })
+      }
       setSelected({})
       setBulkReason('')
       setBulkResult({
@@ -163,14 +177,28 @@ export default function AdminBrandVerificationPage() {
             <button
               className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white"
               disabled={!selectedCount}
-              onClick={() => bulkMutation.mutate({ status: 'APPROVED' })}
+              onClick={() => {
+                track('bulk_action_started', {
+                  queue: 'brand_verification',
+                  action: 'APPROVED',
+                  requested: selectedCount,
+                })
+                bulkMutation.mutate({ status: 'APPROVED' })
+              }}
             >
               Approve Selected
             </button>
             <button
               className="h-10 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-600"
               disabled={!selectedCount}
-              onClick={() => bulkMutation.mutate({ status: 'REJECTED', reason: bulkReason })}
+              onClick={() => {
+                track('bulk_action_started', {
+                  queue: 'brand_verification',
+                  action: 'REJECTED',
+                  requested: selectedCount,
+                })
+                bulkMutation.mutate({ status: 'REJECTED', reason: bulkReason })
+              }}
             >
               Reject Selected
             </button>
