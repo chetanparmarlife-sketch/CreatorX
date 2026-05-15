@@ -256,8 +256,8 @@ export interface CampaignUpdateRequest {
 // Application Types
 export interface Application {
   id: string
-  campaignId: string
-  creatorId: string
+  campaignId?: string
+  creatorId?: string
   status: ApplicationStatus
   pitchText: string
   expectedTimeline?: string
@@ -266,7 +266,11 @@ export interface Application {
   campaign?: Campaign
   creator?: {
     id: string
+    name?: string
     email: string
+    avatarUrl?: string
+    username?: string
+    verified?: boolean
     profile?: UserProfile
   }
   feedback?: ApplicationFeedback

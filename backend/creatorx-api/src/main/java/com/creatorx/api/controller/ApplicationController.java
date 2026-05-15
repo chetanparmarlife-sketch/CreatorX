@@ -92,6 +92,14 @@ public class ApplicationController {
             // Brand sees applications to their campaigns
             if (campaignId != null) {
                 applications = applicationService.getApplicationsByCampaign(campaignId, currentUser.getId(), pageable);
+            } else if (status != null) {
+                try {
+                    com.creatorx.common.enums.ApplicationStatus statusEnum =
+                        com.creatorx.common.enums.ApplicationStatus.valueOf(status.toUpperCase());
+                    applications = applicationService.getApplicationsForBrand(currentUser.getId(), statusEnum, pageable);
+                } catch (IllegalArgumentException e) {
+                    applications = applicationService.getApplicationsForBrand(currentUser.getId(), pageable);
+                }
             } else {
                 applications = applicationService.getApplicationsForBrand(currentUser.getId(), pageable);
             }

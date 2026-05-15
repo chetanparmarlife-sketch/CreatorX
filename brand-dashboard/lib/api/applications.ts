@@ -36,7 +36,13 @@ export const applicationService = {
       reason,
     })
   },
-  async getBrandApplications(page: number = 0, size: number = 20) {
-    return apiClient.get(`/applications`, { params: { page, size } })
+  async getBrandApplications(page: number = 0, size: number = 20, status?: string) {
+    return apiClient.get(`/applications`, {
+      params: {
+        page,
+        size,
+        status: status === 'ALL' ? undefined : status,
+      },
+    })
   },
 }

@@ -77,6 +77,18 @@ public interface ApplicationRepository extends JpaRepository<Application, String
             "creator", "creator.creatorProfile", "creator.userProfile",
             "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
     })
+    @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE c.brand.id = :brandId AND a.status = :status ORDER BY a.appliedAt DESC",
+           countQuery = "SELECT COUNT(a) FROM Application a WHERE a.campaign.brand.id = :brandId AND a.status = :status")
+    Page<Application> findApplicationsForBrandByStatus(
+        @Param("brandId") String brandId,
+        @Param("status") ApplicationStatus status,
+        Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {
+            "creator", "creator.creatorProfile", "creator.userProfile",
+            "campaign", "campaign.brand", "campaign.brand.brandProfile", "campaign.brand.userProfile", "feedback"
+    })
     @Query(value = "SELECT a FROM Application a JOIN FETCH a.campaign c WHERE " +
            "(:brandId IS NULL OR c.brand.id = :brandId) AND " +
            "(:campaignId IS NULL OR c.id = :campaignId) AND " +

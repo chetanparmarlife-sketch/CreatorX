@@ -145,6 +145,15 @@ public class ApplicationService {
     }
 
     /**
+     * Get applications for a brand filtered by application status.
+     */
+    @Transactional(readOnly = true)
+    public Page<ApplicationDTO> getApplicationsForBrand(String brandId, ApplicationStatus status, Pageable pageable) {
+        Page<Application> applications = applicationRepository.findApplicationsForBrandByStatus(brandId, status, pageable);
+        return mapApplicationList(applications);
+    }
+
+    /**
      * Get applications for admin (optional filters).
      */
     @Transactional(readOnly = true)

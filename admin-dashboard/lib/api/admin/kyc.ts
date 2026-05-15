@@ -1,6 +1,21 @@
 import { apiClient } from '@/lib/api/client'
 import { DocumentStatus, KYCDocument, Page } from '@/lib/types'
 
+export interface BulkActionResult {
+  entityId: string
+  success: boolean
+  message?: string
+  updated?: unknown
+}
+
+export interface BulkActionResponse {
+  actionType: string
+  requested: number
+  succeeded: number
+  failed: number
+  results: BulkActionResult[]
+}
+
 export const adminKycService = {
   async listPending(params?: {
     page?: number
@@ -19,7 +34,12 @@ export const adminKycService = {
     await apiClient.put(`/kyc/documents/${documentId}/reject`, null, { params: { reason } })
   },
 
-  async bulkReview(documentIds: string[], status: DocumentStatus, reason?: string): Promise<void> {
-    await apiClient.post('/kyc/documents/bulk-review', { documentIds, status, reason })
+  async bulkReview(documentIds: string[], status: DocumentStatus, reason?: string): Promise<BulkActionResponse> {
+    return apiClient.post<BulkActionResponse>('/admin/bulk-actions', {
+      actionType: 'KYC_REVIEW',
+      entityIds: documentIds,
+      status,
+      reason,
+    })
   },
 }

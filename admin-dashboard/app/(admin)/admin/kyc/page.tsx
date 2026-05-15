@@ -42,6 +42,7 @@ export default function AdminKycPage() {
   const [previewDoc, setPreviewDoc] = useState<any | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number; requested: number } | null>(null)
   const { toasts, pushToast, dismissToast } = useToast()
 
   const { data, isLoading } = useQuery({
@@ -75,11 +76,16 @@ export default function AdminKycPage() {
         status,
         reason
       ),
-    onSuccess: () => {
+    onSuccess: (result) => {
       setSelected({})
       setBulkReason('')
+      setBulkResult({
+        requested: result.requested,
+        succeeded: result.succeeded,
+        failed: result.failed,
+      })
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-pending'] })
-      pushToast('Bulk review submitted', 'success')
+      pushToast(`Bulk review completed: ${result.succeeded}/${result.requested} updated`, result.failed ? 'error' : 'success')
     },
     onError: () => pushToast('Bulk review failed', 'error'),
   })
@@ -201,6 +207,19 @@ export default function AdminKycPage() {
             Reject Selected
           </button>
         </ActionBar>
+
+        {bulkResult ? (
+          <div
+            className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+              bulkResult.failed
+                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            }`}
+          >
+            Bulk review result: {bulkResult.succeeded} succeeded, {bulkResult.failed} failed out of{' '}
+            {bulkResult.requested}.
+          </div>
+        ) : null}
 
         <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 flex-wrap items-center gap-2">
