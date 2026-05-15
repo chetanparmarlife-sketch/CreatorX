@@ -26,12 +26,12 @@ export const adminKycService = {
     return apiClient.get<Page<KYCDocument>>('/kyc/pending', { params })
   },
 
-  async approve(documentId: string): Promise<void> {
-    await apiClient.put(`/kyc/documents/${documentId}/approve`)
+  async approve(documentId: string): Promise<KYCDocument> {
+    return apiClient.put<KYCDocument>(`/kyc/documents/${documentId}/approve`)
   },
 
-  async reject(documentId: string, reason: string): Promise<void> {
-    await apiClient.put(`/kyc/documents/${documentId}/reject`, null, { params: { reason } })
+  async reject(documentId: string, reason: string): Promise<KYCDocument> {
+    return apiClient.put<KYCDocument>(`/kyc/documents/${documentId}/reject`, null, { params: { reason } })
   },
 
   async bulkReview(documentIds: string[], status: DocumentStatus, reason?: string): Promise<BulkActionResponse> {

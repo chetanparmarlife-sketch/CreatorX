@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminKycService } from '@/lib/api/admin/kyc'
-import { DocumentStatus } from '@/lib/types'
+import { DocumentStatus, KYCDocument, Page } from '@/lib/types'
 import { ToastStack } from '@/components/shared/toast'
 import { useToast } from '@/lib/hooks/useToast'
 import { Pagination } from '@/components/shared/pagination'
@@ -29,6 +29,22 @@ const getAgeHours = (submittedAt?: string) => {
   return diffMs / (1000 * 60 * 60)
 }
 
+const updateKycPage = (
+  pageData: Page<KYCDocument> | undefined,
+  updater: (items: KYCDocument[]) => KYCDocument[]
+) => {
+  if (!pageData) return pageData
+  const existingItems = (pageData as any).items ?? (pageData as any).content ?? []
+  const nextItems = updater(existingItems)
+  const total = (pageData as any).total ?? existingItems.length
+  return {
+    ...pageData,
+    items: nextItems,
+    content: (pageData as any).content ? nextItems : (pageData as any).content,
+    total: Math.max(0, total - Math.max(0, existingItems.length - nextItems.length)),
+  }
+}
+
 export default function AdminKycPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
@@ -43,30 +59,106 @@ export default function AdminKycPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number; requested: number } | null>(null)
+  const [pendingIds, setPendingIds] = useState<Record<string, boolean>>({})
   const { toasts, pushToast, dismissToast } = useToast()
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-kyc-pending', page, sortDir],
     queryFn: () => adminKycService.listPending({ page, size: 20, sortDir }),
+    staleTime: 30_000,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
   })
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => adminKycService.approve(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-kyc-pending'] })
+      const previousPages = queryClient.getQueriesData<Page<KYCDocument>>({ queryKey: ['admin-kyc-pending'] })
+      const previousPreview = previewDoc
+      const previousReview = reviewingDoc
+      const previousSelected = selected
+      setPendingIds((prev) => ({ ...prev, [id]: true }))
+      setSelected((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setPreviewDoc((prev: any) => (prev?.id === id ? null : prev))
+      setReviewingDoc((prev: any) => (prev?.id === id ? null : prev))
+      queryClient.setQueriesData<Page<KYCDocument>>(
+        { queryKey: ['admin-kyc-pending'] },
+        (old) => updateKycPage(old, (items) => items.filter((item: any) => item.id !== id))
+      )
+      return { previousPages, previousPreview, previousReview, previousSelected, id }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-pending'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-workspace-summary'] })
       pushToast('KYC approved', 'success')
     },
-    onError: () => pushToast('KYC approval failed', 'error'),
+    onError: (_error, _id, context) => {
+      context?.previousPages?.forEach(([queryKey, pageData]) => {
+        queryClient.setQueryData(queryKey, pageData)
+      })
+      setPreviewDoc(context?.previousPreview ?? null)
+      setReviewingDoc(context?.previousReview ?? null)
+      setSelected(context?.previousSelected ?? {})
+      pushToast('KYC approval failed', 'error')
+    },
+    onSettled: (_data, _error, id) => {
+      setPendingIds((prev) => {
+        const next = { ...prev }
+        if (id) delete next[id]
+        return next
+      })
+    },
   })
 
   const rejectMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       adminKycService.reject(id, reason),
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-kyc-pending'] })
+      const previousPages = queryClient.getQueriesData<Page<KYCDocument>>({ queryKey: ['admin-kyc-pending'] })
+      const previousPreview = previewDoc
+      const previousReview = reviewingDoc
+      const previousSelected = selected
+      setPendingIds((prev) => ({ ...prev, [id]: true }))
+      setSelected((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setPreviewDoc((prev: any) => (prev?.id === id ? null : prev))
+      setReviewingDoc((prev: any) => (prev?.id === id ? null : prev))
+      queryClient.setQueriesData<Page<KYCDocument>>(
+        { queryKey: ['admin-kyc-pending'] },
+        (old) => updateKycPage(old, (items) => items.filter((item: any) => item.id !== id))
+      )
+      return { previousPages, previousPreview, previousReview, previousSelected, id }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-pending'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-workspace-summary'] })
       pushToast('KYC rejected', 'success')
     },
-    onError: () => pushToast('KYC rejection failed', 'error'),
+    onError: (_error, _variables, context) => {
+      context?.previousPages?.forEach(([queryKey, pageData]) => {
+        queryClient.setQueryData(queryKey, pageData)
+      })
+      setPreviewDoc(context?.previousPreview ?? null)
+      setReviewingDoc(context?.previousReview ?? null)
+      setSelected(context?.previousSelected ?? {})
+      pushToast('KYC rejection failed', 'error')
+    },
+    onSettled: (_data, _error, variables) => {
+      setPendingIds((prev) => {
+        const next = { ...prev }
+        if (variables?.id) delete next[variables.id]
+        return next
+      })
+    },
   })
 
   const bulkMutation = useMutation({
@@ -76,6 +168,23 @@ export default function AdminKycPage() {
         status,
         reason
       ),
+    onMutate: async ({ status }) => {
+      const ids = Object.keys(selected).filter((key) => selected[key])
+      if (ids.length === 0) return { ids, previousPages: [] }
+      await queryClient.cancelQueries({ queryKey: ['admin-kyc-pending'] })
+      const previousPages = queryClient.getQueriesData<Page<KYCDocument>>({ queryKey: ['admin-kyc-pending'] })
+      setPendingIds((prev) =>
+        ids.reduce((acc, id) => ({ ...acc, [id]: true }), prev)
+      )
+      if (status === DocumentStatus.APPROVED || status === DocumentStatus.REJECTED) {
+        setPreviewDoc((prev: any) => (prev && ids.includes(prev.id) ? null : prev))
+        queryClient.setQueriesData<Page<KYCDocument>>(
+          { queryKey: ['admin-kyc-pending'] },
+          (old) => updateKycPage(old, (items) => items.filter((item: any) => !ids.includes(item.id)))
+        )
+      }
+      return { ids, previousPages }
+    },
     onSuccess: (result) => {
       setSelected({})
       setBulkReason('')
@@ -85,9 +194,24 @@ export default function AdminKycPage() {
         failed: result.failed,
       })
       queryClient.invalidateQueries({ queryKey: ['admin-kyc-pending'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-workspace-summary'] })
       pushToast(`Bulk review completed: ${result.succeeded}/${result.requested} updated`, result.failed ? 'error' : 'success')
     },
-    onError: () => pushToast('Bulk review failed', 'error'),
+    onError: (_error, _variables, context) => {
+      context?.previousPages?.forEach(([queryKey, pageData]) => {
+        queryClient.setQueryData(queryKey, pageData)
+      })
+      pushToast('Bulk review failed', 'error')
+    },
+    onSettled: (_data, _error, _variables, context) => {
+      setPendingIds((prev) => {
+        const next = { ...prev }
+        context?.ids?.forEach((id) => {
+          delete next[id]
+        })
+        return next
+      })
+    },
   })
 
   const items = (data as any)?.items ?? (data as any)?.content ?? []
@@ -194,17 +318,17 @@ export default function AdminKycPage() {
           />
           <button
             className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white"
-            disabled={!selectedCount}
+            disabled={!selectedCount || bulkMutation.isPending}
             onClick={() => bulkMutation.mutate({ status: DocumentStatus.APPROVED })}
           >
-            Approve Selected
+            {bulkMutation.isPending ? 'Updating...' : 'Approve Selected'}
           </button>
           <button
             className="h-10 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-600"
-            disabled={!selectedCount}
+            disabled={!selectedCount || bulkMutation.isPending}
             onClick={() => bulkMutation.mutate({ status: DocumentStatus.REJECTED, reason: bulkReason })}
           >
-            Reject Selected
+            {bulkMutation.isPending ? 'Updating...' : 'Reject Selected'}
           </button>
         </ActionBar>
 
@@ -303,16 +427,21 @@ export default function AdminKycPage() {
                   </td>
                 </tr>
               ) : (
-                filteredItems.map((doc: any) => (
-                  <tr
-                    key={doc.id}
-                    className={`border-t border-slate-100 cursor-pointer ${previewDoc?.id === doc.id ? 'bg-slate-50' : ''}`}
-                    onClick={() => setPreviewDoc(doc)}
-                  >
+                filteredItems.map((doc: any) => {
+                  const isPending = !!pendingIds[doc.id]
+                  return (
+                    <tr
+                      key={doc.id}
+                      className={`border-t border-slate-100 cursor-pointer ${previewDoc?.id === doc.id ? 'bg-slate-50' : ''} ${isPending ? 'opacity-60' : ''}`}
+                      onClick={() => {
+                        if (!isPending) setPreviewDoc(doc)
+                      }}
+                    >
                     <td className="py-3 pr-4">
                       <input
                         type="checkbox"
                         checked={!!selected[doc.id]}
+                        disabled={isPending}
                         onChange={(event) =>
                           setSelected((prev) => ({ ...prev, [doc.id]: event.target.checked }))
                         }
@@ -350,6 +479,13 @@ export default function AdminKycPage() {
                     </td>
                     <td className="py-3 pr-4">
                       {(() => {
+                        if (isPending) {
+                          return (
+                            <StatusChip tone="pending" size="compact">
+                              Updating
+                            </StatusChip>
+                          )
+                        }
                         const badge = getSlaBadge(doc.submittedAt)
                         return (
                           <StatusChip
@@ -369,6 +505,7 @@ export default function AdminKycPage() {
                             event.stopPropagation()
                             openReview(doc)
                           }}
+                          disabled={isPending}
                         >
                           Review
                         </button>
@@ -378,8 +515,9 @@ export default function AdminKycPage() {
                             event.stopPropagation()
                             approveMutation.mutate(doc.id)
                           }}
+                          disabled={isPending}
                         >
-                          Approve
+                          {isPending ? 'Updating...' : 'Approve'}
                         </button>
                         <button
                           className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600"
@@ -388,13 +526,15 @@ export default function AdminKycPage() {
                             setRejectingId(doc.id)
                             setRejectReason('')
                           }}
+                          disabled={isPending}
                         >
                           Reject
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -428,8 +568,9 @@ export default function AdminKycPage() {
                   <button
                     className="h-9 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white"
                     onClick={() => approveMutation.mutate(previewDoc.id)}
+                    disabled={!!pendingIds[previewDoc.id]}
                   >
-                    Approve
+                    {pendingIds[previewDoc.id] ? 'Updating...' : 'Approve'}
                   </button>
                   <button
                     className="h-9 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600"
@@ -437,12 +578,14 @@ export default function AdminKycPage() {
                       setRejectingId(previewDoc.id)
                       setRejectReason('')
                     }}
+                    disabled={!!pendingIds[previewDoc.id]}
                   >
                     Reject
                   </button>
                   <button
                     className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700"
                     onClick={() => openReview(previewDoc)}
+                    disabled={!!pendingIds[previewDoc.id]}
                   >
                     Open review
                   </button>
