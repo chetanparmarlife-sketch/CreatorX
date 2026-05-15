@@ -12,6 +12,7 @@ import {
   ForgotPasswordRequest,
 } from '../types';
 import { STORAGE_KEYS } from '@/src/config/env';
+import { AUTH_CONFIG } from '@/src/config/auth';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '@/src/lib/secureStore';
 
 export const authService = {
@@ -70,7 +71,12 @@ export const authService = {
       // Clear local storage regardless of API call result
       await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
       await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
-      await AsyncStorage.multiRemove([STORAGE_KEYS.USER]);
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.USER,
+        AUTH_CONFIG.tokenKey,
+        AUTH_CONFIG.refreshTokenKey,
+        AUTH_CONFIG.userKey,
+      ]);
     }
   },
 

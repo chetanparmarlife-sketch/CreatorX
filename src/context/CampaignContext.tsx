@@ -319,6 +319,9 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
             } catch (err) {
                 const apiError = handleAPIError(err);
                 runIfMounted(() => setCampaignError(apiError.message));
+                if (isNetworkError(apiError)) {
+                    return getCampaignById(id) ?? null;
+                }
                 return null;
             }
         },
@@ -419,6 +422,30 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
      */
     const applyCampaign = useCallback(
         async (campaignId: string, applicationData: ApplicationFormData) => {
+            const previousApplications = applications;
+            const previousCampaigns = campaigns;
+            const optimisticApplication: CampaignApplication = {
+                id: `optimistic-${campaignId}-${Date.now()}`,
+                campaignId,
+                creatorId: '',
+                pitch: applicationData.pitch,
+                expectedTimeline: applicationData.expectedTimeline,
+                extraDetails: applicationData.extraDetails,
+                status: 'APPLIED',
+                submittedAt: new Date().toISOString(),
+            };
+
+            runIfMounted(() => {
+                setApplications((prev) => [optimisticApplication, ...prev]);
+                setCampaigns((prev) =>
+                    prev.map((c) =>
+                        c.id === campaignId
+                            ? { ...c, userState: 'APPLIED', applicants: (c.applicants || 0) + 1 }
+                            : c
+                    )
+                );
+            });
+
             try {
                 // Removed mock application creation; applications now always go through the backend API.
                 const request: ApplicationRequest = {
@@ -431,25 +458,28 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
                 const apiApplication = await applicationService.submitApplication(request);
                 const adapted = adaptApplication(apiApplication);
 
-                runIfMounted(() => setApplications((prev) => [adapted, ...prev]));
-
-                // Update local campaign state after the backend accepts the real application.
-                runIfMounted(() =>
-                    setCampaigns((prev) =>
-                        prev.map((c) =>
-                            c.id === campaignId
-                                ? { ...c, userState: 'APPLIED', applicants: (c.applicants || 0) + 1 }
-                                : c
+                runIfMounted(() => {
+                    setApplications((prev) =>
+                        prev.map((application) =>
+                            application.id === optimisticApplication.id ? adapted : application
                         )
-                    )
+                    );
+                });
+                await AsyncStorage.setItem(
+                    STORAGE_KEYS.APPLICATIONS,
+                    JSON.stringify([adapted, ...previousApplications])
                 );
             } catch (err) {
                 const apiError = handleAPIError(err);
-                runIfMounted(() => setCampaignError(apiError.message));
+                runIfMounted(() => {
+                    setApplications(previousApplications);
+                    setCampaigns(previousCampaigns);
+                    setCampaignError(apiError.message);
+                });
                 throw apiError;
             }
         },
-        [runIfMounted]
+        [applications, campaigns, runIfMounted]
     );
 
     /**
@@ -491,10 +521,23 @@ export function CampaignProvider({ children }: { children: ReactNode }) {
                 const result = await applicationService.getApplications(0, 100);
                 const adapted = result.items.map(adaptApplication);
                 runIfMounted(() => setApplications(adapted));
+                await AsyncStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(adapted));
             }
         } catch (err) {
             const apiError = handleAPIError(err);
-            runIfMounted(() => setCampaignError(apiError.message));
+            if (isNetworkError(apiError)) {
+                const appsRaw = await AsyncStorage.getItem(STORAGE_KEYS.APPLICATIONS);
+                if (appsRaw) {
+                    runIfMounted(() => setApplications(safeParseJSON<CampaignApplication[]>(appsRaw, [])));
+                }
+            }
+            runIfMounted(() =>
+                setCampaignError(
+                    isNetworkError(apiError)
+                        ? 'You appear offline. Showing cached applications where available.'
+                        : apiError.message
+                )
+            );
         } finally {
             runIfMounted(() => setLoadingApplications(false));
         }
