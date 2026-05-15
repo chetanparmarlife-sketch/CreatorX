@@ -181,18 +181,7 @@ const campaignSchema = z
       path: ['applicationDeadline'],
     }
   )
-  .refine(
-    (data) => {
-      if (!data.deliverables?.length) return true
-      return data.deliverables.every(
-        (d) => d.dueDate >= data.startDate && d.dueDate <= data.endDate
-      )
-    },
-    {
-      message: 'All deliverable due dates must fall within the campaign start and end dates',
-      path: ['deliverables'],
-    }
-  )
+
 
 type CampaignFormValues = z.infer<typeof campaignSchema>
 
@@ -267,6 +256,27 @@ export default function NewCampaignPage() {
   const watchDeliverables = form.watch('deliverables')
   const watchRequirements = form.watch('requirements')
   const budgetGuidance = watchPlatform ? budgetGuidanceByPlatform[watchPlatform] : null
+
+  // Auto-clamp deliverable due dates when start date changes
+  const handleStartDateChange = (date: Date | undefined) => {
+    form.setValue('startDate', date as Date)
+    if (!date) return
+    const deliverables = form.getValues('deliverables') ?? []
+    deliverables.forEach((d, i) => {
+      if (d.dueDate && d.dueDate < date) {
+        form.setValue(`deliverables.${i}.dueDate`, date)
+      }
+    })
+  }
+
+  // Check if any deliverable due dates are out of range (for warning banner)
+  const deliverableDateWarnings = (() => {
+    if (!watchStartDate || !watchEndDate || !watchDeliverables?.length) return []
+    return watchDeliverables
+      .map((d, i) => ({ d, i }))
+      .filter(({ d }) => d.dueDate && (d.dueDate < watchStartDate || d.dueDate > watchEndDate))
+      .map(({ d, i }) => `Deliverable ${i + 1} "${d.title || 'Untitled'}" due date is outside the campaign window.`)
+  })()
   const checklistItems = [
     {
       label: 'Title and description are clear',
@@ -1029,6 +1039,25 @@ export default function NewCampaignPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {deliverableDateWarnings.length > 0 && (
+                    <Alert variant="destructive" className="mb-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Deliverable date conflict</AlertTitle>
+                      <AlertDescription>
+                        <ul className="mt-1 space-y-1 text-sm list-disc pl-4">
+                          {deliverableDateWarnings.map((msg, i) => <li key={i}>{msg}</li>)}
+                        </ul>
+                        <button
+                          type="button"
+                          className="mt-2 text-sm underline font-medium"
+                          onClick={() => setCurrentStep(2)}
+                        >
+                          ← Go back to fix deliverable dates
+                        </button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
@@ -1039,7 +1068,7 @@ export default function NewCampaignPage() {
                           <FormControl>
                             <DatePicker
                               date={field.value}
-                              onSelect={field.onChange}
+                              onSelect={handleStartDateChange}
                               placeholder="Select start date"
                             />
                           </FormControl>
